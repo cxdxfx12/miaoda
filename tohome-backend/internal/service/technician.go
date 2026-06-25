@@ -284,9 +284,9 @@ func (s *TalentService) AdminGetDetail(ctx context.Context, id int64) (*model.Ta
 
 // AdminCreateTalentRequest 管理员创建达人请求
 type AdminCreateTalentRequest struct {
-	RealName         string   `json:"real_name" binding:"required"`
-	Phone            string   `json:"phone" binding:"required"`
-	Gender           int      `json:"gender" binding:"required"`
+	RealName         string   `json:"real_name"`
+	Phone            string   `json:"phone"`
+	Gender           int      `json:"gender"`
 	Birthday         string   `json:"birthday"`
 	IDCard           string   `json:"id_card"`
 	Avatar           string   `json:"avatar"`

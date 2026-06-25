@@ -135,6 +135,10 @@ func (h *AdminHandler) AdminCreateTalent(c *gin.Context) {
 		response.ParamError(c, "参数错误: "+err.Error())
 		return
 	}
+	if req.RealName == "" || req.Phone == "" {
+		response.ParamError(c, "参数错误: 姓名和手机号不能为空")
+		return
+	}
 	talent, err := h.talentSvc.AdminCreate(c.Request.Context(), &req)
 	if err != nil {
 		response.Fail(c, response.CodeBusinessError, err.Error())
