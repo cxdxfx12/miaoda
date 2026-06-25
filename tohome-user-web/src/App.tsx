@@ -1735,10 +1735,10 @@ function TalentListSection({ onSelectTalent, onBookTalent }: {
             >
               {/* ====== 左侧：头像区域（装饰性渐变框） ====== */}
               <div style={{
-                width: 120, flexShrink: 0,
+                width: 176, flexShrink: 0,
                 background: theme.grad,
                 display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                padding: '16px 10px', position: 'relative', overflow: 'hidden',
+                padding: '18px 12px', position: 'relative', overflow: 'hidden',
                 boxShadow: 'inset -4px 0 12px rgba(0,0,0,0.03)',
               }}>
                 {/* 装饰弧形 — 左上角 */}
@@ -1750,11 +1750,11 @@ function TalentListSection({ onSelectTalent, onBookTalent }: {
 
                 {/* 头像（圆形+边框） */}
                 <div style={{
-                  width: 68, height: 68, borderRadius: '50%',
-                  padding: 3,
+                  width: 136, height: 136, borderRadius: '50%',
+                  padding: 4,
                   background: 'rgba(255,255,255,0.85)',
-                  boxShadow: `0 4px 16px ${theme.ring}, 0 0 0 2px ${theme.accent}25`,
-                  marginBottom: 8,
+                  boxShadow: `0 8px 26px ${theme.ring}, 0 0 0 3px ${theme.accent}25`,
+                  marginBottom: 10,
                 }}>
                   <img src={t.avatar} alt={t.name} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover', display: 'block' }} />
                 </div>
@@ -1885,9 +1885,9 @@ function TalentDetailDrawer({ talent, services, onClose, onBook }: {
             <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
               {/* 大头像 */}
               <div style={{
-                width: 72, height: 72, borderRadius: '50%',
-                padding: 3, background: 'rgba(255,255,255,0.85)',
-                boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+                width: 144, height: 144, borderRadius: '50%',
+                padding: 4, background: 'rgba(255,255,255,0.88)',
+                boxShadow: '0 8px 30px rgba(0,0,0,0.22)',
               }}>
                 <img src={talent.avatar} alt={talent.name} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover', display: 'block' }} />
               </div>
