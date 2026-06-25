@@ -1668,8 +1668,11 @@ function TalentListSection({ onSelectTalent, onBookTalent }: {
   onBookTalent: (talentId: number, serviceId: number) => void;
 }) {
   const { data: talentsData } = useQuery({ queryKey: ['talents-nearby', 100], queryFn: () => talentApi.nearby(NEARBY_TALENT_QUERY) });
+  const { data: servicesData } = useQuery({ queryKey: ['services-for-talent-list'], queryFn: () => serviceApi.listServices({ page_size: 200 }) });
   const apiTalentsRaw = Array.isArray((talentsData as any)?.data) ? (talentsData as any).data : ((talentsData as any)?.data?.list || []);
   const allTalents = apiTalentsRaw.map(adaptApiTalent);
+  const apiServices = ((servicesData as any)?.data?.list || []).map(adaptApiService);
+  const serviceList: ServiceItem[] = apiServices.length > 0 ? apiServices : MOCK_SERVICES;
   const [sortBy, setSortBy] = useState<'rating' | 'distance' | 'orders'>('rating');
 
   const sorted = [...allTalents].sort((a, b) => {
@@ -1722,7 +1725,11 @@ function TalentListSection({ onSelectTalent, onBookTalent }: {
       <div style={{ padding: '14px 16px', paddingBottom: 100 }}>
         {sorted.map((t, idx) => {
           const theme = getTalentTheme(idx);
-          const svcNames = t.serviceIds.slice(0, 4).map(sid => MOCK_SERVICES.find(s => s.id === sid)?.name).filter(Boolean);
+          const svcNames = t.serviceIds.slice(0, 4).map(sid => serviceList.find(s => s.id === sid)?.name).filter(Boolean) as string[];
+          const displayTags = [
+            ...t.tags.filter(tag => !/^\d+$/.test(String(tag))),
+            ...svcNames,
+          ].filter((tag, index, arr) => arr.indexOf(tag) === index).slice(0, 3);
 
           return (
             <div key={t.id} onClick={() => onSelectTalent(t.id)} style={{
@@ -1804,7 +1811,7 @@ function TalentListSection({ onSelectTalent, onBookTalent }: {
 
                   {/* 标签 */}
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 6 }}>
-                    {t.tags.map((tg, i) => (
+                    {displayTags.map((tg, i) => (
                       <span key={i} style={{
                         fontSize: 10, padding: '2px 8px', borderRadius: 8,
                         background: theme.light, color: theme.accent, fontWeight: 700,
