@@ -650,14 +650,14 @@ func (s *UserService) ReplyReview(ctx context.Context, reviewID int64, reply str
 func (s *UserService) GetSystemConfigs(ctx context.Context, group string) ([]map[string]interface{}, error) {
 	db := database.Database()
 	type configRow struct {
-		Key    string `db:"key"`
-		Value  string `db:"value"`
-		Group  string `db:"group"`
-		Remark string `db:"remark"`
+		Key       string `db:"key"`
+		Value     string `db:"value"`
+		GroupName string `db:"group_name"`
+		Remark    string `db:"remark"`
 	}
 	var rows []configRow
 	err := db.SelectContext(ctx, &rows,
-		`SELECT "group", key, value, remark FROM system_configs WHERE "group" = $1`, group)
+		`SELECT group_name, key, value, COALESCE(remark, '') AS remark FROM system_configs WHERE group_name = $1`, group)
 	if err != nil {
 		return []map[string]interface{}{}, nil
 	}
@@ -666,7 +666,7 @@ func (s *UserService) GetSystemConfigs(ctx context.Context, group string) ([]map
 		results[i] = map[string]interface{}{
 			"key":    r.Key,
 			"value":  r.Value,
-			"group":  r.Group,
+			"group":  r.GroupName,
 			"remark": r.Remark,
 		}
 	}
@@ -677,9 +677,9 @@ func (s *UserService) GetSystemConfigs(ctx context.Context, group string) ([]map
 func (s *UserService) UpdateSystemConfig(ctx context.Context, group, key, value string) error {
 	db := database.Database()
 	_, err := db.ExecContext(ctx, `
-		INSERT INTO system_configs ("group", key, value, updated_at)
+		INSERT INTO system_configs (group_name, key, value, updated_at)
 		VALUES ($1, $2, $3, $4)
-		ON CONFLICT ("group", key) DO UPDATE SET value = $3, updated_at = $4`,
+		ON CONFLICT (group_name, key) DO UPDATE SET value = $3, updated_at = $4`,
 		group, key, value, time.Now())
 	return err
 }

@@ -20,8 +20,8 @@ import (
 
 // AdminHandler 管理后台处理器
 type AdminHandler struct {
-	userSvc  *service.UserService
-	orderSvc *service.OrderService
+	userSvc   *service.UserService
+	orderSvc  *service.OrderService
 	talentSvc *service.TalentService
 }
 
@@ -535,10 +535,10 @@ func (h *AdminHandler) AdminGetReviewsOverview(c *gin.Context) {
 		_ = db.GetContext(c.Request.Context(), &avgRating, `SELECT COALESCE(AVG(rating::decimal), 0) FROM reviews`)
 	}
 	response.Success(c, gin.H{
-		"total_reviews":    totalReviews,
-		"reply_rate":       fmt.Sprintf("%.1f%%", float64(repliedReviews)/float64(totalReviews+1)*100),
-		"avg_rating":       fmt.Sprintf("%.1f", avgRating),
-		"pending_reply":    totalReviews - repliedReviews,
+		"total_reviews": totalReviews,
+		"reply_rate":    fmt.Sprintf("%.1f%%", float64(repliedReviews)/float64(totalReviews+1)*100),
+		"avg_rating":    fmt.Sprintf("%.1f", avgRating),
+		"pending_reply": totalReviews - repliedReviews,
 	})
 }
 
@@ -776,6 +776,6 @@ func (h *AdminHandler) AdminDeleteService(c *gin.Context) {
 func (h *AdminHandler) AdminUpdateConfigSetting(group string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Params = gin.Params{gin.Param{Key: "group", Value: group}}
-		h.AdminUpdateConfig(c)
+		h.AdminBatchUpdateConfig(c)
 	}
 }
