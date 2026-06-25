@@ -186,6 +186,9 @@ interface TalentItem {
   orderCount: number;
   price: number;           // 该达人此服务的定价（可能覆盖服务默认价）
   serviceIds: number[];    // 该达人可提供的服务ID列表
+  serviceCity?: string;
+  currentLat?: number;
+  currentLng?: number;
   tags: string[];
   intro: string;
 }
@@ -208,6 +211,9 @@ function adaptApiTalent(raw: any): TalentItem {
     orderCount: Number(raw.service_count || raw.order_count || 0),
     price: 0,
     serviceIds: skills.map((s: any) => typeof s === 'object' ? Number(s.id) : Number(s)),
+    serviceCity: raw.service_city || raw.city || '',
+    currentLat: Number(raw.current_lat || raw.lat || 0),
+    currentLng: Number(raw.current_lng || raw.lng || 0),
     tags: tags.slice(0, 3),
     intro: raw.introduction || raw.intro || '',
   };
@@ -2047,12 +2053,12 @@ function ServiceDetailPage() {
         quantity: qtyFromList,
         appointment_time: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
         address: {
-          province: selectedTalent.city || '浙江省',
-          city: selectedTalent.city || '杭州',
+          province: selectedTalent.serviceCity ? `${selectedTalent.serviceCity}市` : '浙江省',
+          city: selectedTalent.serviceCity || '杭州',
           district: selectedTalent.distance ? '' : '西湖区',
           detail: '微信一键下单地址',
-          lat: 30.2741,
-          lng: 120.1551,
+          lat: selectedTalent.currentLat || 30.2741,
+          lng: selectedTalent.currentLng || 120.1551,
         },
         contact_name: userInfo?.nickname || '微信用户',
         contact_phone: contactPhone,
@@ -2806,7 +2812,13 @@ function OrderDetailPage() {
             <div style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 2 }}>
               <div className="flex items-center justify-between"><span>服务项目</span><span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{order.service_name}</span></div>
               <div className="flex items-center justify-between"><span>订单编号</span><span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{order.order_no}</span></div>
-              <div className="flex items-center justify-between"><span>服务金额</span><span style={{ color: '#FF6B9D', fontWeight: 700, fontSize: 17 }}>¥{order.final_amount || 0}</span></div>
+              <div className="flex items-center justify-between"><span>服务金额</span><span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>¥{Number(order.original_amount || order.final_amount || 0).toFixed(2)}</span></div>
+              <div className="flex items-center justify-between"><span>车费</span><span style={{ color: Number(order.extra_amount || 0) > 0 ? '#F59E0B' : 'var(--text-tertiary)', fontWeight: 600 }}>¥{Number(order.extra_amount || 0).toFixed(2)}</span></div>
+              <div style={{ height: 1, background: 'var(--border)', margin: '8px 0' }} />
+              <div className="flex items-center justify-between"><span style={{ color: 'var(--text-h)', fontWeight: 700 }}>合计支付</span><span style={{ color: '#FF6B9D', fontWeight: 800, fontSize: 18 }}>¥{Number(order.final_amount || 0).toFixed(2)}</span></div>
+              <div style={{ marginTop: 8, padding: '8px 10px', borderRadius: 10, background: '#FFF7ED', color: '#92400E', fontSize: 12, lineHeight: 1.5 }}>
+                车费按用户服务地址与达人实时定位计算；跨城或异常距离不会计入车费。
+              </div>
             </div>
           </div>
 

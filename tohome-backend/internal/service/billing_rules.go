@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"math"
 	"strconv"
+	"strings"
 
 	"github.com/miaoda/backend/pkg/database"
 )
@@ -16,6 +17,7 @@ type travelFeeRule struct {
 	RoundTrip  bool
 	MinFee     float64
 	FreeKM     float64
+	MaxKM      float64
 }
 
 func getConfigValue(ctx context.Context, group, key, fallback string) string {
@@ -34,17 +36,22 @@ func getTravelFeeRule(ctx context.Context) travelFeeRule {
 	price, _ := strconv.ParseFloat(getConfigValue(ctx, "travel_fee", "price_per_km", "2"), 64)
 	minFee, _ := strconv.ParseFloat(getConfigValue(ctx, "travel_fee", "min_fee", "0"), 64)
 	freeKM, _ := strconv.ParseFloat(getConfigValue(ctx, "travel_fee", "free_km", "0"), 64)
+	maxKM, _ := strconv.ParseFloat(getConfigValue(ctx, "travel_fee", "max_distance_km", "50"), 64)
 	return travelFeeRule{
 		Enabled:    getConfigValue(ctx, "travel_fee", "enabled", "1") != "0",
 		PricePerKM: price,
 		RoundTrip:  getConfigValue(ctx, "travel_fee", "round_trip", "1") != "0",
 		MinFee:     minFee,
 		FreeKM:     freeKM,
+		MaxKM:      maxKM,
 	}
 }
 
 func calculateTravelFee(distanceKM float64, rule travelFeeRule) float64 {
 	if !rule.Enabled || rule.PricePerKM <= 0 || distanceKM <= rule.FreeKM {
+		return 0
+	}
+	if rule.MaxKM > 0 && distanceKM > rule.MaxKM {
 		return 0
 	}
 	billableKM := distanceKM - rule.FreeKM
@@ -95,6 +102,29 @@ func latLngFromJSON(raw json.RawMessage) (float64, float64, bool) {
 	return lat, lng, okLat && okLng && lat != 0 && lng != 0
 }
 
+func cityFromJSON(raw json.RawMessage) string {
+	if len(raw) == 0 {
+		return ""
+	}
+	var data map[string]interface{}
+	if err := json.Unmarshal(raw, &data); err != nil {
+		return ""
+	}
+	if city, ok := data["city"].(string); ok {
+		return normalizeCity(city)
+	}
+	return ""
+}
+
+func normalizeCity(city string) string {
+	if len(city) == 0 {
+		return ""
+	}
+	city = strings.TrimSpace(city)
+	city = strings.TrimSuffix(city, "市")
+	return city
+}
+
 func computeTravelFeeForOrder(ctx context.Context, technicianID *int64, address json.RawMessage) float64 {
 	if technicianID == nil {
 		return 0
@@ -108,10 +138,14 @@ func computeTravelFeeForOrder(ctx context.Context, technicianID *int64, address 
 		return 0
 	}
 	var pos struct {
-		Lat sql.NullFloat64 `db:"current_lat"`
-		Lng sql.NullFloat64 `db:"current_lng"`
+		Lat         sql.NullFloat64 `db:"current_lat"`
+		Lng         sql.NullFloat64 `db:"current_lng"`
+		ServiceCity string          `db:"service_city"`
 	}
-	if err := db.GetContext(ctx, &pos, `SELECT current_lat, current_lng FROM technicians WHERE id = $1`, *technicianID); err != nil {
+	if err := db.GetContext(ctx, &pos, `SELECT current_lat, current_lng, service_city FROM technicians WHERE id = $1`, *technicianID); err != nil {
+		return 0
+	}
+	if addressCity := cityFromJSON(address); addressCity != "" && normalizeCity(pos.ServiceCity) != "" && addressCity != normalizeCity(pos.ServiceCity) {
 		return 0
 	}
 	if !pos.Lat.Valid || !pos.Lng.Valid {
