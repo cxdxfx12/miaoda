@@ -2814,7 +2814,13 @@ function OrderDetailPage() {
               <div className="flex items-center justify-between"><span>服务项目</span><span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{order.service_name}</span></div>
               <div className="flex items-center justify-between"><span>订单编号</span><span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{order.order_no}</span></div>
               <div className="flex items-center justify-between"><span>服务金额</span><span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>¥{Number(order.original_amount || order.final_amount || 0).toFixed(2)}</span></div>
-              <div className="flex items-center justify-between"><span>车费</span><span style={{ color: Number(order.extra_amount || 0) > 0 ? '#F59E0B' : 'var(--text-tertiary)', fontWeight: 600 }}>¥{Number(order.extra_amount || 0).toFixed(2)}</span></div>
+              <div className="flex items-center justify-between">
+                <span>车费</span>
+                <span style={{ color: Number(order.extra_amount || 0) > 0 ? '#F59E0B' : '#10B981', fontWeight: 700 }}>
+                  ¥{Number(order.extra_amount || 0).toFixed(2)}
+                  {Number(order.extra_amount || 0) === 0 && <span style={{ marginLeft: 4, fontSize: 12, fontWeight: 600 }}>本单免收</span>}
+                </span>
+              </div>
               <div style={{ height: 1, background: 'var(--border)', margin: '8px 0' }} />
               <div className="flex items-center justify-between"><span style={{ color: 'var(--text-h)', fontWeight: 700 }}>合计支付</span><span style={{ color: '#FF6B9D', fontWeight: 800, fontSize: 18 }}>¥{Number(order.final_amount || 0).toFixed(2)}</span></div>
               <div style={{ marginTop: 8, padding: '8px 10px', borderRadius: 10, background: '#FFF7ED', color: '#92400E', fontSize: 12, lineHeight: 1.5 }}>
@@ -2827,7 +2833,7 @@ function OrderDetailPage() {
             <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
               <button className="btn-outline" style={{ flex: 1, height: 48, borderRadius: 14 }} onClick={handleCancelOrder}>取消订单</button>
               <button className="btn-primary" style={{ flex: 1, height: 48, borderRadius: 14, fontSize: 16 }} onClick={handlePay} disabled={paying}>
-                {paying ? '支付处理中...' : `微信支付 ¥${order.final_amount}`}
+                {paying ? '支付处理中...' : `微信支付 ¥${Number(order.final_amount || 0).toFixed(2)}`}
               </button>
             </div>
           )}

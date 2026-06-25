@@ -48,18 +48,24 @@ func getTravelFeeRule(ctx context.Context) travelFeeRule {
 }
 
 func calculateTravelFee(distanceKM float64, rule travelFeeRule) float64 {
-	if !rule.Enabled || rule.PricePerKM <= 0 || distanceKM <= rule.FreeKM {
+	if !rule.Enabled || rule.PricePerKM <= 0 {
 		return 0
 	}
 	if rule.MaxKM > 0 && distanceKM > rule.MaxKM {
 		return 0
 	}
+	if rule.FreeKM > 0 && distanceKM <= rule.FreeKM {
+		return 0
+	}
 	billableKM := distanceKM - rule.FreeKM
+	if billableKM < 0 {
+		billableKM = 0
+	}
 	if rule.RoundTrip {
 		billableKM *= 2
 	}
 	fee := billableKM * rule.PricePerKM
-	if fee > 0 && fee < rule.MinFee {
+	if rule.MinFee > 0 && fee < rule.MinFee {
 		fee = rule.MinFee
 	}
 	return math.Round(fee*100) / 100
