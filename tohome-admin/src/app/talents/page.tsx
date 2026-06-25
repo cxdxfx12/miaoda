@@ -40,6 +40,34 @@ const workStatusStyle: Record<number, { bg: string; text: string }> = {
   2: { bg: 'bg-[#FFF4E0]', text: 'text-[#FF9800]' },
 };
 
+function isImageValue(value?: string) {
+  return !!value && (/^https?:\/\//.test(value) || value.startsWith('/uploads/'));
+}
+
+function iconText(value?: string, fallback = '✨') {
+  return value && !isImageValue(value) ? value : fallback;
+}
+
+function CategoryIcon({ value, fallback = '✨', className = 'h-5 w-5' }: { value?: string; fallback?: string; className?: string }) {
+  const [broken, setBroken] = useState(false);
+  if (isImageValue(value) && !broken) {
+    return <img src={value} alt="分类图标" className={`${className} rounded-md object-cover`} onError={() => setBroken(true)} />;
+  }
+  return <span className="text-base leading-none">{iconText(value, fallback)}</span>;
+}
+
+function ServiceThumb({ src, fallbackIcon }: { src?: string; fallbackIcon?: string }) {
+  const [broken, setBroken] = useState(false);
+  if (isImageValue(src) && !broken) {
+    return <img src={src} alt="服务图片" className="h-full w-full object-cover" onError={() => setBroken(true)} />;
+  }
+  return (
+    <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#F7F5FF] to-[#EEF2FF]">
+      <CategoryIcon value={fallbackIcon} className="h-7 w-7" />
+    </div>
+  );
+}
+
 // 达人等级根据 service_count 推算
 function getLevel(count: number): { label: string; color: string } {
   if (count >= 1000) return { label: '专家', color: 'bg-gradient-to-r from-[#FFB84D] to-[#FFC97A] text-white' };
@@ -846,7 +874,7 @@ export default function TechniciansPage() {
                   ) : serviceGroups.map(group => (
                     <div key={group.categoryId}>
                       <div className="mb-2 flex items-center gap-2">
-                        <span className="text-base">{group.category?.icon || '✨'}</span>
+                        <CategoryIcon value={group.category?.icon} className="h-5 w-5" />
                         <span className="text-sm font-semibold text-[#1F2937]">{group.category?.name || '未分类服务'}</span>
                         <span className="text-xs text-gray-400">{group.items.length} 项</span>
                       </div>
@@ -867,11 +895,10 @@ export default function TechniciansPage() {
                             >
                               <div className="flex items-start gap-3">
                                 <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-[#F5F7FA]">
-                                  {service.cover_image ? (
-                                    <img src={service.cover_image} alt={service.name} className="h-full w-full object-cover" />
-                                  ) : (
-                                    <div className="flex h-full w-full items-center justify-center text-lg">{group.category?.icon || '✨'}</div>
-                                  )}
+                                  <ServiceThumb
+                                    src={service.cover_image || (isImageValue(group.category?.icon) ? group.category?.icon : '')}
+                                    fallbackIcon={group.category?.icon}
+                                  />
                                 </div>
                                 <div className="min-w-0 flex-1">
                                   <div className={`truncate text-sm font-semibold ${checked ? 'text-[#6B7FD7]' : 'text-[#1F2937]'}`}>{service.name}</div>
