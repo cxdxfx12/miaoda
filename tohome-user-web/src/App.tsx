@@ -100,7 +100,28 @@ const MOCK_SERVICES: ServiceItem[] = [
   { id: 404, name: '经典观影', category: 'cinema', price: 128, icon: '🎞️', desc: '经典影片重温，专业解说陪伴，解读电影背后的故事与美学', tags: ['文艺','影评'], duration: '2小时', rating: 4.7, orderCount: 289 },
 ];
 
-const NEARBY_TALENT_QUERY = { lat: 39.9042, lng: 116.4074, radius: 5000, limit: 100 };
+const DEFAULT_USER_LOCATION = { lat: 39.9042, lng: 116.4074 };
+const NEARBY_TALENT_QUERY = { ...DEFAULT_USER_LOCATION, radius: 5000, limit: 100 };
+
+function useNearbyTalentQuery() {
+  const [location, setLocation] = useState(DEFAULT_USER_LOCATION);
+
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        setLocation({
+          lat: Number(pos.coords.latitude.toFixed(6)),
+          lng: Number(pos.coords.longitude.toFixed(6)),
+        });
+      },
+      () => {},
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 },
+    );
+  }, []);
+
+  return { ...location, radius: 5000, limit: 100 };
+}
 
 function getServicesByCategory(cat: string | null): ServiceItem[] {
   if (!cat) return MOCK_SERVICES;
@@ -715,9 +736,10 @@ function OrderTrackerBar() {
    =================================================================== */
 function HomePage() {
   const nav = useNavigate();
+  const nearbyQuery = useNearbyTalentQuery();
   const { data: cats, isLoading: catsLoading } = useQuery({ queryKey: ['categories'], queryFn: () => serviceApi.listCategories() });
   const { data: svcs, isLoading: svcsLoading } = useQuery({ queryKey: ['services'], queryFn: () => serviceApi.listServices() });
-  const { data: talents, isLoading: talentsLoading } = useQuery({ queryKey: ['talents-nearby', 100], queryFn: () => talentApi.nearby(NEARBY_TALENT_QUERY) });
+  const { data: talents, isLoading: talentsLoading } = useQuery({ queryKey: ['talents-nearby', nearbyQuery.lat, nearbyQuery.lng], queryFn: () => talentApi.nearby(nearbyQuery) });
   const { data: bannersData } = useQuery({ queryKey: ['banners'], queryFn: () => api.get('/banners') });
   const categories = (cats as any)?.data || [];
   const categoryIdByKey: Record<string, number> = { leisure: 1, entertainment: 2, massage: 3, cinema: 4 };
@@ -1192,11 +1214,12 @@ function ServiceListPage() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedItems, setSelectedItems] = useState<Record<number, number>>({});
   const [detailTalentId, setDetailTalentId] = useState<number | null>(null);
+  const nearbyQuery = useNearbyTalentQuery();
 
   // 获取所有服务数据
   const { data, isLoading } = useQuery({ queryKey: ['services-all'], queryFn: () => serviceApi.listServices() });
   const { data: serviceCatsData } = useQuery({ queryKey: ['service-categories-for-services-page'], queryFn: () => serviceApi.listCategories() });
-  const { data: talentsData } = useQuery({ queryKey: ['talents-nearby', 100], queryFn: () => talentApi.nearby(NEARBY_TALENT_QUERY) });
+  const { data: talentsData } = useQuery({ queryKey: ['talents-nearby', nearbyQuery.lat, nearbyQuery.lng], queryFn: () => talentApi.nearby(nearbyQuery) });
   const apiList = ((data as any)?.data?.list || []).map(adaptApiService);
   const apiCategories = Array.isArray((serviceCatsData as any)?.data) ? (serviceCatsData as any).data : [];
   const categoryIdByKey: Record<string, number> = { leisure: 1, entertainment: 2, massage: 3, cinema: 4 };
@@ -1666,13 +1689,14 @@ function TalentListSection({ onSelectTalent, onBookTalent }: {
   onSelectTalent: (id: number) => void;
   onBookTalent: (talentId: number, serviceId: number) => void;
 }) {
-  const { data: talentsData } = useQuery({ queryKey: ['talents-nearby', 100], queryFn: () => talentApi.nearby(NEARBY_TALENT_QUERY) });
+  const nearbyQuery = useNearbyTalentQuery();
+  const { data: talentsData } = useQuery({ queryKey: ['talents-nearby', nearbyQuery.lat, nearbyQuery.lng], queryFn: () => talentApi.nearby(nearbyQuery) });
   const { data: servicesData } = useQuery({ queryKey: ['services-for-talent-list'], queryFn: () => serviceApi.listServices({ page_size: 200 }) });
   const apiTalentsRaw = Array.isArray((talentsData as any)?.data) ? (talentsData as any).data : ((talentsData as any)?.data?.list || []);
   const allTalents = apiTalentsRaw.map(adaptApiTalent);
   const apiServices = ((servicesData as any)?.data?.list || []).map(adaptApiService);
   const serviceList: ServiceItem[] = apiServices.length > 0 ? apiServices : MOCK_SERVICES;
-  const [sortBy, setSortBy] = useState<'rating' | 'distance' | 'orders'>('rating');
+  const [sortBy, setSortBy] = useState<'rating' | 'distance' | 'orders'>('distance');
 
   const sorted = [...allTalents].sort((a, b) => {
     if (sortBy === 'rating') return b.rating - a.rating;
@@ -1984,9 +2008,10 @@ function ServiceDetailPage() {
   const id = Number(params.get('id'));
   const talentId = Number(params.get('talentId')) || 0;
   const rawQtyFromList = Math.max(1, Number(params.get('qty')) || 1); // 从列表页传来的数量
+  const nearbyQuery = useNearbyTalentQuery();
   const { data, isLoading } = useQuery({ queryKey: ['service', id], queryFn: () => serviceApi.getServiceDetail(id), enabled: !!id });
   const { data: serviceCatsData } = useQuery({ queryKey: ['service-categories-for-detail'], queryFn: () => serviceApi.listCategories() });
-  const { data: talentsData } = useQuery({ queryKey: ['talents-nearby', 100], queryFn: () => talentApi.nearby(NEARBY_TALENT_QUERY) });
+  const { data: talentsData } = useQuery({ queryKey: ['talents-nearby', nearbyQuery.lat, nearbyQuery.lng], queryFn: () => talentApi.nearby(nearbyQuery) });
 
   // 优先 API 数据，无则查 mock
   const apiSvc = (data as any)?.data;
@@ -2367,7 +2392,8 @@ function getGenerationLabel(age: number): string {
 
 function TalentFeedPage() {
   const nav = useNavigate();
-  const { data: talentsData } = useQuery({ queryKey: ['talents-nearby', 100], queryFn: () => talentApi.nearby(NEARBY_TALENT_QUERY) });
+  const nearbyQuery = useNearbyTalentQuery();
+  const { data: talentsData } = useQuery({ queryKey: ['talents-nearby', nearbyQuery.lat, nearbyQuery.lng], queryFn: () => talentApi.nearby(nearbyQuery) });
   const { data: servicesData } = useQuery({ queryKey: ['services-for-feed'], queryFn: () => serviceApi.listServices() });
   const apiTalentsRaw = Array.isArray((talentsData as any)?.data) ? (talentsData as any).data : ((talentsData as any)?.data?.list || []);
   const allTalents = apiTalentsRaw.map(adaptApiTalent);
@@ -3374,7 +3400,8 @@ function TabBar() {
 function TalentStandalonePage() {
   const nav = useNavigate();
   const [detailTalentId, setDetailTalentId] = useState<number | null>(null);
-  const { data: talentsData } = useQuery({ queryKey: ['talents-nearby', 100], queryFn: () => talentApi.nearby(NEARBY_TALENT_QUERY) });
+  const nearbyQuery = useNearbyTalentQuery();
+  const { data: talentsData } = useQuery({ queryKey: ['talents-nearby', nearbyQuery.lat, nearbyQuery.lng], queryFn: () => talentApi.nearby(nearbyQuery) });
   const apiTalentsRaw = Array.isArray((talentsData as any)?.data) ? (talentsData as any).data : ((talentsData as any)?.data?.list || []);
   const allTalentsForPage = apiTalentsRaw.map(adaptApiTalent);
 

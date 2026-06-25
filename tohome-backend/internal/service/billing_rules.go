@@ -65,8 +65,12 @@ func calculateTravelFee(distanceKM float64, rule travelFeeRule) float64 {
 		billableKM *= 2
 	}
 	fee := billableKM * rule.PricePerKM
-	if rule.MinFee > 0 && fee < rule.MinFee {
-		fee = rule.MinFee
+	minFee := rule.MinFee
+	if rule.RoundTrip {
+		minFee *= 2
+	}
+	if minFee > 0 && fee < minFee {
+		fee = minFee
 	}
 	return math.Round(fee*100) / 100
 }
