@@ -230,6 +230,25 @@ function Avatar({ initials, src, size = 44 }: { initials: string; src?: string; 
   return <div className="avatar" style={{ width: size, height: size, fontSize: size * 0.38 }}>{initials}</div>;
 }
 
+function isImageSrc(src?: string) {
+  return !!src && (/^https?:\/\//.test(src) || src.startsWith('/uploads/') || src.startsWith('data:image/') || src.startsWith('blob:'));
+}
+
+function TalentAvatar({ src, name, disabled = false }: { src?: string; name: string; disabled?: boolean }) {
+  const [broken, setBroken] = useState(false);
+  if (isImageSrc(src) && !broken) {
+    return (
+      <img
+        src={src}
+        alt={name}
+        onError={() => setBroken(true)}
+        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', filter: disabled ? 'grayscale(1)' : 'none' }}
+      />
+    );
+  }
+  return <span style={{ fontSize: 20, fontWeight: 800, color: '#fff' }}>{name?.[0] || '达'}</span>;
+}
+
 function getTalentHeroImage(talent: TalentItem) {
   return talent.artPhotos?.[0] || talent.lifePhotos?.[0] || talent.avatar || '';
 }
@@ -2239,11 +2258,7 @@ function ServiceDetailPage() {
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: 24, position: 'relative', overflow: 'hidden',
                     }}>
-                      {t.avatar.startsWith('http') ? (
-                        <img src={t.avatar} alt={t.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      ) : (
-                        t.avatar
-                      )}
+                      <TalentAvatar src={t.avatar} name={t.name} />
                       {/* 世代标签 */}
                       <span style={{
                         position: 'absolute', bottom: 0, right: 0,
@@ -2301,11 +2316,7 @@ function ServiceDetailPage() {
                           alignItems: 'center', justifyContent: 'center',
                           fontSize: 24, filter: 'grayscale(1)', overflow: 'hidden',
                         }}>
-                          {t.avatar.startsWith('http') ? (
-                            <img src={t.avatar} alt={t.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                          ) : (
-                            t.avatar
-                          )}
+                          <TalentAvatar src={t.avatar} name={t.name} disabled />
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
