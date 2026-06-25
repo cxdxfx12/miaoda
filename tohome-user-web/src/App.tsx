@@ -454,15 +454,15 @@ function BannerCarousel({ banners: inputBanners }: { banners?: BannerData[] }) {
         onTouchEnd={handleTouchEnd}
         onClick={() => { if (banners[current]?.link_url) nav(banners[current].link_url); }}
         style={{
-          borderRadius: 20, overflow: 'hidden', position: 'relative', height: 170, cursor: 'pointer',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.15), 0 2px 8px rgba(0,0,0,0.1)',
+          borderRadius: 24, overflow: 'hidden', position: 'relative', height: 236, cursor: 'pointer',
+          boxShadow: '0 16px 42px rgba(38,18,120,0.22), 0 4px 12px rgba(0,0,0,0.12)',
         }}
       >
         {/* 底部渐变遮罩 */}
         <div style={{
           position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none',
           background: 'linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.3) 100%)',
-          borderRadius: 20,
+          borderRadius: 24,
         }} />
         {banners.map((b, i) => (
           <div key={b.id} style={{
@@ -472,7 +472,7 @@ function BannerCarousel({ banners: inputBanners }: { banners?: BannerData[] }) {
             background: b.image_url
               ? `url(${b.image_url}) center/cover no-repeat`
               : (b.theme_color || 'linear-gradient(135deg, #7C5CFC 0%, #A78BFA 100%)'),
-            display: 'flex', alignItems: 'flex-end', padding: '0 22px 20px',
+            display: 'flex', alignItems: 'flex-end', padding: '0 22px 34px',
           }}>
             {/* 装饰圆 */}
             <div style={{ position: 'absolute', top: -20, right: -20, width: 140, height: 140, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', pointerEvents: 'none' }} />
@@ -500,26 +500,40 @@ function BannerCarousel({ banners: inputBanners }: { banners?: BannerData[] }) {
             }}>{b.icon}</div>
           </div>
         ))}
-      </div>
-      {/* 分页指示器 */}
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 14 }}>
+        {/* 分页指示器 */}
+        <div style={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          bottom: 13,
+          zIndex: 4,
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          gap: 8,
+          pointerEvents: 'none',
+        }}>
         {banners.map((_, i) => (
           <button
             key={i}
-            onClick={() => setCurrent(i)}
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setCurrent(i);
+            }}
             style={{
-              width: i === current ? 24 : 8, height: 8,
-              borderRadius: 4,
+              width: i === current ? 24 : 7, height: 7,
+              borderRadius: 999,
               border: 'none',
-              background: i === current
-                ? 'linear-gradient(135deg, #7C5CFC, #A78BFA)'
-                : 'rgba(124,92,252,0.2)',
-              boxShadow: i === current ? '0 2px 10px rgba(124,92,252,0.35)' : 'none',
+              background: i === current ? '#fff' : 'rgba(255,255,255,0.48)',
+              boxShadow: i === current ? '0 3px 12px rgba(0,0,0,0.22)' : 'none',
               transition: 'all 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
               cursor: 'pointer',
+              pointerEvents: 'auto',
             }}
           />
         ))}
+        </div>
       </div>
     </div>
   );
@@ -540,7 +554,6 @@ const ORDER_STEPS = [
 function OrderTrackerBar() {
   const nav = useNavigate();
   const { isLoggedIn } = useUserStore();
-  const [searchText, setSearchText] = useState('');
 
   // 找出当前进行中的订单（status 1-3），优先显示最新的
   const activeOrder = isLoggedIn
@@ -555,44 +568,8 @@ function OrderTrackerBar() {
     return -1;
   };
 
-  const handleSearchKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && searchText.trim()) {
-      nav(`/talents?search=${encodeURIComponent(searchText.trim())}`);
-    }
-  };
-
   if (!activeOrder) {
-    // 无进行中订单，显示搜索框
-    return (
-      <div className="search-box" style={{ marginTop: 20, position: 'relative', zIndex: 2 }}>
-        <Search size={18} color="var(--primary)" style={{zIndex:1}} />
-        <input
-          className="input"
-          style={{
-            paddingLeft: 48, borderRadius: 16, height: 52,
-            border: 'none',
-            background: 'rgba(255,255,255,0.22)',
-            backdropFilter: 'blur(16px)',
-            WebkitBackdropFilter: 'blur(16px)',
-            color: '#fff', fontSize: 15,
-            boxShadow: '0 0 0 1px rgba(255,255,255,0.25), inset 0 1px 0 rgba(255,255,255,0.12)',
-            transition: 'all 0.3s',
-          }}
-          placeholder="🔍  搜索服务或达人..."
-          value={searchText}
-          onChange={e => setSearchText(e.target.value)}
-          onKeyDown={handleSearchKeyDown}
-          onFocus={(e) => {
-            e.target.style.background = 'rgba(255,255,255,0.35)';
-            e.target.style.boxShadow = '0 0 0 3px rgba(124,92,252,0.2), 0 8px 32px rgba(124,92,252,0.25)';
-          }}
-          onBlur={(e) => {
-            e.target.style.background = 'rgba(255,255,255,0.22)';
-            e.target.style.boxShadow = '0 0 0 1px rgba(255,255,255,0.25), inset 0 1px 0 rgba(255,255,255,0.12)';
-          }}
-        />
-      </div>
-    );
+    return null;
   }
 
   const currentStep = getProgressStep(activeOrder);
@@ -744,7 +721,7 @@ function HomePage() {
       {/* 顶部 - 渐变品牌头 */}
       <div style={{
         background: 'linear-gradient(180deg, #5B3AFF 0%, #7C5CFC 30%, #9B6FFF 65%, #C4B5FD 100%)',
-        padding: '0 20px 72px', position: 'relative', overflow: 'hidden'
+        padding: '0 20px 56px', position: 'relative', overflow: 'hidden'
       }}>
         {/* 装饰光晕 */}
         <div style={{ position: 'absolute', top: -60, right: -40, width: 200, height: 200, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,255,255,0.12) 0%, transparent 70%)', pointerEvents: 'none' }} />
@@ -811,10 +788,10 @@ function HomePage() {
       {/* 内容区 - 波浪曲线过渡 */}
       <div style={{
         background: 'var(--bg)', borderRadius: '24px 24px 0 0',
-        marginTop: -30, position: 'relative', zIndex: 2, paddingTop: 24,
+        marginTop: -34, position: 'relative', zIndex: 2, paddingTop: 14,
       }}>
         {/* 把手指示器 */}
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
           <div style={{
             width: 40, height: 4, borderRadius: 2,
             background: 'linear-gradient(90deg, #DDD6FE, #C4B5FD)',
