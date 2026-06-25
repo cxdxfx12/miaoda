@@ -1983,12 +1983,15 @@ function ServiceDetailPage() {
   const talentId = Number(params.get('talentId')) || 0;
   const qtyFromList = Math.max(1, Number(params.get('qty')) || 1); // 从列表页传来的数量
   const { data, isLoading } = useQuery({ queryKey: ['service', id], queryFn: () => serviceApi.getServiceDetail(id), enabled: !!id });
+  const { data: serviceCatsData } = useQuery({ queryKey: ['service-categories-for-detail'], queryFn: () => serviceApi.listCategories() });
   const { data: talentsData } = useQuery({ queryKey: ['talents-nearby', 100], queryFn: () => talentApi.nearby(NEARBY_TALENT_QUERY) });
 
   // 优先 API 数据，无则查 mock
   const apiSvc = (data as any)?.data;
+  const apiCategories = Array.isArray((serviceCatsData as any)?.data) ? (serviceCatsData as any).data : [];
+  const apiCategory = apiSvc?.category || apiCategories.find((cat: any) => Number(cat.id) === Number(apiSvc?.category_id));
   const mockSvc = MOCK_SERVICES.find(s => s.id === id);
-  const svc = apiSvc && Object.keys(apiSvc).length > 0 ? adaptApiService(apiSvc) : mockSvc;
+  const svc = apiSvc && Object.keys(apiSvc).length > 0 ? adaptApiService({ ...apiSvc, category: apiCategory }) : mockSvc;
   const cCfg = svc ? getCategoryConfig((svc as any).category) : null;
 
   // 达人列表：优先 API 数据
