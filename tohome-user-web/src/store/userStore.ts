@@ -1,0 +1,71 @@
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import { setToken, clearToken } from '../api/client';
+import { authApi } from '../api/auth';
+
+interface UserInfo {
+  id: number;
+  phone: string;
+  nickname: string;
+  avatar: string;
+  gender: number;
+  member_level: number;
+  member_points: number;
+}
+
+interface UserState {
+  token: string | null;
+  userInfo: UserInfo | null;
+  isLoggedIn: boolean;
+  loading: boolean;
+  login: (phone: string, code: string) => Promise<void>;
+  logout: () => Promise<void>;
+  setUserInfo: (info: UserInfo) => void;
+}
+
+export const useUserStore = create<UserState>()(
+  persist(
+    (set, get) => ({
+      token: null,
+      userInfo: null,
+      isLoggedIn: false,
+      loading: false,
+
+      login: async (phone, code) => {
+        set({ loading: true });
+        try {
+          const res: any = await authApi.login(phone, code);
+          setToken(res.data.token);
+          set({
+            token: res.data.token,
+            userInfo: res.data.user,
+            isLoggedIn: true,
+            loading: false,
+          });
+        } catch (err: any) {
+          const msg = err?.response?.data?.message || err?.message || '登录失败';
+          set({ loading: false });
+          throw new Error(msg);
+        }
+      },
+
+      logout: async () => {
+        try {
+          await authApi.logout();
+        } catch {}
+        clearToken();
+        set({ token: null, userInfo: null, isLoggedIn: false });
+      },
+
+      setUserInfo: (info) => set({ userInfo: info }),
+    }),
+    {
+      name: 'miaoda-user-storage',
+      partialize: (state) => ({
+        token: state.token,
+        userInfo: state.userInfo,
+        isLoggedIn: state.isLoggedIn,
+      }),
+    }
+  )
+);

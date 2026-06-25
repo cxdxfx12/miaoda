@@ -1,0 +1,88 @@
+// ProgressSteps + ProgressBar — 达人端
+import React, { useEffect, useRef } from 'react';
+import { View, Text, Animated, StyleSheet, ViewStyle } from 'react-native';
+import { colors, radius, spacing, fontSize, fontWeight } from '../theme';
+import { Ionicons } from '@expo/vector-icons';
+
+interface Step { label: string; icon?: keyof typeof Ionicons.glyphMap; }
+
+export const ProgressSteps: React.FC<{
+  steps: Step[]; currentStep: number; compact?: boolean;
+  style?: ViewStyle; activeColor?: string; inactiveColor?: string;
+}> = ({ steps, currentStep, compact = false, style, activeColor = colors.primary, inactiveColor = colors.divider }) => {
+  const progressAnim = useRef(new Animated.Value(currentStep)).current;
+
+  useEffect(() => {
+    Animated.timing(progressAnim, { toValue: currentStep, duration: 300, useNativeDriver: false }).start();
+  }, [currentStep]);
+
+  return (
+    <View style={[styles.wrapper, style]}>
+      <View style={styles.linesWrap}>
+        {steps.map((_, i) => {
+          if (i === steps.length - 1) return null;
+          const progress = progressAnim.interpolate({
+            inputRange: [i, i + 1], outputRange: ['0%', '100%'], extrapolate: 'clamp',
+          });
+          return (
+            <View key={i} style={styles.lineTrack}>
+              <Animated.View style={[styles.lineFill, { width: progress, backgroundColor: activeColor }]} />
+            </View>
+          );
+        })}
+      </View>
+      <View style={styles.dotsRow}>
+        {steps.map((s, i) => {
+          const isActive = i <= currentStep, isCurrent = i === currentStep;
+          return (
+            <View key={i} style={[styles.stepCol, compact && styles.stepColCompact]}>
+              <View style={[styles.dot, isActive && { backgroundColor: activeColor, borderColor: activeColor }, !isActive && { borderColor: inactiveColor }, isCurrent && styles.dotCurrent]}>
+                {isActive && s.icon ? <Ionicons name={s.icon} size={14} color="#FFF" />
+                  : <Text style={[styles.dotNum, isActive && { color: '#FFF' }, !isActive && { color: colors.textTertiary }]}>{i + 1}</Text>}
+              </View>
+              {!compact && <Text style={[styles.dotLabel, isCurrent && styles.dotLabelCurrent]}>{s.label}</Text>}
+            </View>
+          );
+        })}
+      </View>
+    </View>
+  );
+};
+
+export const ProgressBar: React.FC<{
+  progress: number; color?: string; backgroundColor?: string;
+  height?: number; animated?: boolean; style?: ViewStyle;
+}> = ({ progress, color = colors.primary, backgroundColor = colors.backgroundAlt, height = 6, animated = true, style }) => {
+  const anim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const v = Math.min(Math.max(progress, 0), 1);
+    if (animated) Animated.timing(anim, { toValue: v, duration: 500, useNativeDriver: false }).start();
+    else anim.setValue(v);
+  }, [progress, animated]);
+  return (
+    <View style={[styles.progressTrack, { height, backgroundColor, borderRadius: height / 2 }, style]}>
+      <Animated.View style={[styles.progressFill, {
+        height, backgroundColor: color, borderRadius: height / 2,
+        width: anim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }),
+      }]} />
+    </View>
+  );
+};
+
+const DOT_SIZE = 28;
+const styles = StyleSheet.create({
+  wrapper: { position: 'relative' },
+  linesWrap: { position: 'absolute', top: DOT_SIZE / 2 - 1.5, left: DOT_SIZE / 2, right: DOT_SIZE / 2, flexDirection: 'row' },
+  lineTrack: { flex: 1, height: 3, borderRadius: 1.5, backgroundColor: colors.divider, overflow: 'hidden', marginHorizontal: 1 },
+  lineFill: { height: '100%', borderRadius: 1.5 },
+  dotsRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  stepCol: { alignItems: 'center', width: 56 },
+  stepColCompact: { width: DOT_SIZE },
+  dot: { width: DOT_SIZE, height: DOT_SIZE, borderRadius: DOT_SIZE / 2, borderWidth: 2, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.card },
+  dotCurrent: { shadowColor: colors.primary, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4, elevation: 3 },
+  dotNum: { fontSize: fontSize.xs, fontWeight: fontWeight.bold as any },
+  dotLabel: { marginTop: spacing.xs, fontSize: fontSize.xs, color: colors.textSecondary, textAlign: 'center' },
+  dotLabelCurrent: { color: colors.textPrimary, fontWeight: fontWeight.semibold as any },
+  progressTrack: { overflow: 'hidden', width: '100%' },
+  progressFill: { position: 'absolute', left: 0, top: 0 },
+});

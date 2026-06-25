@@ -1,0 +1,30 @@
+{
+  "name": "miaoda-centrifugo",
+  "log_level": "info",
+  "log_output": ["stderr"],
+  "engine": {
+    "type": "redis",
+    "name": "redis",
+    "redis": {
+      "address": "redis:6379",
+      "password": "redis123",
+      "db": 0
+    }
+  },
+  "client": {
+    "allowed_origins": ["*"],
+    "token": {
+      "hmac_secret_key": "miaoda-centrifugo-secret-2026",
+      "user_id_property": "sub"
+    }
+  },
+  "http_api": {
+    "key": "miaoda-api-key-2026"
+  },
+  "admin": false,
+  "anonymous": false,
+  "channel_limit": 1000,
+  "history_size": 100,
+  "history_ttl": "300s",
+  "presence_ttl": "60s"
+}

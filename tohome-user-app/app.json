@@ -1,0 +1,10 @@
+{
+  "expo": {
+    "name": "miaoda-user-web",
+    "slug": "miaoda-user-web",
+    "version": "1.0.0",
+    "platforms": ["web"],
+    "orientation": "portrait",
+    "primaryColor": "#6B7FD7"
+  }
+}

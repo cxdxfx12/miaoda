@@ -1,0 +1,51 @@
+# Prometheus 监控配置
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'gateway'
+    static_configs:
+      - targets: ['gateway:8080']
+    metrics_path: /metrics
+
+  - job_name: 'user-service'
+    static_configs:
+      - targets: ['user-service:8081']
+    metrics_path: /metrics
+
+  - job_name: 'order-service'
+    static_configs:
+      - targets: ['order-service:8082']
+    metrics_path: /metrics
+
+  - job_name: 'talent-service'
+    static_configs:
+      - targets: ['talent-service:8083']
+    metrics_path: /metrics
+
+  - job_name: 'payment-service'
+    static_configs:
+      - targets: ['payment-service:8084']
+    metrics_path: /metrics
+
+  - job_name: 'dispatch-service'
+    static_configs:
+      - targets: ['dispatch-service:8085']
+    metrics_path: /metrics
+
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+
+  - job_name: 'nginx'
+    static_configs:
+      - targets: ['nginx-exporter:9113']

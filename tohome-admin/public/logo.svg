@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <defs>
+    <linearGradient id="lg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FF6B35"/>
+      <stop offset="100%" style="stop-color:#FFB703"/>
+    </linearGradient>
+    <linearGradient id="lg2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2EC4B6"/>
+      <stop offset="100%" style="stop-color:#1A9C8F"/>
+    </linearGradient>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#FF6B35" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  <!-- Location pin base -->
+  <path d="M60 8C41.22 8 26 22.22 26 39c0 18 14 35 28 63.5L60 112l6-9.5c14-28.5 28-45.5 28-63.5C94 22.22 78.78 8 60 8z" fill="url(#lg)" filter="url(#shadow)"/>
+  <!-- Inner circle -->
+  <circle cx="60" cy="39" r="18" fill="white"/>
+  <!-- Compass star inside -->
+  <path d="M60 23l4 12h12l-10 8 4 12-10-7-10 7 4-12-10-8h12z" fill="url(#lg2)"/>
+</svg>

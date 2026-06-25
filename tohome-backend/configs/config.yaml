@@ -1,0 +1,194 @@
+# 通用配置 - 喵搭达人服务平台
+app:
+  name: miaoda
+  env: dev
+  version: 1.0.0
+  debug: true
+  company: 杭州喵喵至家网络有限公司
+
+# 服务端口
+services:
+  gateway_host: 127.0.0.1
+  gateway: 8080
+  user_host: 127.0.0.1
+  user: 8081
+  order_host: 127.0.0.1
+  order: 8082
+  talent_host: 127.0.0.1
+  talent: 8083
+  payment_host: 127.0.0.1
+  payment: 8084
+  dispatch_host: 127.0.0.1
+  dispatch: 8085
+
+# 数据库配置
+database:
+  host: 127.0.0.1
+  port: 5432
+  user: tohome
+  password: tohome123
+  dbname: tohome
+  sslmode: disable
+  max_open_conns: 100
+  max_idle_conns: 20
+  conn_max_lifetime: 3600
+
+# Redis配置
+redis:
+  host: 127.0.0.1
+  port: 6379
+  password: ""
+  db: 0
+  pool_size: 100
+
+# RabbitMQ配置
+rabbitmq:
+  host: 127.0.0.1
+  port: 5672
+  user: guest
+  password: guest
+  vhost: /
+
+# JWT配置
+jwt:
+  secret: miaoda-secret-key-2024
+  expire: 7200
+  refresh_expire: 604800
+  issuer: miaoda
+
+# 日志配置
+log:
+  level: debug
+  format: json
+  output: stdout
+  file_path: logs/app.log
+
+# 第三方服务
+third_party:
+  # 高德地图
+  amap:
+    key: your-amap-key
+    secret: your-amap-secret
+    search_radius: 5000
+    cache_enabled: true
+    cache_ttl: 3600
+  
+  # 腾讯地图（备选）
+  tencent_map:
+    key: your-tencent-map-key
+  
+  # 百度地图（备选）
+  baidu_map:
+    key: your-baidu-map-key
+  
+  # 微信支付
+  wechat:
+    app_id: your-wechat-app-id
+    mch_id: your-merchant-id
+    api_key: your-api-key
+    api_v3_key: your-api-v3-key
+    private_key_path: certs/wechat_private.pem
+    notify_url: https://api.miaoda.cn/api/v1/payments/callback/wechat
+  
+  # 支付宝
+  alipay:
+    app_id: your-alipay-app-id
+    private_key: your-private-key
+    public_key: alipay-public-key
+    notify_url: https://api.miaoda.cn/api/v1/payments/callback/alipay
+    gateway_url: https://openapi.alipay.com/gateway.do
+  
+  # 短信服务
+  sms:
+    provider: aliyun  # aliyun / tencent
+    aliyun:
+      access_key_id: your-access-key-id
+      access_key_secret: your-access-secret
+      sign_name: 喵搭
+      template_code: SMS_123456789
+    tencent:
+      app_id: your-tencent-sms-app-id
+      app_key: your-tencent-sms-app-key
+      sign_name: 喵搭
+      template_id: "123456"
+    rate_limit: 60   # 发送间隔秒数
+    code_expire: 300 # 验证码有效期秒数
+  
+  # 虚拟电话服务（隐私通话）- 支持多服务商
+  virtual_phone:
+    provider: aliyun       # aliyun / tencent / cloopen / huawei / custom
+    aliyun:
+      access_key_id: your-access-key-id
+      access_key_secret: your-access-secret
+      pool_key: your-pool-key
+      city_code: "0571"
+    tencent:
+      secret_id: your-tencent-secret-id
+      secret_key: your-tencent-secret-key
+      app_id: "1400xxxxxxxx"
+      pool_id: NPxxxxxxxx
+    cloopen:
+      account_sid: aaf98f894f7xxxxxxxxxxxx
+      auth_token: your-cloopen-auth-token
+      app_id: your-cloopen-app-id
+    huawei:
+      app_key: your-huawei-app-key
+      app_secret: your-huawei-app-secret
+      domain_name: https://rtcbss.xxx.myhuaweicloud.com
+    custom:
+      provider_name: ""
+      api_endpoint: ""
+      app_key: ""
+      app_secret: ""
+    bind_expire: 3600
+    max_bind_daily: 100
+    recording_enabled: true
+    pre_call_prompt: "尊敬的用户，喵搭达人为您服务，本次通话可能被录音"
+
+  # 微信公众号/服务号（OAuth登录）
+  wechat_mp:
+    app_id: your-wechat-mp-appid
+    app_secret: your-wechat-mp-appsecret
+    token: your-token
+    encoding_aes_key: your-aes-key
+    redirect_uri: https://api.miaoda.cn/api/v1/auth/wechat/callback
+    enabled: false
+
+  # 推送服务
+  push:
+    provider: jpush  # jpush / getui / firebase
+    jpush:
+      app_key: your-jpush-app-key
+      master_secret: your-jpush-master-secret
+    getui:
+      app_id: your-getui-app-id
+      app_key: your-getui-app-key
+      master_secret: your-getui-master-secret
+
+# 平台配置
+platform:
+  commission_rate: 0.20       # 平台抽成 20%
+  min_withdraw: 100           # 最低提现金额
+  settle_cycle: "T+0"         # 结算周期: T+0 / T+1 / T+3 / T+7 / 每月15号
+  auto_withdraw: false        # 自动提现
+  withdraw_fee: 0.00          # 提现手续费
+
+# 派单配置
+dispatch:
+  match_radius: 3000          # 匹配半径（米）
+  max_concurrent_orders: 3    # 达人最大同时接单数
+  timeout_retry: 60           # 超时重试秒数
+  scan_interval: 10           # 扫描间隔秒数
+  weights:
+    distance: 40
+    rating: 30
+    completion_rate: 20
+    response_time: 10
+
+# 消息通知配置
+notification:
+  channels:
+    - order_update
+    - system_notice
+    - promotion
+    - talent_update
