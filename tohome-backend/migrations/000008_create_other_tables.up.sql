@@ -176,4 +176,4 @@ INSERT INTO roles (name, code, description, permissions) VALUES
 
 -- 插入默认管理员（密码: admin123）
 INSERT INTO admins (username, password_hash, nickname, email, role_id, status) VALUES
-('admin', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', '超级管理员', 'admin@tohome.com', 1, 1);
+('admin', '$2a$10$DYM75e5YmVeH8ERAkPdf/OthTYqed.qDFndna.9J44H1mF6.6/GBy', '超级管理员', 'admin@tohome.com', 1, 1);
