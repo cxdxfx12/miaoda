@@ -794,14 +794,9 @@ function HomePage() {
         </div>
 
         {/* 品牌 Slogan */}
-        <div style={{ position: 'relative', zIndex: 2, marginTop: 10, marginBottom: 2 }}>
-          <h1 style={{
-            color: '#fff', fontSize: 28, fontWeight: 900,
-            letterSpacing: 2, margin: 0, lineHeight: 1.2,
-            textShadow: '0 2px 12px rgba(0,0,0,0.1)',
-          }}>喵 搭</h1>
+        <div style={{ position: 'relative', zIndex: 2, marginTop: 14, marginBottom: 6 }}>
           <p style={{
-            color: 'rgba(255,255,255,0.7)', fontSize: 13, margin: '4px 0 0',
+            color: 'rgba(255,255,255,0.78)', fontSize: 13, margin: 0,
             fontWeight: 500, letterSpacing: 1,
           }}>品质生活 · 即刻陪伴</p>
         </div>
@@ -1106,6 +1101,7 @@ function HomePage() {
               ];
               const th = themes[i % 4];
               const heroImage = getTalentHeroImage(t);
+              const firstServiceId = t.serviceIds?.[0];
               return (
                 <NavLink to={`/talents`} key={t.id} className="no-underline">
                   <div style={{
@@ -1161,7 +1157,15 @@ function HomePage() {
                           }}>{tag}</span>
                         ))}
                       </div>
-                      <button onClick={(e) => { e.preventDefault(); }}
+                      <button onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (firstServiceId) {
+                          nav(`/service-detail?id=${firstServiceId}&talentId=${t.id}`);
+                        } else {
+                          nav('/talents');
+                        }
+                      }}
                         style={{
                           width: '100%', padding: '8px 0', borderRadius: 999, border: '1px solid rgba(255,255,255,0.28)', cursor: 'pointer',
                           background: `linear-gradient(135deg, ${th.primary}, ${th.primary}CC)`,
