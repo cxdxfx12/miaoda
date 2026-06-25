@@ -1991,6 +1991,7 @@ function ServiceDetailPage() {
   const minOrderQty = getMinimumOrderQty(Number(price));
   const qtyFromList = Math.max(rawQtyFromList, minOrderQty);
   const mustSelectTwo = minOrderQty > 1;
+  const serviceQtyName = qtyFromList > 1 ? `${name}*${qtyFromList}` : name;
   const originalPrice = (svc as any)?.original_price ?? (svc as any)?.originalPrice ?? null;
   const rating = (svc as any)?.rating || 4.7;
   const orderCount = (svc as any)?.order_count ?? (svc as any)?.orderCount ?? 0;
@@ -2028,7 +2029,7 @@ function ServiceDetailPage() {
     const finalAmount = price * qtyFromList;
     const newOrder = {
       id: Date.now(),
-      service_name: name + (qtyFromList > 1 ? ` ×${qtyFromList}` : ''),
+      service_name: serviceQtyName,
       talent_name: selectedTalent.name,
       talent_phone: '138****' + String(Math.floor(Math.random()*9000+1000)),
       status: 0,
@@ -2097,8 +2098,7 @@ function ServiceDetailPage() {
               <span style={{ fontSize: 32, fontWeight: 800, color: '#FF6B9D' }}>¥{price * qtyFromList}</span>
               {qtyFromList > 1 && (
                 <>
-                  <span style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>(¥{price} × {qtyFromList})</span>
-                  <span className="tag tag-accent" style={{ fontSize: 11 }}>共{qtyFromList}个</span>
+                  <span style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>{serviceQtyName}</span>
                 </>
               )}
               {mustSelectTwo && (
@@ -2142,7 +2142,7 @@ function ServiceDetailPage() {
               <MessageCircle size={18} /> 咨询客服
             </button>
             <button className="btn-primary" style={{ flex: 1, height: 48, borderRadius: 14, fontSize: 16 }} onClick={handleBook}>
-              ¥{price * qtyFromList}{qtyFromList > 1 ? ` ×${qtyFromList}` : ''} {selectedTalent ? `预约 ${selectedTalent.name}` : '立即预约'}
+              {serviceQtyName} · ¥{price * qtyFromList} {selectedTalent ? `预约 ${selectedTalent.name}` : '立即预约'}
             </button>
           </div>
         </div>}
