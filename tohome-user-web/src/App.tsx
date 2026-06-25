@@ -349,11 +349,12 @@ function LoginPage() {
       <div className="animate-fade-up" style={{ textAlign: 'center', marginBottom: 28, zIndex: 1 }}>
         <div style={{
           width: 72, height: 72, margin: '0 auto 16px',
-          borderRadius: 22, background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(10px)',
+          borderRadius: 22, background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(10px)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: '0 8px 32px rgba(124,92,252,0.3)'
+          boxShadow: '0 8px 32px rgba(124,92,252,0.3)', overflow: 'hidden',
+          border: '1px solid rgba(255,255,255,0.45)'
         }}>
-          <span style={{ fontSize: 36 }}>🐱</span>
+          <img src="/logo.png" alt="喵搭" style={{ width: 64, height: 64, objectFit: 'contain' }} />
         </div>
         <div style={{ fontSize: 28, fontWeight: 800, color: '#fff', letterSpacing: 2, textShadow: '0 2px 8px rgba(124,92,252,0.3)' }}>喵 搭</div>
         <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.8)', marginTop: 6, letterSpacing: 1 }}>您身边的陪伴服务平台</div>
