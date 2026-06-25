@@ -14,7 +14,6 @@ import {
   Tags,
   MapPin,
   MessageSquare,
-  ShieldCheck,
   CreditCard,
   Globe,
   Smartphone,
@@ -51,8 +50,8 @@ export function Sidebar() {
   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-60 border-r border-[#EEF1F6] bg-white">
       <div className="flex h-16 items-center gap-2 border-b border-[#EEF1F6] px-5">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg gradient-primary shadow-glow">
-          <ShieldCheck className="h-5 w-5 text-white" strokeWidth={2.5} />
+        <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border border-[#EEF1F6] bg-white shadow-glow">
+          <img src="/logo.png" alt="喵搭" className="h-8 w-8 object-contain" />
         </div>
         <div>
           <div className="text-base font-bold text-[#1F2937]">喵搭</div>

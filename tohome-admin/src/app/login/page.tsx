@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ShieldCheck, Lock, User as UserIcon, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Lock, User as UserIcon, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -63,8 +63,8 @@ export default function LoginPage() {
       <div className="relative w-full max-w-md">
         {/* Logo */}
         <div className="mb-8 flex flex-col items-center">
-          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl gradient-primary shadow-glow">
-            <ShieldCheck className="h-9 w-9 text-white" strokeWidth={2.5} />
+          <div className="mb-4 flex h-20 w-20 items-center justify-center overflow-hidden rounded-2xl border border-[#EEF1F6] bg-white shadow-glow">
+            <img src="/logo.png" alt="喵搭" className="h-16 w-16 object-contain" />
           </div>
           <h1 className="text-2xl font-bold text-[#1F2937]">喵搭</h1>
           <p className="mt-1 text-sm text-gray-500">管理后台 · 商家工作台</p>

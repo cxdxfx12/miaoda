@@ -758,11 +758,13 @@ function HomePage() {
           <div className="flex items-center gap-3">
             <div style={{
               width: 42, height: 42, borderRadius: 14,
-              background: 'linear-gradient(135deg, rgba(255,255,255,0.25), rgba(255,255,255,0.08))',
+              background: 'rgba(255,255,255,0.92)',
               backdropFilter: 'blur(10px)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 20, boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
-            }}>🐱</div>
+              boxShadow: '0 2px 12px rgba(0,0,0,0.08)', overflow: 'hidden',
+            }}>
+              <img src="/logo.png" alt="喵搭" style={{ width: 34, height: 34, objectFit: 'contain' }} />
+            </div>
             <div>
               <div className="flex items-center gap-1" style={{ cursor: 'pointer' }}>
                 <MapPin size={15} color="rgba(255,255,255,0.9)" />
@@ -4157,7 +4159,9 @@ function AboutPage() {
       <div style={{ padding: '16px' }}>
         {/* Logo & 信息 */}
         <div style={{ background: '#fff', borderRadius: 24, padding: '40px 24px', textAlign: 'center', marginBottom: 14, boxShadow: '0 4px 16px rgba(0,0,0,0.04)' }}>
-          <div style={{ width: 80, height: 80, borderRadius: 24, margin: '0 auto 16px', background: 'linear-gradient(135deg, #7C5CFC, #A78BFA)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 38, boxShadow: '0 8px 24px rgba(124,92,252,0.3)' }}>🐱</div>
+          <div style={{ width: 92, height: 92, borderRadius: 26, margin: '0 auto 16px', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 24px rgba(124,92,252,0.18)', overflow: 'hidden', border: '1px solid #F1EEF8' }}>
+            <img src="/logo.png" alt="喵搭" style={{ width: 78, height: 78, objectFit: 'contain' }} />
+          </div>
           <div style={{ fontWeight: 900, fontSize: 24, color: '#1a1a2e', letterSpacing: 1 }}>喵 搭</div>
           <div style={{ fontSize: 13, color: '#999', marginTop: 4 }}>MiaoDa · 您身边的陪伴服务平台</div>
           <div style={{
