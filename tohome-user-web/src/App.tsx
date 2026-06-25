@@ -3011,10 +3011,13 @@ function ProfilePage() {
           }}>
             <div style={{
               width: 88, height: 88, margin: '0 auto 18px', borderRadius: 28,
-              background: 'linear-gradient(160deg, #7C5CFC, #A78BFA)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40,
-              boxShadow: '0 8px 24px rgba(124,92,252,0.35)',
-            }}>🐱</div>
+              background: 'rgba(255,255,255,0.96)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 8px 24px rgba(124,92,252,0.22)', overflow: 'hidden',
+              border: '1px solid rgba(124,92,252,0.08)',
+            }}>
+              <img src="/logo.png" alt="喵搭" style={{ width: 78, height: 78, objectFit: 'contain' }} />
+            </div>
             <div style={{ fontSize: 18, fontWeight: 800, color: '#1a1a2e', marginBottom: 6 }}>欢迎来到喵搭</div>
             <div style={{ fontSize: 13, color: '#888', marginBottom: 28, lineHeight: 1.6 }}>登录后即可享受专属优惠<br />查看订单、收藏达人、管理地址</div>
             <button onClick={() => nav('/login?redirect=/profile')} style={{
@@ -3098,10 +3101,11 @@ function ProfilePage() {
             }}>
               {/* 头像 */}
               <div style={{ position: 'relative' }}>
-                <img src={userInfo?.avatar || 'https://randomuser.me/api/portraits/men/32.jpg'} alt=""
+                <img src={userInfo?.avatar || '/logo.png'} alt="喵搭"
                   style={{
-                    width: 68, height: 68, borderRadius: 22, objectFit: 'cover',
+                    width: 68, height: 68, borderRadius: 22, objectFit: 'contain',
                     border: '3px solid rgba(255,255,255,0.35)', boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+                    background: '#fff',
                   }}
                 />
                 <div style={{
