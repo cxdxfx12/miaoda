@@ -11,7 +11,7 @@ export const dispatchApi = {
     api.get(`/api/v1/admin/dispatch/available-talents/${orderId}`),
 
   dispatch: (orderId: number, techId: number) =>
-    api.post('/api/v1/admin/dispatch/assign', { order_id: orderId, tech_id: techId }),
+    api.post('/api/v1/admin/dispatch/assign', { order_id: orderId, talent_id: techId }),
 
   autoDispatch: () =>
     api.post('/api/v1/admin/dispatch/auto'),
