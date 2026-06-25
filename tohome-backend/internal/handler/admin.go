@@ -3,19 +3,16 @@ package handler
 
 import (
 	"fmt"
-	"io"
-	"os"
-	"path/filepath"
 	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 
 	"github.com/miaoda/backend/internal/model"
 	"github.com/miaoda/backend/internal/service"
 	"github.com/miaoda/backend/pkg/database"
 	"github.com/miaoda/backend/pkg/response"
+	"github.com/miaoda/backend/pkg/upload"
 )
 
 // AdminHandler 管理后台处理器
@@ -198,49 +195,17 @@ func (h *AdminHandler) AdminUploadFile(c *gin.Context) {
 	}
 	defer file.Close()
 
-	// 限制文件类型
-	ext := filepath.Ext(header.Filename)
-	allowExts := map[string]bool{".jpg": true, ".jpeg": true, ".png": true, ".gif": true, ".webp": true}
-	if !allowExts[ext] {
-		response.ParamError(c, "不支持的文件类型，仅允许 jpg/png/gif/webp")
-		return
-	}
-
-	// 限制文件大小 10MB
-	if header.Size > 10*1024*1024 {
-		response.ParamError(c, "文件大小不能超过 10MB")
-		return
-	}
-
-	// 生成唯一文件名
-	newName := uuid.New().String() + ext
-	// 按日期分目录
-	dateDir := time.Now().Format("2006/01")
-	uploadDir := filepath.Join("public", "uploads", dateDir)
-	if err := os.MkdirAll(uploadDir, 0755); err != nil {
-		response.ServerError(c, "创建上传目录失败")
-		return
-	}
-
-	savePath := filepath.Join(uploadDir, newName)
-	dst, err := os.Create(savePath)
+	result, err := upload.SaveUploadedImage(file, header.Filename, header.Size)
 	if err != nil {
-		response.ServerError(c, "创建文件失败")
-		return
-	}
-	defer dst.Close()
-
-	if _, err := io.Copy(dst, file); err != nil {
-		response.ServerError(c, "保存文件失败")
+		response.ParamError(c, err.Error())
 		return
 	}
 
-	// 返回访问URL
-	url := fmt.Sprintf("/uploads/%s/%s", dateDir, newName)
 	response.Success(c, gin.H{
-		"url":      url,
-		"filename": header.Filename,
-		"size":     header.Size,
+		"url":       result.URL,
+		"filename":  header.Filename,
+		"size":      result.Size,
+		"optimized": result.Optimized,
 	})
 }
 
