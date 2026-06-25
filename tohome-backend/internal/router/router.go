@@ -251,6 +251,7 @@ func RegisterAdminRoutes(r *gin.Engine, h *handler.AdminHandler, grabH *handler.
 	admin.Use(middleware.AdminAuth(jwtCfg))
 	{
 		// 仪表盘
+		admin.POST("/profile/password", h.AdminChangePassword)
 		admin.GET("/dashboard", h.GetDashboard)
 		admin.GET("/stats", h.GetStats)
 

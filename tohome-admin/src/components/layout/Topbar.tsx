@@ -1,16 +1,21 @@
 'use client';
 
-import { Bell, Search, ChevronDown, LogOut, User as UserIcon, MapPin } from 'lucide-react';
+import { Bell, Search, ChevronDown, LogOut, User as UserIcon, MapPin, Lock, X, Loader2 } from 'lucide-react';
 import { useAdminStore } from '@/store/adminStore';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { cityNames } from '@/constants/cities';
+import { adminApi } from '@/api/admin';
+import { toast } from 'sonner';
 
 export function Topbar() {
   const router = useRouter();
   const admin = useAdminStore((s) => s.admin);
   const logout = useAdminStore((s) => s.logout);
   const [showMenu, setShowMenu] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({ oldPassword: '', newPassword: '', confirmPassword: '' });
   const [city, setCity] = useState(() => {
     if (typeof window === 'undefined') return '全部城市';
     return localStorage.getItem('admin-current-city') || '全部城市';
@@ -19,6 +24,34 @@ export function Topbar() {
   const handleLogout = () => {
     logout();
     router.push('/login');
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!passwordForm.oldPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
+      toast.error('请填写完整密码信息');
+      return;
+    }
+    if (passwordForm.newPassword.length < 6) {
+      toast.error('新密码至少需要6位');
+      return;
+    }
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      toast.error('两次输入的新密码不一致');
+      return;
+    }
+    setSavingPassword(true);
+    try {
+      await adminApi.changePassword(passwordForm.oldPassword, passwordForm.newPassword);
+      toast.success('密码修改成功，请重新登录');
+      setShowPasswordModal(false);
+      logout();
+      router.push('/login');
+    } catch (err: any) {
+      toast.error(err?.message || '密码修改失败');
+    } finally {
+      setSavingPassword(false);
+    }
   };
 
   const changeCity = (nextCity: string) => {
@@ -86,6 +119,17 @@ export function Topbar() {
                   <UserIcon className="h-4 w-4" />
                   个人信息
                 </button>
+                <button
+                  onClick={() => {
+                    setShowMenu(false);
+                    setPasswordForm({ oldPassword: '', newPassword: '', confirmPassword: '' });
+                    setShowPasswordModal(true);
+                  }}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-[#F3F4FE]"
+                >
+                  <Lock className="h-4 w-4" />
+                  修改密码
+                </button>
                 <div className="my-1 h-px bg-[#EEF1F6]" />
                 <button
                   onClick={handleLogout}
@@ -99,6 +143,73 @@ export function Topbar() {
           )}
         </div>
       </div>
+      {showPasswordModal && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/30 px-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+            <div className="mb-5 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-[#1F2937]">修改密码</h3>
+                <p className="mt-1 text-sm text-gray-400">修改后需要重新登录管理后台</p>
+              </div>
+              <button
+                onClick={() => setShowPasswordModal(false)}
+                className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <form onSubmit={handleChangePassword} className="space-y-4">
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">旧密码</label>
+                <input
+                  type="password"
+                  value={passwordForm.oldPassword}
+                  onChange={(e) => setPasswordForm({ ...passwordForm, oldPassword: e.target.value })}
+                  className="h-11 w-full rounded-lg border border-[#E5E7EB] px-3 text-sm outline-none focus:border-[#6B7FD7] focus:ring-2 focus:ring-[#6B7FD7]/20"
+                  placeholder="请输入旧密码"
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">新密码</label>
+                <input
+                  type="password"
+                  value={passwordForm.newPassword}
+                  onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                  className="h-11 w-full rounded-lg border border-[#E5E7EB] px-3 text-sm outline-none focus:border-[#6B7FD7] focus:ring-2 focus:ring-[#6B7FD7]/20"
+                  placeholder="至少6位"
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">确认新密码</label>
+                <input
+                  type="password"
+                  value={passwordForm.confirmPassword}
+                  onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                  className="h-11 w-full rounded-lg border border-[#E5E7EB] px-3 text-sm outline-none focus:border-[#6B7FD7] focus:ring-2 focus:ring-[#6B7FD7]/20"
+                  placeholder="再次输入新密码"
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowPasswordModal(false)}
+                  className="rounded-lg border border-[#E5E7EB] px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
+                >
+                  取消
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingPassword}
+                  className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-[#6B7FD7] to-[#8B9AE3] px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+                >
+                  {savingPassword && <Loader2 className="h-4 w-4 animate-spin" />}
+                  保存修改
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </header>
   );
 }

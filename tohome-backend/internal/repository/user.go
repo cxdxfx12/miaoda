@@ -82,6 +82,25 @@ func (r *UserRepository) FindAdminByUsername(ctx context.Context, username strin
 	return &admin, nil
 }
 
+// FindAdminByID 根据ID查找管理员
+func (r *UserRepository) FindAdminByID(ctx context.Context, id int64) (*model.Admin, error) {
+	var admin model.Admin
+	err := r.db.GetContext(ctx, &admin,
+		`SELECT * FROM admins WHERE id = $1 AND deleted_at IS NULL`, id)
+	if err != nil {
+		return nil, err
+	}
+	return &admin, nil
+}
+
+// UpdateAdminPassword 更新管理员密码
+func (r *UserRepository) UpdateAdminPassword(ctx context.Context, id int64, passwordHash string) error {
+	_, err := r.db.ExecContext(ctx,
+		`UPDATE admins SET password_hash = $1, updated_at = $2 WHERE id = $3`,
+		passwordHash, time.Now(), id)
+	return err
+}
+
 // Create 创建用户
 func (r *UserRepository) Create(ctx context.Context, user *model.User) error {
 	query := `

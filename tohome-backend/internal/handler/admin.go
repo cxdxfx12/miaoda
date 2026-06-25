@@ -48,6 +48,28 @@ func (h *AdminHandler) AdminLogin(c *gin.Context) {
 	response.Success(c, result)
 }
 
+// AdminChangePassword 修改当前管理员密码
+func (h *AdminHandler) AdminChangePassword(c *gin.Context) {
+	var req struct {
+		OldPassword string `json:"old_password" binding:"required"`
+		NewPassword string `json:"new_password" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.ParamError(c, "参数错误")
+		return
+	}
+	adminID, ok := c.Get("user_id")
+	if !ok {
+		response.Unauthorized(c)
+		return
+	}
+	if err := h.userSvc.AdminChangePassword(c.Request.Context(), adminID.(int64), req.OldPassword, req.NewPassword); err != nil {
+		response.ParamError(c, err.Error())
+		return
+	}
+	response.Success(c, gin.H{"message": "密码修改成功，请重新登录"})
+}
+
 // GetDashboard 仪表盘数据
 func (h *AdminHandler) GetDashboard(c *gin.Context) {
 	data, err := h.userSvc.GetDashboard(c.Request.Context())

@@ -395,6 +395,30 @@ func (s *UserService) AdminLogin(ctx context.Context, username, password string)
 	}, nil
 }
 
+// AdminChangePassword 修改管理员密码
+func (s *UserService) AdminChangePassword(ctx context.Context, adminID int64, oldPassword, newPassword string) error {
+	if len(newPassword) < 6 {
+		return fmt.Errorf("新密码至少需要6位")
+	}
+	if oldPassword == newPassword {
+		return fmt.Errorf("新密码不能和旧密码相同")
+	}
+	admin, err := s.userRepo.FindAdminByID(ctx, adminID)
+	if err != nil {
+		return fmt.Errorf("管理员不存在")
+	}
+	if err := bcrypt.CompareHashAndPassword([]byte(admin.PasswordHash), []byte(oldPassword)); err != nil {
+		if admin.PasswordHash != oldPassword {
+			return fmt.Errorf("旧密码错误")
+		}
+	}
+	hashedPwd, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+	return s.userRepo.UpdateAdminPassword(ctx, adminID, string(hashedPwd))
+}
+
 // GetDashboard 仪表盘
 func (s *UserService) GetDashboard(ctx context.Context) (map[string]interface{}, error) {
 	return s.getDashboardData(ctx)
