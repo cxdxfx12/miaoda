@@ -1,0 +1,3 @@
+ALTER TABLE orders
+DROP COLUMN IF EXISTS departed_at,
+DROP COLUMN IF EXISTS arrived_at;

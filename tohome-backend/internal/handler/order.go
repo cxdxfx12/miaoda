@@ -281,8 +281,8 @@ func (h *OrderHandler) UpdateOrderStatus(c *gin.Context) {
 	}
 
 	statusMap := map[string]int{
-		"departed":  model.OrderStatusAccepted,
-		"arrived":   model.OrderStatusAccepted,
+		"departed":  model.OrderStatusDeparted,
+		"arrived":   model.OrderStatusArrived,
 		"started":   model.OrderStatusInService,
 		"completed": model.OrderStatusCompleted,
 	}
@@ -373,5 +373,3 @@ func (h *OrderHandler) AdminAssignOrder(c *gin.Context) {
 	}
 	response.Success(c, nil)
 }
-
-
