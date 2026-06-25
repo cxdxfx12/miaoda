@@ -146,6 +146,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID int64, req *Creat
 		logger.Error("创建订单失败: %v", err)
 		return nil, fmt.Errorf("创建订单失败: %w", err)
 	}
+	go sendWeComOrderEvent(context.Background(), "order_created", order.ID, nil)
 
 	// 智能分配技师（如果没有指定）
 	if req.TechnicianID == nil {
@@ -161,6 +162,7 @@ func (s *OrderService) dispatchOrder(ctx context.Context, order *model.Order) {
 	technicians, err := s.techRepo.FindAvailable(ctx, order.AppointmentTime)
 	if err != nil || len(technicians) == 0 {
 		logger.Warn("未找到可用技师，订单: %s", order.OrderNo)
+		go sendWeComOrderEvent(context.Background(), "dispatch_exception", order.ID, map[string]string{"异常原因": "未找到可用达人"})
 		return
 	}
 
@@ -189,6 +191,9 @@ func (s *OrderService) dispatchOrder(ctx context.Context, order *model.Order) {
 
 		// 发送通知给用户
 		go s.notifyUser(ctx, order.UserID, "订单已被接单", fmt.Sprintf("技师%s已接单", selectedTech.RealName))
+		go sendWeComOrderEvent(context.Background(), "talent_accepted", order.ID, map[string]string{"接单达人": selectedTech.RealName})
+	} else {
+		go sendWeComOrderEvent(context.Background(), "dispatch_exception", order.ID, map[string]string{"异常原因": "没有匹配到合适达人"})
 	}
 }
 
@@ -223,7 +228,11 @@ func (s *OrderService) CancelOrder(ctx context.Context, id int64, userID int64, 
 		return ErrOrderStatusError
 	}
 
-	return s.orderRepo.UpdateCancel(ctx, id, reason, 1)
+	if err := s.orderRepo.UpdateCancel(ctx, id, reason, 1); err != nil {
+		return err
+	}
+	go sendWeComOrderEvent(context.Background(), "order_cancelled", id, map[string]string{"取消原因": reason})
+	return nil
 }
 
 // PayOrder 支付订单（由支付服务回调成功后调用）
@@ -262,6 +271,7 @@ func (s *OrderService) AcceptOrder(ctx context.Context, id int64, techID int64) 
 
 	// 通知用户
 	go s.notifyUser(ctx, order.UserID, "技师已接单", fmt.Sprintf("技师%s已接单，请耐心等待", tech.RealName))
+	go sendWeComOrderEvent(context.Background(), "talent_accepted", id, map[string]string{"接单达人": tech.RealName})
 
 	return nil
 }
@@ -282,8 +292,21 @@ func (s *OrderService) UpdateOrderStatus(ctx context.Context, id int64, techID i
 	}
 
 	// 通知用户
-	statusText := []string{"", "待接单", "已接单", "服务中", "已完成", "已取消"}[status]
+	statusText := model.OrderStatusText[status]
+	if statusText == "" {
+		statusText = "状态更新"
+	}
 	go s.notifyUser(ctx, order.UserID, "订单状态更新", fmt.Sprintf("订单状态：%s", statusText))
+	eventMap := map[int]string{
+		model.OrderStatusDeparted:  "talent_departed",
+		model.OrderStatusArrived:   "talent_arrived",
+		model.OrderStatusInService: "service_started",
+		model.OrderStatusCompleted: "service_completed",
+		model.OrderStatusCancelled: "order_cancelled",
+	}
+	if event := eventMap[status]; event != "" {
+		go sendWeComOrderEvent(context.Background(), event, id, nil)
+	}
 
 	return nil
 }
@@ -310,6 +333,7 @@ func (s *OrderService) RejectOrder(ctx context.Context, id int64, talentID int64
 
 	// 通知用户
 	go s.notifyUser(ctx, order.UserID, "技师拒绝接单", fmt.Sprintf("技师%s拒绝了订单%s", *order.TalentName, order.OrderNo))
+	go sendWeComOrderEvent(context.Background(), "dispatch_exception", id, map[string]string{"异常原因": "达人拒单：" + reason})
 
 	return nil
 }
@@ -353,6 +377,7 @@ func (s *OrderService) AdminAssignOrder(ctx context.Context, id int64, techID in
 
 	// 通知用户
 	go s.notifyUser(ctx, order.UserID, "订单已分配", fmt.Sprintf("技师%s已接单", tech.RealName))
+	go sendWeComOrderEvent(context.Background(), "talent_accepted", id, map[string]string{"后台分配达人": tech.RealName})
 
 	return nil
 }

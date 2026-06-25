@@ -37,6 +37,15 @@ export const settingsApi = {
   saveTravelFee: (data: Record<string, unknown>) =>
     api.post('/api/v1/admin/settings/travel_fee', data),
 
+  getWeCom: () =>
+    api.get('/api/v1/admin/settings/wecom'),
+
+  saveWeCom: (data: Record<string, unknown>) =>
+    api.post('/api/v1/admin/settings/wecom', data),
+
+  testWeCom: (data?: Record<string, unknown>) =>
+    api.post('/api/v1/admin/settings/wecom/test', data || {}),
+
   getBackups: () =>
     api.get('/api/v1/admin/settings/backups'),
 

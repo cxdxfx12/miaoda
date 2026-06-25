@@ -336,6 +336,7 @@ func (s *PaymentService) handlePaymentSuccess(ctx context.Context, paymentNo, tr
 
 	// 异步发送支付成功通知
 	go s.notifyPaymentSuccess(context.Background(), payment.UserID, payment.OrderID, payment.Amount)
+	go sendWeComOrderEvent(context.Background(), "payment_success", payment.OrderID, map[string]string{"支付金额": fmt.Sprintf("¥%.2f", payment.Amount)})
 
 	logger.Info("支付成功: payment_no=%s, transaction_id=%s, amount=%.2f", paymentNo, transactionID, payment.Amount)
 	return nil
@@ -409,6 +410,7 @@ func (s *PaymentService) Refund(ctx context.Context, paymentID int64, amount flo
 
 		// 异步发送退款通知
 		go s.notifyRefundSuccess(context.Background(), payment.UserID, payment.OrderID, amount, reason)
+		go sendWeComOrderEvent(context.Background(), "refund_success", payment.OrderID, map[string]string{"退款金额": fmt.Sprintf("¥%.2f", amount), "退款原因": reason})
 
 		logger.Info("退款成功: payment_no=%s, refund_amount=%.2f", payment.PaymentNo, amount)
 	}

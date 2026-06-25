@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { AdminLayout } from '@/components/layout/AdminLayout';
-import { Save, Bell, Shield, Globe, Database, Server, MessageSquare, Loader2, Headphones, Percent, Car } from 'lucide-react';
+import { Save, Bell, Shield, Globe, Database, Server, MessageSquare, Loader2, Headphones, Percent, Car, Send } from 'lucide-react';
 import { settingsApi } from '@/api';
 
 const sections = [
@@ -11,6 +11,7 @@ const sections = [
   { id: 'support', name: '咨询客服', icon: Headphones },
   { id: 'commission', name: '达人分成', icon: Percent },
   { id: 'travel_fee', name: '车费规则', icon: Car },
+  { id: 'wecom', name: '企业微信通知', icon: Send },
   { id: 'security', name: '安全设置', icon: Shield },
   { id: 'database', name: '数据备份', icon: Database },
   { id: 'server', name: '服务监控', icon: Server },
@@ -27,6 +28,7 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [serverStatus, setServerStatus] = useState<ServiceInfo[]>([]);
   const [serverLoading, setServerLoading] = useState(false);
+  const [testingWeCom, setTestingWeCom] = useState(false);
 
   useEffect(() => {
     if (active === 'server') { loadServerStatus(); return; }
@@ -42,6 +44,7 @@ export default function SettingsPage() {
         group === 'support' ? settingsApi.getSupport() :
         group === 'commission' ? settingsApi.getCommission() :
         group === 'travel_fee' ? settingsApi.getTravelFee() :
+        group === 'wecom' ? settingsApi.getWeCom() :
         group === 'security' ? settingsApi.getSecurity() :
         settingsApi.getBasic();
       const res: any = await endpoint;
@@ -76,6 +79,23 @@ export default function SettingsPage() {
         map.refund_lock_status = map.refund_lock_status || 'departed';
         map.refund_policy = map.refund_policy || '出发前服务费和车费均可退；达人出发后车费不退，服务项目金额可按退款规则退。';
       }
+      if (group === 'wecom') {
+        map.enabled = map.enabled || '0';
+        map.default_webhook = map.default_webhook || '';
+        map.city_webhooks = map.city_webhooks || '{}';
+        map.title_prefix = map.title_prefix || '喵搭订单通知';
+        map.mention_all = map.mention_all || '0';
+        map.notify_order_created = map.notify_order_created || '1';
+        map.notify_payment_success = map.notify_payment_success || '1';
+        map.notify_talent_accepted = map.notify_talent_accepted || '1';
+        map.notify_talent_departed = map.notify_talent_departed || '1';
+        map.notify_talent_arrived = map.notify_talent_arrived || '1';
+        map.notify_service_started = map.notify_service_started || '1';
+        map.notify_service_completed = map.notify_service_completed || '1';
+        map.notify_order_cancelled = map.notify_order_cancelled || '1';
+        map.notify_refund_success = map.notify_refund_success || '1';
+        map.notify_dispatch_exception = map.notify_dispatch_exception || '1';
+      }
       setConfigData(map);
     } catch { /* backend unavailable, using defaults */ }
     finally { setLoading(false); }
@@ -89,6 +109,7 @@ export default function SettingsPage() {
         group === 'support' ? (settingsApi.saveSupport as any) :
         group === 'commission' ? (settingsApi.saveCommission as any) :
         group === 'travel_fee' ? (settingsApi.saveTravelFee as any) :
+        group === 'wecom' ? (settingsApi.saveWeCom as any) :
         (settingsApi.saveSecurity as any);
       await endpoint(configData);
       if (group === 'basic') {
@@ -113,6 +134,18 @@ export default function SettingsPage() {
       await settingsApi.createBackup();
       alert('备份已完成');
     } catch { alert('备份失败（后端未连接）'); }
+  }
+
+  async function testWeCom() {
+    setTestingWeCom(true);
+    try {
+      await settingsApi.testWeCom({ city: '测试城市' });
+      alert('测试消息已发送');
+    } catch (e: any) {
+      alert(e?.response?.data?.message || '测试发送失败，请检查 Webhook');
+    } finally {
+      setTestingWeCom(false);
+    }
   }
 
   const updateField = (key: string, value: string) => {
@@ -175,6 +208,23 @@ export default function SettingsPage() {
       { label: '车费锁定节点', key: 'refund_lock_status' },
       { label: '退款说明', key: 'refund_policy', type: 'textarea' },
     ],
+    wecom: [
+      { label: '是否启用(0/1)', key: 'enabled', type: 'number' },
+      { label: '默认群机器人 Webhook', key: 'default_webhook' },
+      { label: '城市 Webhook 映射(JSON)', key: 'city_webhooks', type: 'textarea' },
+      { label: '消息标题前缀', key: 'title_prefix' },
+      { label: '是否 @所有人(0/1)', key: 'mention_all', type: 'number' },
+      { label: '新订单通知(0/1)', key: 'notify_order_created', type: 'number' },
+      { label: '支付成功通知(0/1)', key: 'notify_payment_success', type: 'number' },
+      { label: '达人接单通知(0/1)', key: 'notify_talent_accepted', type: 'number' },
+      { label: '达人出发通知(0/1)', key: 'notify_talent_departed', type: 'number' },
+      { label: '达人到达通知(0/1)', key: 'notify_talent_arrived', type: 'number' },
+      { label: '服务开始通知(0/1)', key: 'notify_service_started', type: 'number' },
+      { label: '服务完成通知(0/1)', key: 'notify_service_completed', type: 'number' },
+      { label: '订单取消通知(0/1)', key: 'notify_order_cancelled', type: 'number' },
+      { label: '退款成功通知(0/1)', key: 'notify_refund_success', type: 'number' },
+      { label: '派单异常通知(0/1)', key: 'notify_dispatch_exception', type: 'number' },
+    ],
     security: [
       { label: '登录密码最小长度', key: 'min_password_len' },
       { label: '会话超时(分钟)', key: 'session_timeout' },
@@ -236,6 +286,35 @@ export default function SettingsPage() {
       </div>
       <div className="rounded-xl border border-[#FFE4B5] bg-[#FFFBEB] p-4 text-xs leading-6 text-[#92400E]">
         推荐：每公里车费 2 元，往返计费开启，出发前全额可退；达人点击“已出发”后，车费不退，只退可退的服务项目金额。
+      </div>
+    </div>,
+    wecom: <div className="space-y-6">
+      <div className="overflow-hidden rounded-2xl bg-[#111827] p-5 text-white">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <div className="text-lg font-semibold">企业微信订单通知</div>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-white/65">
+              订单关键事件会推送到企业微信群机器人。支持默认总群，也支持按城市配置不同群；没有城市专属 Webhook 时自动走默认群。
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={testWeCom}
+            disabled={testingWeCom}
+            className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-[#111827] shadow-soft disabled:opacity-60"
+          >
+            {testingWeCom ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            测试发送
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        {defaultConfigs.wecom.map(f => renderField(f.label, f.key, f.type))}
+      </div>
+
+      <div className="rounded-xl border border-[#DDE7FF] bg-[#F8FAFF] p-4 text-xs leading-6 text-[#475569]">
+        城市 Webhook 示例：{"{\"北京\":\"https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxx\",\"武汉\":\"https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=yyy\"}"}。企业微信群机器人地址请从企业微信群右上角“群机器人”里复制。
       </div>
     </div>,
     security: <div className="space-y-6">

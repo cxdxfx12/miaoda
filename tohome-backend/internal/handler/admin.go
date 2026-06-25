@@ -571,6 +571,22 @@ func (h *AdminHandler) AdminGetConfigSetting(group string) gin.HandlerFunc {
 	}
 }
 
+// AdminTestWeComNotification 测试企业微信通知
+func (h *AdminHandler) AdminTestWeComNotification(c *gin.Context) {
+	var req struct {
+		City string `json:"city"`
+	}
+	_ = c.ShouldBindJSON(&req)
+	if req.City == "" {
+		req.City = "测试城市"
+	}
+	if err := service.SendWeComTestNotification(c.Request.Context(), req.City); err != nil {
+		response.Fail(c, response.CodeBusinessError, err.Error())
+		return
+	}
+	response.Success(c, gin.H{"message": "测试消息已发送"})
+}
+
 // --------------- 轮播图管理 ---------------
 
 // AdminListBanners 轮播图列表
