@@ -27,6 +27,9 @@ interface ServiceItem {
   orderCount: number;
 }
 
+const MIN_TWO_PRICE_THRESHOLD = 130;
+const getMinimumOrderQty = (price: number) => Number(price) > 0 && Number(price) < MIN_TWO_PRICE_THRESHOLD ? 2 : 1;
+
 const CATEGORIES = [
   { key: 'leisure', icon: '🎱', label: '休闲陪伴', color: '#EFF6FF', tagColor: '#3B82F6', bgGrad: 'linear-gradient(135deg, #DBEAFE, #BFDBFE)' },
   { key: 'entertainment', icon: '🎮', label: '娱乐陪伴', color: '#FFFBEB', tagColor: '#F59E0B', bgGrad: 'linear-gradient(135deg, #FEF3C7, #FDE68A)' },
@@ -1215,8 +1218,9 @@ function ServiceListPage() {
       const cur = prev[id] || 0;
       const newVal = cur + delta;
       if (newVal <= 0) { const n = {...prev}; delete n[id]; return n; }
-      if (price < 130 && newVal < 2) return prev;
-      if (delta < 0 && cur <= (price < 130 ? 2 : 1)) return prev;
+      const minQty = getMinimumOrderQty(price);
+      if (newVal < minQty) return prev;
+      if (delta < 0 && cur <= minQty) return prev;
       return { ...prev, [id]: newVal };
     });
   };
@@ -1443,7 +1447,7 @@ function ServiceListPage() {
             <div style={{ overflowY: 'auto', flex: 1, padding: '4px 16px 20px' }}>
               {currentGroup.services.map((s, idx) => {
                 const qty = selectedItems[s.id] || 0;
-                const needMinTwo = s.price < 130;
+                const needMinTwo = getMinimumOrderQty(s.price) > 1;
                 const isSelected = qty > 0;
 
                 return (
@@ -1564,7 +1568,7 @@ function ServiceListPage() {
                         </div>
                       ) : (
                         <button
-                          onClick={() => updateQuantity(s.id, s.price, needMinTwo ? 2 : 1)}
+                          onClick={() => updateQuantity(s.id, s.price, getMinimumOrderQty(s.price))}
                           style={{
                             padding: '8px 20px', borderRadius: 18,
                             border: '1.5px solid #4CAF50', background: '#fff',
@@ -1964,7 +1968,7 @@ function ServiceDetailPage() {
   const params = new URLSearchParams(loc.search);
   const id = Number(params.get('id'));
   const talentId = Number(params.get('talentId')) || 0;
-  const qtyFromList = Math.max(1, Number(params.get('qty')) || 1); // 从列表页传来的数量
+  const rawQtyFromList = Math.max(1, Number(params.get('qty')) || 1); // 从列表页传来的数量
   const { data, isLoading } = useQuery({ queryKey: ['service', id], queryFn: () => serviceApi.getServiceDetail(id), enabled: !!id });
   const { data: serviceCatsData } = useQuery({ queryKey: ['service-categories-for-detail'], queryFn: () => serviceApi.listCategories() });
   const { data: talentsData } = useQuery({ queryKey: ['talents-nearby', 100], queryFn: () => talentApi.nearby(NEARBY_TALENT_QUERY) });
@@ -1984,6 +1988,9 @@ function ServiceDetailPage() {
 
   const name = (svc as any)?.name || '服务详情';
   const price = (svc as any)?.base_price ?? (svc as any)?.price ?? 0;
+  const minOrderQty = getMinimumOrderQty(Number(price));
+  const qtyFromList = Math.max(rawQtyFromList, minOrderQty);
+  const mustSelectTwo = minOrderQty > 1;
   const originalPrice = (svc as any)?.original_price ?? (svc as any)?.originalPrice ?? null;
   const rating = (svc as any)?.rating || 4.7;
   const orderCount = (svc as any)?.order_count ?? (svc as any)?.orderCount ?? 0;
@@ -2093,6 +2100,11 @@ function ServiceDetailPage() {
                   <span style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>(¥{price} × {qtyFromList})</span>
                   <span className="tag tag-accent" style={{ fontSize: 11 }}>共{qtyFromList}个</span>
                 </>
+              )}
+              {mustSelectTwo && (
+                <span style={{ fontSize: 11, color: '#E65100', background: '#FFF3E0', padding: '2px 8px', borderRadius: 8, fontWeight: 700 }}>
+                  低于¥130需2个起订
+                </span>
               )}
               {originalPrice && <span style={{ fontSize: 14, color: 'var(--text-tertiary)', textDecoration: 'line-through' }}>¥{originalPrice}</span>}
               {originalPrice && !qtyFromList && <span className="tag tag-accent" style={{ fontSize: 11, marginLeft: 8 }}>立省¥{originalPrice - price}</span>}
