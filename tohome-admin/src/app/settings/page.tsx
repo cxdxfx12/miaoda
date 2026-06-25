@@ -2,13 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { AdminLayout } from '@/components/layout/AdminLayout';
-import { Save, Bell, Shield, Globe, Database, Server, MessageSquare, Loader2, Headphones } from 'lucide-react';
+import { Save, Bell, Shield, Globe, Database, Server, MessageSquare, Loader2, Headphones, Percent, Car } from 'lucide-react';
 import { settingsApi } from '@/api';
 
 const sections = [
   { id: 'basic', name: '基础设置', icon: Globe },
   { id: 'notify', name: '消息通知', icon: Bell },
   { id: 'support', name: '咨询客服', icon: Headphones },
+  { id: 'commission', name: '达人分成', icon: Percent },
+  { id: 'travel_fee', name: '车费规则', icon: Car },
   { id: 'security', name: '安全设置', icon: Shield },
   { id: 'database', name: '数据备份', icon: Database },
   { id: 'server', name: '服务监控', icon: Server },
@@ -38,6 +40,8 @@ export default function SettingsPage() {
       const endpoint = group === 'basic' ? settingsApi.getBasic() :
         group === 'notify' ? settingsApi.getNotify() :
         group === 'support' ? settingsApi.getSupport() :
+        group === 'commission' ? settingsApi.getCommission() :
+        group === 'travel_fee' ? settingsApi.getTravelFee() :
         group === 'security' ? settingsApi.getSecurity() :
         settingsApi.getBasic();
       const res: any = await endpoint;
@@ -51,6 +55,27 @@ export default function SettingsPage() {
         map.support_title = map.support_title || '在线客服';
         map.support_desc = map.support_desc || '咨询订单、退款、预约和平台规则等问题';
       }
+      if (group === 'commission') {
+        map.commission_mode = map.commission_mode || 'monthly_revenue_tier';
+        map.tier_1_threshold = map.tier_1_threshold || '0';
+        map.tier_1_rate = map.tier_1_rate || '70';
+        map.tier_2_threshold = map.tier_2_threshold || '5000';
+        map.tier_2_rate = map.tier_2_rate || '75';
+        map.tier_3_threshold = map.tier_3_threshold || '10000';
+        map.tier_3_rate = map.tier_3_rate || '80';
+        map.tier_4_threshold = map.tier_4_threshold || '20000';
+        map.tier_4_rate = map.tier_4_rate || '85';
+        map.settlement_scope = map.settlement_scope || 'service_amount_only';
+      }
+      if (group === 'travel_fee') {
+        map.enabled = map.enabled || '1';
+        map.price_per_km = map.price_per_km || '2';
+        map.round_trip = map.round_trip || '1';
+        map.min_fee = map.min_fee || '0';
+        map.free_km = map.free_km || '0';
+        map.refund_lock_status = map.refund_lock_status || 'departed';
+        map.refund_policy = map.refund_policy || '出发前服务费和车费均可退；达人出发后车费不退，服务项目金额可按退款规则退。';
+      }
       setConfigData(map);
     } catch { /* backend unavailable, using defaults */ }
     finally { setLoading(false); }
@@ -62,6 +87,8 @@ export default function SettingsPage() {
       const endpoint = group === 'basic' ? (settingsApi.saveBasic as any) :
         group === 'notify' ? (settingsApi.saveNotify as any) :
         group === 'support' ? (settingsApi.saveSupport as any) :
+        group === 'commission' ? (settingsApi.saveCommission as any) :
+        group === 'travel_fee' ? (settingsApi.saveTravelFee as any) :
         (settingsApi.saveSecurity as any);
       await endpoint(configData);
       if (group === 'basic') {
@@ -127,6 +154,27 @@ export default function SettingsPage() {
       { label: '客服标题', key: 'support_title' },
       { label: '说明文案', key: 'support_desc', type: 'textarea' },
     ],
+    commission: [
+      { label: '分成模式', key: 'commission_mode' },
+      { label: '档位1营业额门槛', key: 'tier_1_threshold', type: 'number' },
+      { label: '档位1达人分成比例(%)', key: 'tier_1_rate', type: 'number' },
+      { label: '档位2营业额门槛', key: 'tier_2_threshold', type: 'number' },
+      { label: '档位2达人分成比例(%)', key: 'tier_2_rate', type: 'number' },
+      { label: '档位3营业额门槛', key: 'tier_3_threshold', type: 'number' },
+      { label: '档位3达人分成比例(%)', key: 'tier_3_rate', type: 'number' },
+      { label: '档位4营业额门槛', key: 'tier_4_threshold', type: 'number' },
+      { label: '档位4达人分成比例(%)', key: 'tier_4_rate', type: 'number' },
+      { label: '结算范围', key: 'settlement_scope' },
+    ],
+    travel_fee: [
+      { label: '是否启用(0/1)', key: 'enabled', type: 'number' },
+      { label: '每公里车费(元)', key: 'price_per_km', type: 'number' },
+      { label: '是否往返计费(0/1)', key: 'round_trip', type: 'number' },
+      { label: '起步车费(元)', key: 'min_fee', type: 'number' },
+      { label: '免车费公里数', key: 'free_km', type: 'number' },
+      { label: '车费锁定节点', key: 'refund_lock_status' },
+      { label: '退款说明', key: 'refund_policy', type: 'textarea' },
+    ],
     security: [
       { label: '登录密码最小长度', key: 'min_password_len' },
       { label: '会话超时(分钟)', key: 'session_timeout' },
@@ -160,6 +208,34 @@ export default function SettingsPage() {
       </div>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {defaultConfigs.support.map(f => renderField(f.label, f.key, f.type))}
+      </div>
+    </div>,
+    commission: <div className="space-y-6">
+      <div className="rounded-2xl bg-gradient-to-br from-[#111827] to-[#312E81] p-5 text-white">
+        <div className="text-lg font-semibold">达人分成规则</div>
+        <p className="mt-2 text-sm leading-6 text-white/65">
+          按达人当月已完成营业额匹配最高档位。建议车费不参与达人分成，只对服务项目金额分账，避免路费被重复抽佣。
+        </p>
+      </div>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        {defaultConfigs.commission.map(f => renderField(f.label, f.key, f.type))}
+      </div>
+      <div className="rounded-xl border border-[#EEF1F6] bg-[#F8FAFC] p-4 text-xs leading-6 text-gray-500">
+        示例：当月营业额达到 5000 元使用档位2，达到 10000 元使用档位3。平台收入 = 服务项目金额 × (100 - 达人分成比例)%。
+      </div>
+    </div>,
+    travel_fee: <div className="space-y-6">
+      <div className="rounded-2xl bg-gradient-to-br from-[#FFF7ED] to-[#EEF2FF] p-5">
+        <div className="text-lg font-semibold text-[#1F2937]">车费规则</div>
+        <p className="mt-2 text-sm leading-6 text-gray-500">
+          车费按用户下单定位地址与达人实时定位优先计算；无实时定位时使用达人注册/服务城市兜底。系统按往返里程计费，并在达人出发后锁定车费不可退。
+        </p>
+      </div>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        {defaultConfigs.travel_fee.map(f => renderField(f.label, f.key, f.type))}
+      </div>
+      <div className="rounded-xl border border-[#FFE4B5] bg-[#FFFBEB] p-4 text-xs leading-6 text-[#92400E]">
+        推荐：每公里车费 2 元，往返计费开启，出发前全额可退；达人点击“已出发”后，车费不退，只退可退的服务项目金额。
       </div>
     </div>,
     security: <div className="space-y-6">

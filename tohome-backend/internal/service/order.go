@@ -18,10 +18,10 @@ import (
 
 // 订单服务错误
 var (
-	ErrOrderNotFound     = errors.New("订单不存在")
-	ErrOrderStatusError  = errors.New("订单状态错误")
-	ErrServiceNotFound   = errors.New("服务不存在")
-	ErrTechnicianBusy    = errors.New("技师忙碌中")
+	ErrOrderNotFound    = errors.New("订单不存在")
+	ErrOrderStatusError = errors.New("订单状态错误")
+	ErrServiceNotFound  = errors.New("服务不存在")
+	ErrTechnicianBusy   = errors.New("技师忙碌中")
 )
 
 // OrderService 订单服务
@@ -46,15 +46,15 @@ func NewOrderService(orderRepo *repository.OrderRepository, userRepo *repository
 
 // CreateOrderRequest 创建订单请求
 type CreateOrderRequest struct {
-	ServiceID       int64       `json:"service_id" binding:"required"`
-	SpecName        string      `json:"spec_name" binding:"required"`
-	TechnicianID    *int64      `json:"technician_id"`
-	AppointmentTime time.Time   `json:"appointment_time" binding:"required"`
-	Address         model.JSON  `json:"address" binding:"required"`
-	ContactName     string      `json:"contact_name" binding:"required"`
-	ContactPhone    string      `json:"contact_phone" binding:"required,len=11"`
-	Remark          string      `json:"remark"`
-	CouponID        *int64      `json:"coupon_id"`
+	ServiceID       int64      `json:"service_id" binding:"required"`
+	SpecName        string     `json:"spec_name" binding:"required"`
+	TechnicianID    *int64     `json:"technician_id"`
+	AppointmentTime time.Time  `json:"appointment_time" binding:"required"`
+	Address         model.JSON `json:"address" binding:"required"`
+	ContactName     string     `json:"contact_name" binding:"required"`
+	ContactPhone    string     `json:"contact_phone" binding:"required,len=11"`
+	Remark          string     `json:"remark"`
+	CouponID        *int64     `json:"coupon_id"`
 }
 
 // CreateOrder 创建订单
@@ -98,6 +98,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID int64, req *Creat
 	// 计算订单金额
 	originalAmount := specPrice
 	discountAmount := 0.0
+	travelFee := computeTravelFeeForOrder(ctx, req.TechnicianID, []byte(req.Address))
 	finalAmount := originalAmount
 
 	// 应用优惠券：校验用户优惠券并计算折扣（不在此处直接消费券，消费在支付回调后执行）
@@ -135,7 +136,8 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID int64, req *Creat
 		AppointmentTime: req.AppointmentTime,
 		OriginalAmount:  originalAmount,
 		DiscountAmount:  discountAmount,
-		FinalAmount:     finalAmount,
+		ExtraAmount:     travelFee,
+		FinalAmount:     finalAmount + travelFee,
 		CouponID:        req.CouponID,
 		Remark:          &req.Remark,
 	}
@@ -406,18 +408,18 @@ func (s *OrderService) ReviewOrder(ctx context.Context, id int64, userID int64, 
 	imagesJSON, _ := json.Marshal(images)
 
 	review := &model.Review{
-		OrderID:       order.ID,
-		UserID:        order.UserID,
-		UserName:      order.UserName,
-		TalentID:  *order.TalentID,
-		TalentName: *order.TalentName,
-		ServiceID:     order.ServiceID,
-		ServiceName:   order.ServiceName,
-		Rating:        rating,
-		Content:       content,
-		Tags:          tagsJSON,
-		Images:        imagesJSON,
-		Status:        1,
+		OrderID:     order.ID,
+		UserID:      order.UserID,
+		UserName:    order.UserName,
+		TalentID:    *order.TalentID,
+		TalentName:  *order.TalentName,
+		ServiceID:   order.ServiceID,
+		ServiceName: order.ServiceName,
+		Rating:      rating,
+		Content:     content,
+		Tags:        tagsJSON,
+		Images:      imagesJSON,
+		Status:      1,
 	}
 	if isAnonymous {
 		review.IsAnonymous = 1

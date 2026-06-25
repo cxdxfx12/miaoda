@@ -25,6 +25,18 @@ export const settingsApi = {
   saveSupport: (data: Record<string, unknown>) =>
     api.post('/api/v1/admin/settings/support', data),
 
+  getCommission: () =>
+    api.get('/api/v1/admin/settings/commission'),
+
+  saveCommission: (data: Record<string, unknown>) =>
+    api.post('/api/v1/admin/settings/commission', data),
+
+  getTravelFee: () =>
+    api.get('/api/v1/admin/settings/travel_fee'),
+
+  saveTravelFee: (data: Record<string, unknown>) =>
+    api.post('/api/v1/admin/settings/travel_fee', data),
+
   getBackups: () =>
     api.get('/api/v1/admin/settings/backups'),
 

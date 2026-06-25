@@ -62,6 +62,7 @@ func main() {
 		{"/api/v1/payments/", fmt.Sprintf("http://%s:%d", cfg.Services.PaymentHost, cfg.Services.Payment)},
 		{"/api/v1/banners", fmt.Sprintf("http://%s:%d", cfg.Services.UserHost, cfg.Services.User)},
 		{"/api/v1/config/support", fmt.Sprintf("http://%s:%d", cfg.Services.UserHost, cfg.Services.User)},
+		{"/api/v1/config/billing-rules", fmt.Sprintf("http://%s:%d", cfg.Services.UserHost, cfg.Services.User)},
 		// 其他 admin 请求（talents/users/finance/reviews/marketing/config/settings/analytics）→ user-service
 		{"/api/v1/admin/", fmt.Sprintf("http://%s:%d", cfg.Services.UserHost, cfg.Services.User)},
 	}

@@ -57,24 +57,24 @@ type PaymentChannel interface {
 
 // PaymentQueryResult 支付查询结果
 type PaymentQueryResult struct {
-	TransactionID string `json:"transaction_id"`
-	Status        int    `json:"status"` // model.PaymentStatus*
+	TransactionID string  `json:"transaction_id"`
+	Status        int     `json:"status"` // model.PaymentStatus*
 	Amount        float64 `json:"amount"`
-	RawResponse   string `json:"raw_response"`
+	RawResponse   string  `json:"raw_response"`
 }
 
 // RefundResult 退款结果
 type RefundResult struct {
 	RefundNo      string  `json:"refund_no"`
 	RefundAmount  float64 `json:"refund_amount"`
-	TransactionID string `json:"transaction_id"`
+	TransactionID string  `json:"transaction_id"`
 	Success       bool    `json:"success"`
 }
 
 // CallbackData 回调数据
 type CallbackData struct {
-	PaymentNo     string `json:"payment_no"`
-	TransactionID string `json:"transaction_id"`
+	PaymentNo     string  `json:"payment_no"`
+	TransactionID string  `json:"transaction_id"`
 	Amount        float64 `json:"amount"`
 	Success       bool    `json:"success"`
 }
@@ -130,13 +130,13 @@ type CreatePaymentRequest struct {
 
 // CreatePaymentResponse 创建支付响应
 type CreatePaymentResponse struct {
-	PaymentNo  string      `json:"payment_no"`
-	OrderNo    string      `json:"order_no"`
-	Amount     float64     `json:"amount"`
-	PayMethod  int         `json:"pay_method"`
-	PayParams  interface{} `json:"pay_params"`  // 前端调起支付所需参数
-	Status     int         `json:"status"`
-	CreatedAt  time.Time   `json:"created_at"`
+	PaymentNo string      `json:"payment_no"`
+	OrderNo   string      `json:"order_no"`
+	Amount    float64     `json:"amount"`
+	PayMethod int         `json:"pay_method"`
+	PayParams interface{} `json:"pay_params"` // 前端调起支付所需参数
+	Status    int         `json:"status"`
+	CreatedAt time.Time   `json:"created_at"`
 }
 
 // CreatePayment 创建支付
@@ -355,6 +355,29 @@ func (s *PaymentService) Refund(ctx context.Context, paymentID int64, amount flo
 		return nil, errors.New("支付未成功，无法退款")
 	}
 
+	var order struct {
+		FinalAmount float64    `db:"final_amount"`
+		ExtraAmount float64    `db:"extra_amount"`
+		DepartedAt  *time.Time `db:"departed_at"`
+		Status      int        `db:"status"`
+	}
+	if err := s.db.GetContext(ctx, &order, `SELECT final_amount, extra_amount, departed_at, status FROM orders WHERE id = $1`, payment.OrderID); err == nil {
+		travelFeeLocked := order.DepartedAt != nil || order.Status == model.OrderStatusDeparted || order.Status == model.OrderStatusArrived || order.Status == model.OrderStatusInService || order.Status == model.OrderStatusCompleted
+		refundableAmount := order.FinalAmount
+		if travelFeeLocked {
+			refundableAmount = order.FinalAmount - order.ExtraAmount
+			if refundableAmount < 0 {
+				refundableAmount = 0
+			}
+		}
+		if amount > refundableAmount {
+			if travelFeeLocked && order.ExtraAmount > 0 {
+				return nil, fmt.Errorf("达人已出发，车费%.2f元不可退，本次最多可退%.2f元", order.ExtraAmount, refundableAmount)
+			}
+			return nil, fmt.Errorf("退款金额不能超过可退金额%.2f元", refundableAmount)
+		}
+	}
+
 	// 获取支付渠道
 	ch := s.getChannel(payment.PayMethod)
 	if ch == nil {
@@ -425,7 +448,7 @@ func generatePaymentNo() string {
 
 // WechatChannel 微信支付渠道
 type WechatChannel struct {
-	cfg *config.WechatPayConfig
+	cfg        *config.WechatPayConfig
 	httpClient *http.Client
 }
 
@@ -515,10 +538,10 @@ func (w *WechatChannel) Refund(ctx context.Context, payment *model.Payment, amou
 	// POST https://api.mch.weixin.qq.com/v3/refund/domestic/refunds
 
 	return &RefundResult{
-		RefundNo: refundNo,
-		RefundAmount: amount,
+		RefundNo:      refundNo,
+		RefundAmount:  amount,
 		TransactionID: *payment.TransactionID,
-		Success:    true,
+		Success:       true,
 	}, nil
 }
 
@@ -718,10 +741,10 @@ func (a *AlipayChannel) Refund(ctx context.Context, payment *model.Payment, amou
 	refundNo := fmt.Sprintf("RF%s%s", time.Now().Format("20060102150405"), uuid.New().String()[:8])
 
 	return &RefundResult{
-		RefundNo:     refundNo,
-		RefundAmount: amount,
+		RefundNo:      refundNo,
+		RefundAmount:  amount,
 		TransactionID: *payment.TransactionID,
-		Success:      true,
+		Success:       true,
 	}, nil
 }
 
@@ -897,8 +920,8 @@ func (b *BalanceChannel) QueryPayment(ctx context.Context, payment *model.Paymen
 		return nil, err
 	}
 	return &PaymentQueryResult{
-		Status:  p.Status,
-		Amount:  p.Amount,
+		Status: p.Status,
+		Amount: p.Amount,
 	}, nil
 }
 

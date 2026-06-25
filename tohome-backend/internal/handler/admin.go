@@ -632,6 +632,27 @@ func (h *AdminHandler) PublicGetSupportConfig(c *gin.Context) {
 	response.Success(c, result)
 }
 
+// PublicGetBillingRules 获取计费规则配置（无需认证）
+func (h *AdminHandler) PublicGetBillingRules(c *gin.Context) {
+	commissionConfigs, _ := h.userSvc.GetSystemConfigs(c.Request.Context(), "commission")
+	travelConfigs, _ := h.userSvc.GetSystemConfigs(c.Request.Context(), "travel_fee")
+	toMap := func(items []map[string]interface{}) gin.H {
+		result := gin.H{}
+		for _, item := range items {
+			key, _ := item["key"].(string)
+			value, _ := item["value"].(string)
+			if key != "" {
+				result[key] = value
+			}
+		}
+		return result
+	}
+	response.Success(c, gin.H{
+		"commission": toMap(commissionConfigs),
+		"travel_fee": toMap(travelConfigs),
+	})
+}
+
 // AdminSaveBanner 创建轮播图
 func (h *AdminHandler) AdminSaveBanner(c *gin.Context) {
 	var banner model.Banner
