@@ -1103,71 +1103,69 @@ function HomePage() {
                 { primary: '#10B981', light: '#D1FAE5' },
               ];
               const th = themes[i % 4];
+              const heroImage = getTalentHeroImage(t);
               return (
                 <NavLink to={`/talents`} key={t.id} className="no-underline">
                   <div style={{
-                    background: '#fff', borderRadius: 18, overflow: 'hidden',
-                    boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
-                    border: '1px solid var(--border)',
+                    height: 236,
+                    background: th.light, borderRadius: 20, overflow: 'hidden',
+                    boxShadow: '0 8px 26px rgba(0,0,0,0.10)',
+                    border: '1px solid rgba(255,255,255,0.72)',
                     transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    position: 'relative',
                   }}
-                  onMouseEnter={(e) => { const el = e.currentTarget as HTMLElement; el.style.transform = 'translateY(-3px)'; el.style.boxShadow = `0 10px 30px ${th.primary}16`; el.style.borderColor = th.primary + '30'; }}
-                  onMouseLeave={(e) => { const el = e.currentTarget as HTMLElement; el.style.transform = ''; el.style.boxShadow = '0 2px 12px rgba(0,0,0,0.04)'; el.style.borderColor = 'var(--border)'; }}
+                  onMouseEnter={(e) => { const el = e.currentTarget as HTMLElement; el.style.transform = 'translateY(-4px) scale(1.01)'; el.style.boxShadow = `0 16px 38px ${th.primary}22, 0 8px 20px rgba(0,0,0,0.12)`; }}
+                  onMouseLeave={(e) => { const el = e.currentTarget as HTMLElement; el.style.transform = ''; el.style.boxShadow = '0 8px 26px rgba(0,0,0,0.10)'; }}
                   >
-                    {/* 头像区 */}
+                    {heroImage && (
+                      <img src={heroImage} alt={t.name}
+                        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.45s ease' }}
+                        onMouseEnter={(e) => { (e.currentTarget as HTMLImageElement).style.transform = 'scale(1.05)'; }}
+                        onMouseLeave={(e) => { (e.currentTarget as HTMLImageElement).style.transform = ''; }}
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                    )}
+                    <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(180deg, ${th.primary}00 0%, rgba(0,0,0,0.08) 34%, rgba(0,0,0,0.72) 100%)` }} />
                     <div style={{
-                      height: 80, background: `linear-gradient(135deg, ${th.light}, #fff)`,
-                      display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-                      paddingBottom: 4, position: 'relative', overflow: 'hidden',
+                      position: 'absolute', top: 10, left: 10,
+                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                      padding: '4px 8px', borderRadius: 999,
+                      background: 'rgba(0,0,0,0.34)', backdropFilter: 'blur(10px)',
+                      color: '#fff', fontSize: 10.5, fontWeight: 800,
                     }}>
-                      <div style={{ position: 'absolute', top: -25, left: '50%', transform: 'translateX(-50%)', width: 100, height: 60, borderRadius: '50%', background: `${th.primary}08` }} />
-                      <div style={{
-                        width: 52, height: 52, borderRadius: 16, border: '3px solid #fff',
-                        boxShadow: `0 4px 12px rgba(0,0,0,0.1), 0 0 0 3px ${th.light}`,
-                        overflow: 'hidden', position: 'relative', zIndex: 1,
-                      }}>
-                        <img src={t.avatar} alt={t.name}
-                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                        <div style={{
-                          position: 'absolute', bottom: 2, right: 2, width: 12, height: 12,
-                          borderRadius: '50%', background: '#34D399',
-                          border: '2px solid #fff', boxShadow: '0 0 6px rgba(52,211,153,0.4)',
-                        }} />
-                      </div>
+                      <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#34D399', boxShadow: '0 0 8px rgba(52,211,153,0.8)' }} />
+                      在线
                     </div>
-
-                    {/* 信息区 */}
-                    <div style={{ padding: '10px 12px 14px', textAlign: 'center' }}>
-                      <div style={{ fontWeight: 700, fontSize: 14.5, color: '#1a1a2e', marginBottom: 4 }}>
-                        {t.name}
-                        <span style={{ fontSize: 11, color: '#999', fontWeight: 400, marginLeft: 4 }}>
-                          {t.gender === '女' ? '♀' : '♂'} {t.age}岁
+                    <div style={{
+                      position: 'absolute', left: 10, right: 10, bottom: 10,
+                      padding: '12px 10px 10px', borderRadius: 16,
+                      background: 'linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.08))',
+                      backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.16)',
+                      color: '#fff',
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 5 }}>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontWeight: 900, fontSize: 16, lineHeight: 1.1, textShadow: '0 1px 6px rgba(0,0,0,0.35)' }}>{t.name}</div>
+                          <div style={{ fontSize: 11, opacity: 0.86, marginTop: 2 }}>{t.gender === '女' ? '♀' : '♂'} {t.age}岁 · {t.distance}km</div>
+                        </div>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 12, fontWeight: 900, color: '#FDE68A', flexShrink: 0 }}>
+                          <Star size={12} fill="#FDE68A" /> {t.rating}
                         </span>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 8 }}>
-                        <span style={{ fontSize: 10.5, color: '#888' }}>📍 {t.distance}km</span>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 2, fontSize: 11, fontWeight: 700, color: '#F59E0B' }}>
-                          <Star size={10} fill="#F59E0B" /> {t.rating}
-                        </span>
-                      </div>
-                      {/* 标签 */}
-                      <div style={{ display: 'flex', justifyContent: 'center', gap: 4, flexWrap: 'wrap', marginBottom: 10 }}>
+                      <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 8 }}>
                         {t.tags.slice(0, 2).map((tag, ti) => (
                           <span key={ti} style={{
-                            fontSize: 9.5, fontWeight: 600, color: th.primary,
-                            background: th.light, padding: '2px 8px', borderRadius: 8,
+                            fontSize: 10, fontWeight: 800, color: '#fff',
+                            background: 'rgba(255,255,255,0.18)', padding: '3px 7px', borderRadius: 999,
+                            textShadow: '0 1px 4px rgba(0,0,0,0.28)',
                           }}>{tag}</span>
                         ))}
                       </div>
-                      {/* 按钮 */}
                       <button onClick={(e) => { e.preventDefault(); }}
                         style={{
-                          width: '100%', padding: '8px 0', borderRadius: 12, border: 'none', cursor: 'pointer',
+                          width: '100%', padding: '8px 0', borderRadius: 999, border: '1px solid rgba(255,255,255,0.28)', cursor: 'pointer',
                           background: `linear-gradient(135deg, ${th.primary}, ${th.primary}CC)`,
-                          color: '#fff', fontSize: 12, fontWeight: 700,
-                          boxShadow: `0 3px 10px ${th.primary}30`,
-                          transition: 'all 0.2s',
+                          color: '#fff', fontSize: 12, fontWeight: 900,
+                          boxShadow: `0 6px 18px ${th.primary}42`,
                         }}>立即预约</button>
                     </div>
                   </div>
