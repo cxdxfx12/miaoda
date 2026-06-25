@@ -145,6 +145,8 @@ interface TalentItem {
   id: number;
   name: string;
   avatar: string;
+  artPhotos: string[];
+  lifePhotos: string[];
   gender: '男' | '女';
   age: number;
   distance: number;        // km，与当前用户的距离
@@ -165,6 +167,8 @@ function adaptApiTalent(raw: any): TalentItem {
     id: Number(raw.id),
     name: raw.real_name || raw.name || '',
     avatar: raw.avatar || '',
+    artPhotos: Array.isArray(raw.art_photos) ? raw.art_photos : [],
+    lifePhotos: Array.isArray(raw.life_photos) ? raw.life_photos : [],
     gender: raw.gender === 2 ? '女' : '男',
     age: raw.birthday ? Math.floor((Date.now() - new Date(raw.birthday).getTime()) / 31557600000) : 0,
     distance: Number(raw.distance || raw.distance_km || 0),
@@ -194,6 +198,10 @@ function Stars({ value, size = 13 }: { value: number; size?: number }) {
 function Avatar({ initials, src, size = 44 }: { initials: string; src?: string; size?: number }) {
   if (src) return <img src={src} alt="" className="avatar" style={{ width: size, height: size }} />;
   return <div className="avatar" style={{ width: size, height: size, fontSize: size * 0.38 }}>{initials}</div>;
+}
+
+function getTalentHeroImage(talent: TalentItem) {
+  return talent.artPhotos?.[0] || talent.lifePhotos?.[0] || talent.avatar || '';
 }
 
 function StatusBadge({ status }: { status: number | string }) {
@@ -1638,7 +1646,7 @@ function ServiceListPage() {
       {detailTalentId !== null && (() => {
         const talent = allTalentsForList.find(t => t.id === detailTalentId);
         if (!talent) return null;
-        const talentServices = MOCK_SERVICES.filter(s => talent.serviceIds.includes(s.id));
+        const talentServices = list.filter(s => talent.serviceIds.includes(s.id));
         return <TalentDetailDrawer talent={talent} services={talentServices} onClose={() => setDetailTalentId(null)} onBook={(svcId) => { setDetailTalentId(null); nav(`/service-detail?id=${svcId}&talentId=${talent.id}`); }} />;
       })()}
     </div>
@@ -1838,11 +1846,12 @@ function TalentListSection({ onSelectTalent, onBookTalent }: {
    =================================================================== */
 function TalentDetailDrawer({ talent, services, onClose, onBook }: {
   talent: TalentItem;
-  services: typeof MOCK_SERVICES;
+  services: ServiceItem[];
   onClose: () => void;
   onBook: (serviceId: number) => void;
 }) {
   const theme = { accent: '#7C5CFC', light: '#EDE7F6', grad: 'linear-gradient(160deg, #7C5CFC, #A78BFA)' };
+  const heroImage = getTalentHeroImage(talent);
 
   return (
     <>
@@ -1857,15 +1866,14 @@ function TalentDetailDrawer({ talent, services, onClose, onBook }: {
         zIndex: 29, display: 'flex', flexDirection: 'column',
         animation: 'slideUp 0.35s cubic-bezier(0.16,1,0.3,1)',
       }}>
-        {/* 顶部头部区域 — 渐变背景+头像 */}
+        {/* 顶部头部区域 — 艺术照大图 */}
         <div style={{
-          background: theme.grad, padding: '28px 20px 36px', position: 'relative', overflow: 'hidden',
+          height: 260, background: '#111827', position: 'relative', overflow: 'hidden', borderRadius: '26px 26px 0 0',
         }}>
-          {/* 装饰圆圈 */}
-          <div style={{ position: 'absolute', top: -30, right: -30, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,0.08)' }} />
-          <div style={{ position: 'absolute', bottom: -18, left: -18, width: 80, height: 80, borderRadius: '50%', background: 'rgba(255,255,255,0.06)' }} />
+          {heroImage && <img src={heroImage} alt={talent.name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.20) 44%, rgba(0,0,0,0.72) 100%)' }} />
 
-          <div style={{ position: 'relative', zIndex: 1 }}>
+          <div style={{ position: 'absolute', inset: 0, zIndex: 1, padding: '18px 20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
             {/* 关闭按钮 */}
             <div onClick={onClose} style={{
               position: 'absolute', top: 0, right: 0, width: 32, height: 32, borderRadius: '50%',
@@ -1873,6 +1881,7 @@ function TalentDetailDrawer({ talent, services, onClose, onBook }: {
               cursor: 'pointer', color: '#fff', fontSize: 16,
             }}>✕</div>
 
+            <div />
             <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
               {/* 大头像 */}
               <div style={{
@@ -1923,7 +1932,9 @@ function TalentDetailDrawer({ talent, services, onClose, onBook }: {
                 background: '#FAFAFA', borderRadius: 12, padding: '12px 14px', marginBottom: 8,
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ fontSize: 28 }}>{s.icon}</span>
+                  <div style={{ width: 42, height: 42, borderRadius: 12, overflow: 'hidden', background: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    {renderServiceIcon(s.icon, 34)}
+                  </div>
                   <div>
                     <div style={{ fontWeight: 700, fontSize: 14, color: '#333' }}>{s.name}</div>
                     <div style={{ fontSize: 11, color: '#AAA' }}>{s.duration} · ⭐{s.rating}</div>
@@ -2313,8 +2324,11 @@ function getGenerationLabel(age: number): string {
 function TalentFeedPage() {
   const nav = useNavigate();
   const { data: talentsData } = useQuery({ queryKey: ['talents-nearby', 100], queryFn: () => talentApi.nearby(NEARBY_TALENT_QUERY) });
+  const { data: servicesData } = useQuery({ queryKey: ['services-for-feed'], queryFn: () => serviceApi.listServices() });
   const apiTalentsRaw = Array.isArray((talentsData as any)?.data) ? (talentsData as any).data : ((talentsData as any)?.data?.list || []);
   const allTalents = apiTalentsRaw.map(adaptApiTalent);
+  const apiServices = ((servicesData as any)?.data?.list || []).map(adaptApiService);
+  const serviceList: ServiceItem[] = apiServices.length > 0 ? apiServices : MOCK_SERVICES;
 
   // 双列分配
   const leftCol = allTalents.filter((_, i) => i % 2 === 0);
@@ -2363,7 +2377,7 @@ function TalentFeedPage() {
           {leftCol.map((t, ci) => {
             const cs = getTalentCardStyle(ci * 2);
             const svcNames = t.serviceIds.slice(0, 3).map(sid => {
-              const sv = MOCK_SERVICES.find(s => s.id === sid);
+              const sv = serviceList.find(s => s.id === sid);
               return sv?.name || '';
             }).filter(Boolean);
             return (
@@ -2443,7 +2457,7 @@ function TalentFeedPage() {
           {rightCol.map((t, ci) => {
             const cs = getTalentCardStyle(ci * 2 + 1);
             const svcNames = t.serviceIds.slice(0, 3).map(sid => {
-              const sv = MOCK_SERVICES.find(s => s.id === sid);
+              const sv = serviceList.find(s => s.id === sid);
               return sv?.name || '';
             }).filter(Boolean);
             return (
@@ -2526,7 +2540,8 @@ function TalentFeedPage() {
       {detailId !== null && (() => {
         const talent = allTalents.find(t => t.id === detailId);
         if (!talent) return null;
-        const talentServices = MOCK_SERVICES.filter(s => talent.serviceIds.includes(s.id));
+        const talentServices = serviceList.filter(s => talent.serviceIds.includes(s.id));
+        const heroImage = getTalentHeroImage(talent);
         return (
           <>
             <div onClick={() => setDetailId(null)} style={{
@@ -2542,22 +2557,15 @@ function TalentFeedPage() {
             }}>
               {/* 头部大图 */}
               <div style={{
-                height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 80, position: 'relative', flexShrink: 0,
+                height: 260, position: 'relative', flexShrink: 0, overflow: 'hidden',
                 background: `linear-gradient(160deg, ${getTalentCardStyle(detailId).bg}22, ${getTalentCardStyle(detailId).bgl})`,
                 borderRadius: '24px 24px 0 0',
               }}>
-                <div style={{
-                  width: 100, height: 100, borderRadius: 24,
-                  background: getTalentCardStyle(detailId).bg,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  overflow: 'hidden',
-                }}>
-                  {talent.avatar.startsWith('http') ? (
-                    <img src={talent.avatar} alt={talent.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  ) : (
-                    <span style={{ fontSize: 52, color: '#fff' }}>{talent.avatar}</span>
-                  )}
+                {heroImage && <img src={heroImage} alt={talent.name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
+                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0.02) 0%, rgba(0,0,0,0.18) 48%, rgba(0,0,0,0.68) 100%)' }} />
+                <div style={{ position: 'absolute', left: 16, right: 56, bottom: 14, color: '#fff' }}>
+                  <div style={{ fontWeight: 900, fontSize: 24, textShadow: '0 2px 8px rgba(0,0,0,0.35)' }}>{talent.name}</div>
+                  <div style={{ marginTop: 3, fontSize: 12.5, opacity: 0.92 }}>{getGenerationLabel(talent.age)} · {talent.age}岁 · 已服务 {talent.orderCount} 单</div>
                 </div>
                 {/* 关闭按钮 */}
                 <button onClick={(e) => { e.stopPropagation(); setDetailId(null); }} style={{
@@ -2619,7 +2627,9 @@ function TalentFeedPage() {
                             background: cCfg?.bgGrad || '#F3F4F6',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             fontSize: 22,
-                          }}>{s.icon}</div>
+                          }}>
+                            {renderServiceIcon(s.icon, 36)}
+                          </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text-h)' }}>{s.name}</div>
                             <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>{s.duration} · {s.desc.slice(0, 30)}...</div>
