@@ -1,19 +1,30 @@
 'use client';
 
-import { Bell, Search, ChevronDown, LogOut, User as UserIcon } from 'lucide-react';
+import { Bell, Search, ChevronDown, LogOut, User as UserIcon, MapPin } from 'lucide-react';
 import { useAdminStore } from '@/store/adminStore';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { cityNames } from '@/constants/cities';
 
 export function Topbar() {
   const router = useRouter();
   const admin = useAdminStore((s) => s.admin);
   const logout = useAdminStore((s) => s.logout);
   const [showMenu, setShowMenu] = useState(false);
+  const [city, setCity] = useState(() => {
+    if (typeof window === 'undefined') return '全部城市';
+    return localStorage.getItem('admin-current-city') || '全部城市';
+  });
 
   const handleLogout = () => {
     logout();
     router.push('/login');
+  };
+
+  const changeCity = (nextCity: string) => {
+    setCity(nextCity);
+    localStorage.setItem('admin-current-city', nextCity);
+    window.dispatchEvent(new CustomEvent('admin-city-changed', { detail: nextCity }));
   };
 
   return (
@@ -28,6 +39,18 @@ export function Topbar() {
       </div>
 
       <div className="flex items-center gap-3">
+        <div className="flex h-9 items-center gap-2 rounded-lg border border-[#EEF1F6] bg-[#F8FAFC] px-3">
+          <MapPin className="h-4 w-4 text-[#6B7FD7]" />
+          <select
+            value={city}
+            onChange={(e) => changeCity(e.target.value)}
+            className="bg-transparent text-sm font-medium text-[#1F2937] outline-none"
+          >
+            <option>全部城市</option>
+            {cityNames.map((name) => <option key={name}>{name}</option>)}
+          </select>
+        </div>
+
         <button className="relative flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-[#F3F4FE] hover:text-[#6B7FD7]">
           <Bell className="h-[18px] w-[18px]" />
           <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-[#FF6B6B] ring-2 ring-white" />

@@ -22,12 +22,14 @@ import {
   Image,
   Package,
   MessageCircle,
+  Building2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { settingsApi } from '@/api';
 
 const navItems = [
   { href: '/dashboard', label: '数据概览', icon: LayoutDashboard },
+  { href: '/cities', label: '城市管理', icon: Building2 },
   { href: '/orders', label: '订单管理', icon: ShoppingBag },
   { href: '/talents', label: '达人管理', icon: UserCog },
   { href: '/talent-review', label: '达人审核', icon: UserCheck },

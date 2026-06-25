@@ -13,6 +13,7 @@ import {
   safePrepareUpload, UPLOAD_LIMITS, type UploadType,
   sanitizeFileName,
 } from '@/lib/utils';
+import { cityDistrictMap, cityNames } from '@/constants/cities';
 
 // ==================== 年龄段计算 ====================
 function calcAgeRange(birthday: string): { label: string; desc: string; color: string } | null {
@@ -44,18 +45,8 @@ const SKILL_OPTIONS = [
 ];
 
 // ==================== 服务城市选项 ====================
-const CITY_OPTIONS = [
-  '北京', '上海', '杭州', '深圳', '成都', '武汉',
-];
-
-const DISTRICT_OPTIONS: Record<string, string[]> = {
-  '北京': ['东城区', '西城区', '朝阳区', '海淀区', '丰台区', '石景山区', '通州区', '昌平区', '大兴区', '顺义区', '房山区', '门头沟区'],
-  '上海': ['黄浦区', '徐汇区', '长宁区', '静安区', '普陀区', '虹口区', '杨浦区', '浦东新区', '闵行区', '宝山区', '嘉定区', '松江区'],
-  '杭州': ['上城区', '拱墅区', '西湖区', '滨江区', '萧山区', '余杭区', '临平区', '钱塘区', '富阳区', '临安区'],
-  '深圳': ['福田区', '罗湖区', '南山区', '盐田区', '宝安区', '龙岗区', '龙华区', '坪山区', '光明区', '大鹏新区'],
-  '成都': ['锦江区', '青羊区', '金牛区', '武侯区', '成华区', '龙泉驿区', '青白江区', '新都区', '温江区', '双流区', '郫都区', '高新区'],
-  '武汉': ['江岸区', '江汉区', '硚口区', '汉阳区', '武昌区', '青山区', '洪山区', '东西湖区', '汉南区', '蔡甸区', '江夏区', '黄陂区', '新洲区'],
-};
+const CITY_OPTIONS = cityNames;
+const DISTRICT_OPTIONS = cityDistrictMap;
 
 // ==================== 主组件 ====================
 export default function AddTalentPage() {
