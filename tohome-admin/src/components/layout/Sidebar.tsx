@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -23,6 +24,7 @@ import {
   MessageCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { settingsApi } from '@/api';
 
 const navItems = [
   { href: '/dashboard', label: '数据概览', icon: LayoutDashboard },
@@ -46,6 +48,29 @@ const navItems = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const [servicePhone, setServicePhone] = useState('400-888-8888');
+
+  const loadSupportPhone = async () => {
+    try {
+      const res: any = await settingsApi.getBasic();
+      const items = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
+      const phone = items.find((item: any) => item.key === 'service_phone')?.value;
+      if (phone) setServicePhone(phone);
+    } catch {
+      // 保留默认客服电话
+    }
+  };
+
+  useEffect(() => {
+    loadSupportPhone();
+    const handler = (event: Event) => {
+      const phone = (event as CustomEvent<string>).detail;
+      if (phone) setServicePhone(phone);
+      else loadSupportPhone();
+    };
+    window.addEventListener('admin-basic-settings-saved', handler);
+    return () => window.removeEventListener('admin-basic-settings-saved', handler);
+  }, []);
 
   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-60 border-r border-[#EEF1F6] bg-white">
@@ -85,7 +110,7 @@ export function Sidebar() {
           <span>技术支持</span>
         </div>
         <div className="text-[11px] leading-relaxed text-gray-500">
-          7x24小时在线<br />400-888-8888
+          7x24小时在线<br />{servicePhone}
         </div>
       </div>
     </aside>

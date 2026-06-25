@@ -54,6 +54,9 @@ export default function SettingsPage() {
         group === 'notify' ? (settingsApi.saveNotify as any) :
         (settingsApi.saveSecurity as any);
       await endpoint(configData);
+      if (group === 'basic') {
+        window.dispatchEvent(new CustomEvent('admin-basic-settings-saved', { detail: configData.service_phone || '' }));
+      }
       alert('保存成功');
     } catch { alert('保存失败（后端未连接）'); }
     finally { setSaving(false); }
