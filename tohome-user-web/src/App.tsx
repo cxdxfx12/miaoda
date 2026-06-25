@@ -996,6 +996,7 @@ function HomePage() {
             onWheel={(e) => { if (e.deltaY !== 0) { (e.currentTarget as HTMLElement).scrollLeft += e.deltaY; e.preventDefault(); } }}>
             {(Array.isArray(services) ? services : MOCK_SERVICES).slice(0, 4).map((s: any, i: number) => {
               const svc = s.id ? s : MOCK_SERVICES[i];
+              const hasServiceImage = isImageIcon(svc.icon);
               const themes = [
                 { gradient: 'linear-gradient(160deg, #FF6B9D, #FF8FAB)', light: '#FFF5F7', accent: '#FF6B9D' },
                 { gradient: 'linear-gradient(160deg, #5B9EFF, #7CB8FF)', light: '#F0F7FF', accent: '#5B9EFF' },
@@ -1021,10 +1022,19 @@ function HomePage() {
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       position: 'relative', overflow: 'hidden', flexShrink: 0,
                     }}>
-                      <div style={{ position: 'absolute', top: -15, right: -15, width: 50, height: 50, borderRadius: '50%', background: `${th.accent}10` }} />
-                      <div style={{ position: 'relative', zIndex: 1, filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.08))' }}>
-                        {renderServiceIcon(svc.icon, 58)}
-                      </div>
+                      {hasServiceImage ? (
+                        <>
+                          {renderServiceImageFill(svc.icon, 58)}
+                          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0.02), rgba(0,0,0,0.18))' }} />
+                        </>
+                      ) : (
+                        <>
+                          <div style={{ position: 'absolute', top: -15, right: -15, width: 50, height: 50, borderRadius: '50%', background: `${th.accent}10` }} />
+                          <div style={{ position: 'relative', zIndex: 1, filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.08))' }}>
+                            {renderServiceIcon(svc.icon, 58)}
+                          </div>
+                        </>
+                      )}
                       {/* 排名 */}
                       <div style={{
                         position: 'absolute', top: 10, left: 10,
@@ -1974,7 +1984,7 @@ function ServiceDetailPage() {
   // 优先 API 数据，无则查 mock
   const apiSvc = (data as any)?.data;
   const mockSvc = MOCK_SERVICES.find(s => s.id === id);
-  const svc = apiSvc && Object.keys(apiSvc).length > 0 ? apiSvc : mockSvc;
+  const svc = apiSvc && Object.keys(apiSvc).length > 0 ? adaptApiService(apiSvc) : mockSvc;
   const cCfg = svc ? getCategoryConfig((svc as any).category) : null;
 
   // 达人列表：优先 API 数据
@@ -1991,6 +2001,7 @@ function ServiceDetailPage() {
   const icon = (svc as any)?.icon || '🎬';
   const tags = (svc as any)?.tags || [];
   const duration = (svc as any)?.duration || '';
+  const hasServiceHeroImage = isImageIcon(icon);
 
   // 达人选择面板
   const [showTalentPanel, setShowTalentPanel] = useState(false);
@@ -2057,11 +2068,18 @@ function ServiceDetailPage() {
         <div style={{ background: 'var(--bg)', borderRadius: '20px 20px 0 0', marginTop: -56, position: 'relative', zIndex: 2, padding: '24px 20px' }}>
           <div className="card" style={{ padding: 20, borderRadius: 16, marginTop: -60, position: 'relative' }}>
             <div style={{
-              height: 160, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              height: 220, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 56, marginBottom: 16, background: cCfg?.bgGrad || 'linear-gradient(135deg, #F5F3FF, #EDE9FE)',
-              position: 'relative',
+              position: 'relative', overflow: 'hidden',
             }}>
-              {icon}
+              {hasServiceHeroImage ? (
+                <>
+                  {renderServiceImageFill(icon, 92)}
+                  <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0.02) 0%, rgba(0,0,0,0.12) 100%)' }} />
+                </>
+              ) : (
+                renderServiceIcon(icon, 92)
+              )}
               {duration && (
                 <span style={{ position: 'absolute', bottom: 10, right: 10, background: 'rgba(0,0,0,0.5)', color: '#fff', fontSize: 12, padding: '3px 10px', borderRadius: 8 }}>
                   ⏱ {duration}
