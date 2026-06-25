@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { AdminLayout } from '@/components/layout/AdminLayout';
-import { Save, Bell, Shield, Globe, Database, Server, MessageSquare, Loader2 } from 'lucide-react';
+import { Save, Bell, Shield, Globe, Database, Server, MessageSquare, Loader2, Headphones } from 'lucide-react';
 import { settingsApi } from '@/api';
 
 const sections = [
   { id: 'basic', name: '基础设置', icon: Globe },
   { id: 'notify', name: '消息通知', icon: Bell },
+  { id: 'support', name: '咨询客服', icon: Headphones },
   { id: 'security', name: '安全设置', icon: Shield },
   { id: 'database', name: '数据备份', icon: Database },
   { id: 'server', name: '服务监控', icon: Server },
@@ -36,12 +37,20 @@ export default function SettingsPage() {
     try {
       const endpoint = group === 'basic' ? settingsApi.getBasic() :
         group === 'notify' ? settingsApi.getNotify() :
+        group === 'support' ? settingsApi.getSupport() :
         group === 'security' ? settingsApi.getSecurity() :
         settingsApi.getBasic();
       const res: any = await endpoint;
       const items: ConfigItem[] = (res?.data || res || []);
       const map: Record<string, string> = {};
       (Array.isArray(items) ? items : []).forEach((item: ConfigItem) => { map[item.key] = item.value; });
+      if (group === 'support') {
+        map.support_mode = map.support_mode || 'page';
+        map.support_url = map.support_url || '/support';
+        map.support_phone = map.support_phone || '';
+        map.support_title = map.support_title || '在线客服';
+        map.support_desc = map.support_desc || '咨询订单、退款、预约和平台规则等问题';
+      }
       setConfigData(map);
     } catch { /* backend unavailable, using defaults */ }
     finally { setLoading(false); }
@@ -52,6 +61,7 @@ export default function SettingsPage() {
     try {
       const endpoint = group === 'basic' ? (settingsApi.saveBasic as any) :
         group === 'notify' ? (settingsApi.saveNotify as any) :
+        group === 'support' ? (settingsApi.saveSupport as any) :
         (settingsApi.saveSecurity as any);
       await endpoint(configData);
       if (group === 'basic') {
@@ -110,6 +120,13 @@ export default function SettingsPage() {
       { label: '退款通知(0/1)', key: 'refund_notify' },
       { label: '系统告警(0/1)', key: 'system_alert' },
     ],
+    support: [
+      { label: '打开方式(page/phone/link)', key: 'support_mode' },
+      { label: '客服页面或外链地址', key: 'support_url' },
+      { label: '客服电话', key: 'support_phone' },
+      { label: '客服标题', key: 'support_title' },
+      { label: '说明文案', key: 'support_desc', type: 'textarea' },
+    ],
     security: [
       { label: '登录密码最小长度', key: 'min_password_len' },
       { label: '会话超时(分钟)', key: 'session_timeout' },
@@ -134,6 +151,15 @@ export default function SettingsPage() {
       <h2 className="text-lg font-semibold text-[#1F2937]">消息通知</h2>
       <div className="space-y-4">
         {defaultConfigs.notify.map(f => renderField(f.label, f.key, f.type))}
+      </div>
+    </div>,
+    support: <div className="space-y-6">
+      <div>
+        <h2 className="text-lg font-semibold text-[#1F2937]">咨询客服配置</h2>
+        <p className="mt-1 text-xs text-gray-400">控制用户端“咨询客服”按钮的打开方式。page=站内客服页，phone=拨打电话，link=跳转外链。</p>
+      </div>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        {defaultConfigs.support.map(f => renderField(f.label, f.key, f.type))}
       </div>
     </div>,
     security: <div className="space-y-6">

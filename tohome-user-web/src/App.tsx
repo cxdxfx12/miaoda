@@ -30,6 +30,33 @@ interface ServiceItem {
 const MIN_TWO_PRICE_THRESHOLD = 130;
 const getMinimumOrderQty = (price: number) => Number(price) > 0 && Number(price) < MIN_TWO_PRICE_THRESHOLD ? 2 : 1;
 
+type SupportConfig = {
+  support_mode?: 'page' | 'phone' | 'link' | string;
+  support_url?: string;
+  support_phone?: string;
+};
+
+async function openSupport(nav: (path: string) => void) {
+  try {
+    const res: any = await api.get('/config/support');
+    const cfg: SupportConfig = res?.data || res || {};
+    const mode = cfg.support_mode || 'page';
+    const url = cfg.support_url || '/support';
+    const phone = cfg.support_phone || '';
+    if (mode === 'phone' && phone) {
+      window.location.href = `tel:${phone}`;
+      return;
+    }
+    if (mode === 'link' && url) {
+      window.open(url, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    nav(url.startsWith('/') ? url : '/support');
+  } catch {
+    nav('/support');
+  }
+}
+
 const CATEGORIES = [
   { key: 'leisure', icon: '🎱', label: '休闲陪伴', color: '#EFF6FF', tagColor: '#3B82F6', bgGrad: 'linear-gradient(135deg, #DBEAFE, #BFDBFE)' },
   { key: 'entertainment', icon: '🎮', label: '娱乐陪伴', color: '#FFFBEB', tagColor: '#F59E0B', bgGrad: 'linear-gradient(135deg, #FEF3C7, #FDE68A)' },
@@ -1619,7 +1646,7 @@ function ServiceListPage() {
 
       {/* 客服悬浮 */}
       <div style={{ position: 'fixed', right: 14, bottom: selectedCount > 0 ? 80 : 20, zIndex: 50 }}>
-        <div style={{
+        <div onClick={() => openSupport(nav)} style={{
           width: 46, height: 46, borderRadius: '50%',
           background: 'linear-gradient(135deg, #81C784, #4CAF50)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -2138,7 +2165,7 @@ function ServiceDetailPage() {
             background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(16px)',
             borderTop: '1px solid var(--border)', display: 'flex', gap: 12, zIndex: 20,
           }}>
-            <button className="btn-outline" style={{ flex: 1, height: 48, borderRadius: 14, gap: 6 }}>
+            <button onClick={() => openSupport(nav)} className="btn-outline" style={{ flex: 1, height: 48, borderRadius: 14, gap: 6 }}>
               <MessageCircle size={18} /> 咨询客服
             </button>
             <button className="btn-primary" style={{ flex: 1, height: 48, borderRadius: 14, fontSize: 16 }} onClick={handleBook}>

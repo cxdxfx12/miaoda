@@ -609,6 +609,29 @@ func (h *AdminHandler) PublicListBanners(c *gin.Context) {
 	response.Success(c, active)
 }
 
+// PublicGetSupportConfig 获取用户端客服配置（无需认证）
+func (h *AdminHandler) PublicGetSupportConfig(c *gin.Context) {
+	configs, err := h.userSvc.GetSystemConfigs(c.Request.Context(), "support")
+	if err != nil {
+		response.ServerError(c, err.Error())
+		return
+	}
+	result := gin.H{
+		"support_mode":  "page",
+		"support_url":   "/support",
+		"support_phone": "",
+		"support_title": "在线客服",
+	}
+	for _, item := range configs {
+		key, _ := item["key"].(string)
+		value, _ := item["value"].(string)
+		if key != "" {
+			result[key] = value
+		}
+	}
+	response.Success(c, result)
+}
+
 // AdminSaveBanner 创建轮播图
 func (h *AdminHandler) AdminSaveBanner(c *gin.Context) {
 	var banner model.Banner

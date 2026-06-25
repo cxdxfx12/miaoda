@@ -19,6 +19,12 @@ export const settingsApi = {
   saveSecurity: (data: Record<string, unknown>) =>
     api.post('/api/v1/admin/settings/security', data),
 
+  getSupport: () =>
+    api.get('/api/v1/admin/settings/support'),
+
+  saveSupport: (data: Record<string, unknown>) =>
+    api.post('/api/v1/admin/settings/support', data),
+
   getBackups: () =>
     api.get('/api/v1/admin/settings/backups'),
 

@@ -234,6 +234,7 @@ func RegisterWechatRoutes(r *gin.Engine, h *handler.WechatHandler, jwtCfg *confi
 func RegisterPublicBannerRoutes(r *gin.Engine, h *handler.AdminHandler) {
 	api := r.Group("/api/v1")
 	api.GET("/banners", h.PublicListBanners)
+	api.GET("/config/support", h.PublicGetSupportConfig)
 }
 
 // RegisterAdminRoutes 注册管理后台路由
@@ -311,6 +312,8 @@ func RegisterAdminRoutes(r *gin.Engine, h *handler.AdminHandler, grabH *handler.
 			settingsAdmin.POST("/notify", h.AdminUpdateConfigSetting("notify"))
 			settingsAdmin.GET("/security", h.AdminGetConfigSetting("security"))
 			settingsAdmin.POST("/security", h.AdminUpdateConfigSetting("security"))
+			settingsAdmin.GET("/support", h.AdminGetConfigSetting("support"))
+			settingsAdmin.POST("/support", h.AdminUpdateConfigSetting("support"))
 			settingsAdmin.GET("/backups", h.AdminGetServiceStatus)
 			settingsAdmin.POST("/backups", h.AdminBackup)
 			settingsAdmin.GET("/server-status", h.AdminGetServiceStatus)
