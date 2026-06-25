@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { AdminLayout } from '@/components/layout/AdminLayout';
 import { Search, Plus, Star, MapPin, Phone, Loader2, WifiOff, X, Edit3, Trash2, Check, Upload, Camera, ImageIcon, AlertCircle } from 'lucide-react';
 import { talentApi } from '@/api/talents';
+import { serviceApi, ServiceCategory, ServiceItem } from '@/api/services';
 import { safePrepareUpload, UPLOAD_LIMITS } from '@/lib/utils';
 
 /* ========== Mock 真人达人数据（20位） ========== */
@@ -66,6 +67,12 @@ export default function TechniciansPage() {
   // 分配弹窗
   const [assignModal, setAssignModal] = useState(false);
   const [assignTalent, setAssignTalent] = useState<any>(null);
+  const [assignSkillIds, setAssignSkillIds] = useState<number[]>([]);
+  const [assignSaving, setAssignSaving] = useState(false);
+  const [assignError, setAssignError] = useState('');
+  const [services, setServices] = useState<ServiceItem[]>([]);
+  const [categories, setCategories] = useState<ServiceCategory[]>([]);
+  const [servicesLoading, setServicesLoading] = useState(false);
 
   // 删除确认
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
@@ -107,6 +114,54 @@ export default function TechniciansPage() {
     }
   };
 
+  const fetchServices = async () => {
+    setServicesLoading(true);
+    try {
+      const [serviceRes, categoryRes]: any[] = await Promise.all([
+        serviceApi.getServices({ page: 1, page_size: 500 }),
+        serviceApi.getCategories(),
+      ]);
+      setServices(Array.isArray(serviceRes?.data?.list) ? serviceRes.data.list : []);
+      setCategories(Array.isArray(categoryRes?.data) ? categoryRes.data : []);
+    } catch {
+      setServices([]);
+      setCategories([]);
+    } finally {
+      setServicesLoading(false);
+    }
+  };
+
+  const getSkillIds = (raw: any): number[] => {
+    try {
+      const arr = typeof raw === 'string' ? JSON.parse(raw) : (Array.isArray(raw) ? raw : []);
+      return arr.map((v: any) => Number(v)).filter((v: number) => Number.isFinite(v));
+    } catch {
+      return [];
+    }
+  };
+
+  const serviceNameById = useMemo(() => {
+    const map = new Map<number, string>();
+    services.forEach(s => map.set(Number(s.id), s.name));
+    return map;
+  }, [services]);
+
+  const serviceGroups = useMemo(() => {
+    const categoryMap = new Map<number, ServiceCategory>();
+    categories.forEach(c => categoryMap.set(Number(c.id), c));
+    const grouped = new Map<number, { category?: ServiceCategory; items: ServiceItem[] }>();
+    services
+      .filter(s => Number(s.status) !== 0)
+      .forEach(s => {
+        const cid = Number(s.category_id) || 0;
+        if (!grouped.has(cid)) grouped.set(cid, { category: categoryMap.get(cid), items: [] });
+        grouped.get(cid)!.items.push(s);
+      });
+    return Array.from(grouped.entries())
+      .sort(([a], [b]) => a - b)
+      .map(([categoryId, group]) => ({ categoryId, ...group }));
+  }, [services, categories]);
+
   // 关键词/状态筛选：真实接口已在服务端完成筛选，只有 mock 数据需要前端筛选
   const filteredTalents = useMemo(() => {
     let result = talents;
@@ -132,6 +187,7 @@ export default function TechniciansPage() {
 
   useEffect(() => { setPage(1); }, [keyword, statusFilter]);
   useEffect(() => { fetchTalents(); }, [page, keyword, statusFilter]);
+  useEffect(() => { fetchServices(); }, []);
 
   // 打开编辑弹窗
   const openEdit = (t: any) => {
@@ -301,7 +357,48 @@ export default function TechniciansPage() {
   // 分配
   const doAssign = (t: any) => {
     setAssignTalent(t);
+    setAssignSkillIds(getSkillIds(t.skills));
+    setAssignError('');
     setAssignModal(true);
+  };
+
+  const toggleAssignSkill = (serviceId: number) => {
+    setAssignSkillIds(prev => (
+      prev.includes(serviceId)
+        ? prev.filter(id => id !== serviceId)
+        : [...prev, serviceId]
+    ));
+  };
+
+  const saveAssign = async () => {
+    if (!assignTalent) return;
+    setAssignSaving(true);
+    setAssignError('');
+    try {
+      if (!isMock) {
+        await talentApi.update(assignTalent.id, {
+          skills: assignSkillIds,
+          certificates: [],
+          auto_approve: false,
+        } as any);
+      }
+
+      const updatedSkills = JSON.stringify(assignSkillIds);
+      setTalents(prev => prev.map((t: any) => (
+        t.id === assignTalent.id ? { ...t, skills: updatedSkills } : t
+      )));
+      if (isMock) {
+        const mi = MOCK_TALENTS.findIndex((t: any) => t.id === assignTalent.id);
+        if (mi !== -1) MOCK_TALENTS[mi].skills = updatedSkills;
+      }
+      setAssignModal(false);
+      setAssignTalent(null);
+      setAssignSkillIds([]);
+    } catch (err: any) {
+      setAssignError(err?.message || '保存分配服务失败');
+    } finally {
+      setAssignSaving(false);
+    }
   };
 
   function getAgeRange(birthday: string): string {
@@ -372,6 +469,10 @@ export default function TechniciansPage() {
             const wsStyle = workStatusStyle[ws] || workStatusStyle[0];
             const level = getLevel(t.service_count || 0);
             const skills = (() => { try { return typeof t.skills === 'string' ? JSON.parse(t.skills) : (t.skills || []); } catch { return []; } })();
+            const skillLabels = skills.map((s: any) => {
+              const id = Number(s);
+              return Number.isFinite(id) ? serviceNameById.get(id) : String(s);
+            }).filter(Boolean) as string[];
             const avatarUrl = t.avatar || '';
             return (
               <div key={t.id} className="rounded-xl border border-[#EEF1F6] bg-white p-4 transition-all hover:border-[#C9D1FA] hover:shadow-soft">
@@ -409,11 +510,11 @@ export default function TechniciansPage() {
                 </div>
 
                 <div className="mt-3 flex items-center gap-1.5">
-                  {skills.slice(0, 3).map((s: string, i: number) => (
+                  {skillLabels.slice(0, 3).map((s: string, i: number) => (
                     <span key={i} className="rounded-md bg-[#F3F4FE] px-2 py-0.5 text-[11px] text-[#6B7FD7]">{s}</span>
                   ))}
-                  {skills.length > 3 && (
-                    <span className="text-[10px] text-gray-400">+{skills.length - 3}</span>
+                  {skillLabels.length > 3 && (
+                    <span className="text-[10px] text-gray-400">+{skillLabels.length - 3}</span>
                   )}
                 </div>
 
@@ -705,7 +806,7 @@ export default function TechniciansPage() {
       {assignModal && assignTalent && (
         <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={() => setAssignModal(false)}>
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-          <div onClick={(e) => e.stopPropagation()} className="relative z-10 mx-4 w-full max-w-md rounded-2xl bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+          <div onClick={(e) => e.stopPropagation()} className="relative z-10 mx-4 w-full max-w-3xl rounded-2xl bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between border-b border-[#EEF1F6] px-6 py-4">
               <div>
                 <h3 className="text-lg font-bold text-[#1F2937]">分配服务</h3>
@@ -713,7 +814,7 @@ export default function TechniciansPage() {
               </div>
               <button onClick={() => setAssignModal(false)} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"><X className="h-5 w-5" /></button>
             </div>
-            <div className="px-6 py-5">
+            <div className="max-h-[70vh] overflow-y-auto px-6 py-5">
               <div className="rounded-xl border border-[#EEF1F6] bg-[#F8F9FC] p-4">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="h-10 w-10 rounded-xl overflow-hidden bg-gray-200 shrink-0">
@@ -724,26 +825,73 @@ export default function TechniciansPage() {
                     <div className="text-xs text-gray-400">{assignTalent.service_city} · {getAgeRange(assignTalent.birthday || '')}</div>
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-xs text-gray-400 font-medium">可选服务</label>
-                  {['中式按摩', '精油SPA', '泰式按摩', '肩颈理疗', '纤体塑形', '经络疏通', '足疗', '采耳', '头部按摩', '刮痧', '拔罐', '推拿'].map(svc => {
-                    const skills = (() => { try { return typeof assignTalent.skills === 'string' ? JSON.parse(assignTalent.skills) : (assignTalent.skills || []); } catch { return []; } })();
-                    const has = skills.includes(svc);
-                    return (
-                      <label key={svc} className={`flex items-center gap-3 rounded-lg border px-3 py-2.5 cursor-pointer transition-all ${has ? 'border-[#6B7FD7] bg-[#F3F4FE]' : 'border-[#EEF1F6] bg-white hover:border-gray-300'}`}>
-                        <input type="checkbox" defaultChecked={has} className="accent-[#6B7FD7]" />
-                        <span className={`text-sm ${has ? 'font-medium text-[#6B7FD7]' : 'text-gray-600'}`}>{svc}</span>
-                        {has && <Check className="ml-auto h-4 w-4 text-[#6B7FD7]" />}
-                      </label>
-                    );
-                  })}
+                <div className="mb-4 flex items-center justify-between rounded-lg bg-white px-3 py-2">
+                  <span className="text-xs font-medium text-gray-500">已选择 {assignSkillIds.length} 项服务</span>
+                  <button onClick={() => setAssignSkillIds([])} className="text-xs font-medium text-[#6B7FD7] hover:text-[#5668C2]">清空选择</button>
+                </div>
+                {assignError && (
+                  <div className="mb-4 flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-500">
+                    <AlertCircle className="h-4 w-4" /> {assignError}
+                  </div>
+                )}
+                <div className="space-y-5">
+                  {servicesLoading ? (
+                    <div className="flex h-32 items-center justify-center text-sm text-gray-400">
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin text-[#6B7FD7]" /> 正在加载服务项目...
+                    </div>
+                  ) : serviceGroups.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-[#DDE3F0] bg-white px-4 py-8 text-center text-sm text-gray-400">
+                      暂无可分配服务，请先到“服务管理”新增服务项目
+                    </div>
+                  ) : serviceGroups.map(group => (
+                    <div key={group.categoryId}>
+                      <div className="mb-2 flex items-center gap-2">
+                        <span className="text-base">{group.category?.icon || '✨'}</span>
+                        <span className="text-sm font-semibold text-[#1F2937]">{group.category?.name || '未分类服务'}</span>
+                        <span className="text-xs text-gray-400">{group.items.length} 项</span>
+                      </div>
+                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                        {group.items.map(service => {
+                          const sid = Number(service.id);
+                          const checked = assignSkillIds.includes(sid);
+                          return (
+                            <button
+                              type="button"
+                              key={sid}
+                              onClick={() => toggleAssignSkill(sid)}
+                              className={`relative rounded-xl border p-3 text-left transition-all ${
+                                checked
+                                  ? 'border-[#6B7FD7] bg-[#F3F4FE] shadow-sm'
+                                  : 'border-[#EEF1F6] bg-white hover:border-[#C9D1FA] hover:bg-[#FAFBFF]'
+                              }`}
+                            >
+                              <div className="flex items-start gap-3">
+                                <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-[#F5F7FA]">
+                                  {service.cover_image ? (
+                                    <img src={service.cover_image} alt={service.name} className="h-full w-full object-cover" />
+                                  ) : (
+                                    <div className="flex h-full w-full items-center justify-center text-lg">{group.category?.icon || '✨'}</div>
+                                  )}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className={`truncate text-sm font-semibold ${checked ? 'text-[#6B7FD7]' : 'text-[#1F2937]'}`}>{service.name}</div>
+                                  <div className="mt-1 text-xs text-gray-400">¥{service.base_price || 0} · {service.order_count || 0}单</div>
+                                </div>
+                                {checked && <Check className="h-4 w-4 shrink-0 text-[#6B7FD7]" />}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
             <div className="flex items-center gap-2 border-t border-[#EEF1F6] px-6 py-4">
               <button onClick={() => setAssignModal(false)} className="flex-1 rounded-lg border border-[#EEF1F6] px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 transition-colors">关闭</button>
-              <button onClick={() => setAssignModal(false)} className="flex-1 rounded-lg bg-gradient-to-r from-[#6B7FD7] to-[#8B9AE3] px-4 py-2 text-sm font-medium text-white hover:from-[#5668C2] hover:to-[#6B7FD7] transition-all shadow-soft">
-                确认分配
+              <button onClick={saveAssign} disabled={assignSaving} className="flex-1 rounded-lg bg-gradient-to-r from-[#6B7FD7] to-[#8B9AE3] px-4 py-2 text-sm font-medium text-white hover:from-[#5668C2] hover:to-[#6B7FD7] transition-all shadow-soft disabled:cursor-not-allowed disabled:opacity-60">
+                {assignSaving ? <span className="inline-flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" />保存中</span> : '确认分配'}
               </button>
             </div>
           </div>
