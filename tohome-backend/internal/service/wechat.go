@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/miaoda/backend/internal/config"
@@ -82,6 +83,17 @@ func (s *WechatService) GetPublicConfig() map[string]interface{} {
 
 // LoginByCode 通过微信授权code登录
 func (s *WechatService) LoginByCode(ctx context.Context, code, ip string) (*LoginResponse, error) {
+	if s.isDev && (strings.HasPrefix(code, "dev_") || !s.cfg.Enabled || s.cfg.AppID == "") {
+		userInfo := &WechatUserInfo{
+			OpenID:     "dev_openid_" + code,
+			Nickname:   "微信用户",
+			Sex:        0,
+			HeadImgURL: "https://thirdwx.qlogo.cn/mmopen/vi_32/default/132",
+			UnionID:    "dev_unionid_" + code,
+		}
+		return s.loginByWechatUserInfo(ctx, userInfo, ip)
+	}
+
 	// 1. 用code换取access_token和openid
 	accessToken, err := s.exchangeCodeForToken(code)
 	if err != nil {
@@ -94,7 +106,10 @@ func (s *WechatService) LoginByCode(ctx context.Context, code, ip string) (*Logi
 		return nil, fmt.Errorf("获取微信用户信息失败: %w", err)
 	}
 
-	// 3. 查找或创建用户
+	return s.loginByWechatUserInfo(ctx, userInfo, ip)
+}
+
+func (s *WechatService) loginByWechatUserInfo(ctx context.Context, userInfo *WechatUserInfo, ip string) (*LoginResponse, error) {
 	user, isNew, err := s.findOrCreateUser(ctx, userInfo)
 	if err != nil {
 		return nil, fmt.Errorf("处理用户失败: %w", err)
@@ -104,7 +119,6 @@ func (s *WechatService) LoginByCode(ctx context.Context, code, ip string) (*Logi
 		return nil, ErrUserDisabled
 	}
 
-	// 4. 生成JWT
 	userType := 1
 	token, err := jwt.GenerateToken(s.jwtCfg.Secret, user.ID, user.Phone, userType, s.jwtCfg.Expire)
 	if err != nil {
@@ -116,7 +130,6 @@ func (s *WechatService) LoginByCode(ctx context.Context, code, ip string) (*Logi
 		return nil, fmt.Errorf("生成刷新token失败: %w", err)
 	}
 
-	// 5. 更新登录信息
 	go s.userRepo.UpdateLastLogin(context.Background(), user.ID, ip)
 	go s.userRepo.SetCache(context.Background(), user)
 
@@ -226,7 +239,7 @@ func (s *WechatService) findOrCreateUser(ctx context.Context, wxInfo *WechatUser
 
 // generateWechatPhone 为微信用户生成虚拟手机号（后续可绑定真实手机号）
 func (s *WechatService) generateWechatPhone() string {
-	return fmt.Sprintf("1%013d", time.Now().UnixNano()%10000000000000)
+	return fmt.Sprintf("19%09d", time.Now().UnixNano()%1000000000)
 }
 
 // BindPhone 微信用户绑定手机号

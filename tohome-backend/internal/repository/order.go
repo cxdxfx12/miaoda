@@ -25,18 +25,19 @@ func NewOrderRepository(db *sqlx.DB) *OrderRepository {
 func (r *OrderRepository) Create(ctx context.Context, order *model.Order) error {
 	query := `
 		INSERT INTO orders (
-			order_no, user_id, user_name, user_phone, service_id, service_name, service_spec,
+			order_no, user_id, user_name, user_phone, technician_id, technician_name, technician_phone, service_id, service_name, service_spec,
 			service_duration, service_address, appointment_time, original_amount, discount_amount,
-			final_amount, coupon_id, coupon_name, remark, status, created_at, updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+			extra_amount, final_amount, coupon_id, coupon_name, remark, status, created_at, updated_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)
 		RETURNING id, created_at, updated_at`
 
 	now := time.Now()
 	err := r.db.QueryRowxContext(ctx, query,
-		order.OrderNo, order.UserID, order.UserName, order.UserPhone, order.ServiceID,
-		order.ServiceName, order.ServiceSpec, order.ServiceDuration, order.ServiceAddress,
-		order.AppointmentTime, order.OriginalAmount, order.DiscountAmount, order.FinalAmount,
-		order.CouponID, order.CouponName, order.Remark, model.OrderStatusPendingPayment, now, now,
+		order.OrderNo, order.UserID, order.UserName, order.UserPhone, order.TalentID,
+		order.TalentName, order.TalentPhone, order.ServiceID, order.ServiceName, order.ServiceSpec,
+		order.ServiceDuration, order.ServiceAddress, order.AppointmentTime, order.OriginalAmount,
+		order.DiscountAmount, order.ExtraAmount, order.FinalAmount, order.CouponID, order.CouponName,
+		order.Remark, model.OrderStatusPendingPayment, now, now,
 	).Scan(&order.ID, &order.CreatedAt, &order.UpdatedAt)
 
 	return err

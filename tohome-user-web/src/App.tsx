@@ -6,6 +6,8 @@ import { useUserStore } from './store/userStore';
 import { serviceApi } from './api/service';
 import { talentApi } from './api/talent';
 import { orderApi } from './api/order';
+import { paymentApi } from './api/payment';
+import { authApi } from './api/auth';
 import { api, getToken } from './api/client';
 import './index.css';
 
@@ -278,41 +280,45 @@ function LoadingView() {
    登录页 - 品牌粉紫渐变背景
    =================================================================== */
 function LoginPage() {
-  const [phone, setPhone] = useState('');
-  const [code, setCode] = useState('');
-  const [sending, setSending] = useState(false);
-  const [countdown, setCountdown] = useState(0);
   const [error, setError] = useState('');
-  const [mode, setMode] = useState<'sms' | 'password'>('sms');
-  const [password, setPassword] = useState('');
-  const [showPwd, setShowPwd] = useState(false);
   const nav = useNavigate();
   const loc = useLocation();
-  const login = useUserStore(s => s.login);
+  const wechatLogin = useUserStore(s => s.wechatLogin);
   const loading = useUserStore(s => s.loading);
 
-  const startCountdown = () => {
-    setCountdown(60);
-    const timer = setInterval(() => {
-      setCountdown(prev => { if (prev <= 1) { clearInterval(timer); return 0; } return prev - 1; });
-    }, 1000);
+  const finishLogin = () => {
+    const params = new URLSearchParams(loc.search);
+    nav(params.get('redirect') || '/home');
   };
 
-  const handleSendSms = async () => {
-    if (!/^1[3-9]\d{9}$/.test(phone)) { setError('请输入正确的手机号'); return; }
-    setSending(true); setError('');
-    try { await serviceApi.listCategories(); startCountdown(); } catch { setError('发送失败，请重试'); }
-    setSending(false);
-  };
+  useEffect(() => {
+    const params = new URLSearchParams(loc.search);
+    const code = params.get('code');
+    const state = params.get('state') || undefined;
+    if (!code) return;
+    setError('');
+    wechatLogin(code, state).then(finishLogin).catch((err: any) => {
+      setError(err?.message || '微信授权失败，请重新登录');
+    });
+  }, [loc.search]);
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault(); setError('');
-    if (!phone) { setError('请输入手机号'); return; }
+  const handleWechatLogin = async () => {
+    setError('');
     try {
-      await login(phone, mode === 'sms' ? (code || '000000') : password);
-      const params = new URLSearchParams(loc.search);
-      nav(params.get('redirect') || '/home');
-    } catch (err: any) { setError(err?.response?.data?.message || err?.message || '登录失败'); }
+      const cfgRes: any = await authApi.getWechatConfig();
+      const cfg = cfgRes?.data || {};
+      const isWechat = /MicroMessenger/i.test(navigator.userAgent);
+      if (cfg.enabled && cfg.app_id && isWechat) {
+        const redirectUri = encodeURIComponent(window.location.origin + '/login');
+        const state = encodeURIComponent(new URLSearchParams(loc.search).get('redirect') || '/home');
+        window.location.href = `https://open.weixin.qq.com/connect/oauth2/authorize?appid=${cfg.app_id}&redirect_uri=${redirectUri}&response_type=code&scope=snsapi_userinfo&state=${state}#wechat_redirect`;
+        return;
+      }
+      await wechatLogin(`dev_${Date.now()}`);
+      finishLogin();
+    } catch (err: any) {
+      setError(err?.response?.data?.message || err?.message || '微信登录失败');
+    }
   };
 
   // 服务卡片数据 — 4 大品类
@@ -353,67 +359,20 @@ function LoginPage() {
         padding: '28px 24px 24px', boxShadow: '0 24px 64px rgba(124,92,252,0.25)',
         zIndex: 1, animationDelay: '0.1s'
       }}>
-        {/* 切换标签 */}
-        <div style={{ display: 'flex', marginBottom: 24, background: '#F5F3FF', borderRadius: 12, padding: 3 }}>
-          <button onClick={() => setMode('sms')}
-            style={{
-              flex: 1, padding: '10px 0', border: 'none', borderRadius: 10, cursor: 'pointer',
-              fontSize: 14, fontWeight: 600, transition: 'all 0.3s',
-              background: mode === 'sms' ? 'var(--primary-gradient)' : 'transparent',
-              color: mode === 'sms' ? '#fff' : 'var(--text-secondary)',
-            }}>
-            短信验证码登录
-          </button>
-          <button onClick={() => setMode('password')}
-            style={{
-              flex: 1, padding: '10px 0', border: 'none', borderRadius: 10, cursor: 'pointer',
-              fontSize: 14, fontWeight: 600, transition: 'all 0.3s',
-              background: mode === 'password' ? 'var(--primary-gradient)' : 'transparent',
-              color: mode === 'password' ? '#fff' : 'var(--text-secondary)',
-            }}>
-            密码登录
-          </button>
+        <div style={{ textAlign: 'center', marginBottom: 22 }}>
+          <div style={{ width: 64, height: 64, borderRadius: 22, background: 'linear-gradient(135deg,#07C160,#18D976)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 30, fontWeight: 900, margin: '0 auto 14px', boxShadow: '0 14px 36px rgba(7,193,96,0.28)' }}>
+            微
+          </div>
+          <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--text-h)' }}>微信一键登录</div>
+          <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 6, lineHeight: 1.6 }}>
+            使用微信授权快速进入喵搭，不再提供短信或密码登录
+          </div>
         </div>
 
-        <form onSubmit={handleLogin}>
-          {/* 手机号 */}
-          <div style={{ position: 'relative', marginBottom: 14 }}>
-            <Phone size={18} style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }} />
-            <input className="input input-lg" style={{ paddingLeft: 44 }} placeholder="请输入手机号" value={phone} onChange={e => setPhone(e.target.value)} maxLength={11} />
-          </div>
-
-          {mode === 'sms' ? (
-            <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
-              <div style={{ position: 'relative', flex: 1 }}>
-                <Lock size={18} style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }} />
-                <input className="input input-lg" style={{ paddingLeft: 44 }} placeholder="验证码" value={code} onChange={e => setCode(e.target.value)} maxLength={6} />
-              </div>
-              <button type="button" onClick={handleSendSms} disabled={countdown > 0 || sending}
-                style={{
-                  padding: '0 18px', borderRadius: 14, border: 'none', fontSize: 13, fontWeight: 600,
-                  whiteSpace: 'nowrap', cursor: countdown > 0 ? 'default' : 'pointer',
-                  background: countdown > 0 ? '#F3F4F6' : 'var(--primary-bg)',
-                  color: countdown > 0 ? '#9CA3AF' : 'var(--primary)',
-                }}>
-                {countdown > 0 ? `${countdown}s` : sending ? '发送中' : '获取验证码'}
-              </button>
-            </div>
-          ) : (
-            <div style={{ position: 'relative', marginBottom: 14 }}>
-              <Lock size={18} style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', zIndex: 1 }} />
-              <input className="input input-lg" style={{ paddingLeft: 44, paddingRight: 56 }} type={showPwd ? 'text' : 'password'} placeholder="请输入密码" value={password} onChange={e => setPassword(e.target.value)} />
-              <button type="button" onClick={() => setShowPwd(!showPwd)}
-                style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', border: 'none', background: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', fontSize: 13, fontWeight: 500 }}>
-                {showPwd ? '隐藏' : '显示'}
-              </button>
-            </div>
-          )}
-
-          {error && <div style={{ color: 'var(--error)', fontSize: 13, marginBottom: 14, padding: '8px 12px', background: 'var(--error-bg)', borderRadius: 10 }}>{error}</div>}
-          <button type="submit" className="btn-primary" style={{ width: '100%', height: 50, fontSize: 16, borderRadius: 14 }} disabled={loading}>
-            {loading ? '登录中...' : '立即登录'}
-          </button>
-        </form>
+        {error && <div style={{ color: 'var(--error)', fontSize: 13, marginBottom: 14, padding: '8px 12px', background: 'var(--error-bg)', borderRadius: 10 }}>{error}</div>}
+        <button type="button" onClick={handleWechatLogin} className="btn-primary" style={{ width: '100%', height: 52, fontSize: 16, borderRadius: 16, background: 'linear-gradient(135deg,#07C160,#18D976)', boxShadow: '0 14px 32px rgba(7,193,96,0.28)' }} disabled={loading}>
+          {loading ? '微信登录中...' : '微信一键登录'}
+        </button>
 
         <div className="text-center" style={{ marginTop: 16, fontSize: 12, color: 'var(--text-tertiary)' }}>
           登录即表示同意 <span style={{ color: 'var(--primary)', cursor: 'pointer' }}>用户协议</span> 和 <span style={{ color: 'var(--primary)', cursor: 'pointer' }}>隐私政策</span>
@@ -2011,6 +1970,9 @@ function TalentDetailDrawer({ talent, services, onClose, onBook }: {
 function ServiceDetailPage() {
   const nav = useNavigate();
   const loc = useLocation();
+  const isLoggedIn = useUserStore(s => s.isLoggedIn);
+  const userInfo = useUserStore(s => s.userInfo);
+  const [creatingOrder, setCreatingOrder] = useState(false);
   const params = new URLSearchParams(loc.search);
   const id = Number(params.get('id'));
   const talentId = Number(params.get('talentId')) || 0;
@@ -2069,24 +2031,41 @@ function ServiceDetailPage() {
     }
   };
 
-  const handleConfirmOrder = () => {
+  const handleConfirmOrder = async () => {
     if (!selectedTalent) return;
-    const orderNo = 'TH' + new Date().toISOString().slice(0,10).replace(/-/g,'') + String(Math.floor(Math.random()*10000)).padStart(4,'0');
-    const finalAmount = price * qtyFromList;
-    const newOrder = {
-      id: Date.now(),
-      service_name: serviceQtyName,
-      talent_name: selectedTalent.name,
-      talent_phone: '138****' + String(Math.floor(Math.random()*9000+1000)),
-      status: 0,
-      order_no: orderNo,
-      qty: qtyFromList,
-      unit_price: price,
-      final_amount: finalAmount,
-    };
-    setShowTalentPanel(false);
-    // 跳转订单确认页
-    nav(`/order-detail?id=${newOrder.id}`, { state: { mockOrder: newOrder } });
+    if (!isLoggedIn) {
+      nav(`/login?redirect=${encodeURIComponent(loc.pathname + loc.search)}`);
+      return;
+    }
+    setCreatingOrder(true);
+    try {
+      const contactPhone = /^1[3-9]\d{9}$/.test(String(userInfo?.phone || '')) ? String(userInfo?.phone) : '13800000000';
+      const orderRes: any = await orderApi.create({
+        service_id: id,
+        spec_name: '默认',
+        technician_id: selectedTalent.id,
+        quantity: qtyFromList,
+        appointment_time: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+        address: {
+          province: selectedTalent.city || '浙江省',
+          city: selectedTalent.city || '杭州',
+          district: selectedTalent.distance ? '' : '西湖区',
+          detail: '微信一键下单地址',
+          lat: 30.2741,
+          lng: 120.1551,
+        },
+        contact_name: userInfo?.nickname || '微信用户',
+        contact_phone: contactPhone,
+        remark: qtyFromList > 1 ? serviceQtyName : '',
+      });
+      const order = orderRes?.data || orderRes;
+      setShowTalentPanel(false);
+      nav(`/order-detail?id=${order.id}`);
+    } catch (err: any) {
+      alert(err?.response?.data?.message || err?.message || '提交订单失败，请稍后重试');
+    } finally {
+      setCreatingOrder(false);
+    }
   };
 
   return (
@@ -2187,8 +2166,8 @@ function ServiceDetailPage() {
             <button onClick={() => openSupport(nav)} className="btn-outline" style={{ flex: 1, height: 48, borderRadius: 14, gap: 6 }}>
               <MessageCircle size={18} /> 咨询客服
             </button>
-            <button className="btn-primary" style={{ flex: 1, height: 48, borderRadius: 14, fontSize: 16 }} onClick={handleBook}>
-              {serviceQtyName} · ¥{price * qtyFromList} {selectedTalent ? `预约 ${selectedTalent.name}` : '立即预约'}
+            <button className="btn-primary" style={{ flex: 1, height: 48, borderRadius: 14, fontSize: 16 }} onClick={handleBook} disabled={creatingOrder}>
+              {creatingOrder ? '正在提交订单...' : `${serviceQtyName} · ¥${price * qtyFromList} ${selectedTalent ? `预约 ${selectedTalent.name}` : '立即预约'}`}
             </button>
           </div>
         </div>}
@@ -2733,7 +2712,8 @@ function OrderDetailPage() {
   const st = (loc.state as any) || {};
   const params = new URLSearchParams(loc.search);
   const id = Number(params.get('id'));
-  const { data, isLoading } = useQuery({ queryKey: ['order', id], queryFn: () => orderApi.detail(id), enabled: !!id });
+  const [paying, setPaying] = useState(false);
+  const { data, isLoading, refetch } = useQuery({ queryKey: ['order', id], queryFn: () => orderApi.detail(id), enabled: !!id });
   // 优先 API 数据，其次导航 state 传过来的 mock 订单，最后为空
   const apiOrder = (data as any)?.data;
   const order = (apiOrder && Object.keys(apiOrder).length > 0) ? apiOrder : (st.mockOrder || {});
@@ -2744,8 +2724,48 @@ function OrderDetailPage() {
     3: { icon: '💆', text: '服务进行中', color: '#7C5CFC' },
     4: { icon: '🎉', text: '服务已完成', color: '#34D399' },
     5: { icon: '❌', text: '订单已取消', color: '#9CA3AF' },
+    7: { icon: '🚗', text: '达人已出发', color: '#3B82F6' },
+    8: { icon: '📍', text: '达人已到达', color: '#06B6D4' },
   };
   const si = statusInfo[order.status] || statusInfo[0];
+
+  const handlePay = async () => {
+    if (!order?.id || paying) return;
+    setPaying(true);
+    try {
+      const payRes: any = await paymentApi.create({ order_id: Number(order.id), pay_method: 1 });
+      const payment = payRes?.data || payRes;
+      const payParams = payment.pay_params || {};
+      const wx = (window as any).WeixinJSBridge;
+      if (wx && payParams.appId && payParams.paySign && payParams.paySign !== 'SIMULATED_SIGN') {
+        await new Promise<void>((resolve, reject) => {
+          wx.invoke('getBrandWCPayRequest', payParams, (res: any) => {
+            if (res.err_msg === 'get_brand_wcpay_request:ok') resolve();
+            else reject(new Error('微信支付未完成'));
+          });
+        });
+      } else {
+        await paymentApi.simulateSuccess(payment.payment_no);
+      }
+      alert('支付成功');
+      await refetch();
+    } catch (err: any) {
+      alert(err?.response?.data?.message || err?.message || '支付失败，请稍后重试');
+    } finally {
+      setPaying(false);
+    }
+  };
+
+  const handleCancelOrder = async () => {
+    if (!order?.id) return;
+    if (!window.confirm('确定取消这个订单吗？')) return;
+    try {
+      await orderApi.cancel(Number(order.id));
+      await refetch();
+    } catch (err: any) {
+      alert(err?.response?.data?.message || err?.message || '取消失败');
+    }
+  };
 
   return (
     <div className="page">
@@ -2792,8 +2812,10 @@ function OrderDetailPage() {
 
           {order.status === 0 && (
             <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
-              <button className="btn-outline" style={{ flex: 1, height: 48, borderRadius: 14 }} onClick={() => {}}>取消订单</button>
-              <button className="btn-primary" style={{ flex: 1, height: 48, borderRadius: 14, fontSize: 16 }} onClick={() => {}}>立即支付 ¥{order.final_amount}</button>
+              <button className="btn-outline" style={{ flex: 1, height: 48, borderRadius: 14 }} onClick={handleCancelOrder}>取消订单</button>
+              <button className="btn-primary" style={{ flex: 1, height: 48, borderRadius: 14, fontSize: 16 }} onClick={handlePay} disabled={paying}>
+                {paying ? '支付处理中...' : `微信支付 ¥${order.final_amount}`}
+              </button>
             </div>
           )}
         </div>}

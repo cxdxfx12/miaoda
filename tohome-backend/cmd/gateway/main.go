@@ -57,6 +57,7 @@ func main() {
 		{"/api/v1/user/", fmt.Sprintf("http://%s:%d", cfg.Services.UserHost, cfg.Services.User)},
 		{"/api/v1/services", fmt.Sprintf("http://%s:%d", cfg.Services.UserHost, cfg.Services.User)},
 		{"/api/v1/services/", fmt.Sprintf("http://%s:%d", cfg.Services.UserHost, cfg.Services.User)},
+		{"/api/v1/orders", fmt.Sprintf("http://%s:%d", cfg.Services.OrderHost, cfg.Services.Order)},
 		{"/api/v1/orders/", fmt.Sprintf("http://%s:%d", cfg.Services.OrderHost, cfg.Services.Order)},
 		{"/api/v1/talents/", fmt.Sprintf("http://%s:%d", cfg.Services.TalentHost, cfg.Services.Talent)},
 		{"/api/v1/payments/", fmt.Sprintf("http://%s:%d", cfg.Services.PaymentHost, cfg.Services.Payment)},

@@ -139,6 +139,7 @@ func RegisterPaymentRoutes(r *gin.Engine, h *handler.PaymentHandler, jwtCfg *con
 	{
 		user.POST("/create", h.CreatePayment)
 		user.GET("/:id", h.GetPayment)
+		user.POST("/:payment_no/simulate-success", h.SimulatePaymentSuccess)
 	}
 
 	// 支付回调（无需认证）

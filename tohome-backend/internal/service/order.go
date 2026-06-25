@@ -53,6 +53,7 @@ type CreateOrderRequest struct {
 	Address         model.JSON `json:"address" binding:"required"`
 	ContactName     string     `json:"contact_name" binding:"required"`
 	ContactPhone    string     `json:"contact_phone" binding:"required,len=11"`
+	Quantity        int        `json:"quantity"`
 	Remark          string     `json:"remark"`
 	CouponID        *int64     `json:"coupon_id"`
 }
@@ -68,7 +69,12 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID int64, req *Creat
 	// 获取用户信息
 	user, err := s.userRepo.GetByID(ctx, userID)
 	if err != nil {
-		return nil, ErrUserNotFound
+		user = &model.User{
+			BaseModel: model.BaseModel{ID: userID},
+			Nickname:  req.ContactName,
+			Phone:     req.ContactPhone,
+			Status:    model.UserStatusNormal,
+		}
 	}
 
 	// 查找服务规格
@@ -95,8 +101,16 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID int64, req *Creat
 		specDuration = 60
 	}
 
+	quantity := req.Quantity
+	if quantity < 1 {
+		quantity = 1
+	}
+	if specPrice > 0 && specPrice < 130 && quantity < 2 {
+		quantity = 2
+	}
+
 	// 计算订单金额
-	originalAmount := specPrice
+	originalAmount := specPrice * float64(quantity)
 	discountAmount := 0.0
 	travelFee := computeTravelFeeForOrder(ctx, req.TechnicianID, []byte(req.Address))
 	finalAmount := originalAmount
@@ -122,14 +136,30 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID int64, req *Creat
 		}
 	}
 
+	serviceName := service.Name
+	if quantity > 1 {
+		serviceName = fmt.Sprintf("%s*%d", service.Name, quantity)
+	}
+	var talentName *string
+	var talentPhone *string
+	if req.TechnicianID != nil && s.techRepo != nil {
+		if talent, err := s.techRepo.GetByID(ctx, *req.TechnicianID); err == nil {
+			talentName = &talent.RealName
+			talentPhone = &talent.Phone
+		}
+	}
+
 	// 创建订单
 	order := &model.Order{
 		OrderNo:         generateOrderNo(),
 		UserID:          userID,
 		UserName:        user.Nickname,
 		UserPhone:       user.Phone,
+		TalentID:        req.TechnicianID,
+		TalentName:      talentName,
+		TalentPhone:     talentPhone,
 		ServiceID:       service.ID,
-		ServiceName:     service.Name,
+		ServiceName:     serviceName,
 		ServiceSpec:     req.SpecName,
 		ServiceDuration: specDuration,
 		ServiceAddress:  req.Address,

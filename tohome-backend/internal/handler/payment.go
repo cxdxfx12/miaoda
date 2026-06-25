@@ -82,6 +82,26 @@ func (h *PaymentHandler) GetPayment(c *gin.Context) {
 	response.Success(c, payment)
 }
 
+// SimulatePaymentSuccess 开发环境模拟微信支付成功
+func (h *PaymentHandler) SimulatePaymentSuccess(c *gin.Context) {
+	uid := getUserID(c)
+	if uid == 0 {
+		response.Unauthorized(c)
+		return
+	}
+	paymentNo := c.Param("payment_no")
+	if paymentNo == "" {
+		response.ParamError(c, "支付单号不能为空")
+		return
+	}
+	if err := h.paymentService.SimulatePaymentSuccess(c.Request.Context(), uid, paymentNo); err != nil {
+		logger.Error("模拟支付成功失败: payment_no=%s, err=%v", paymentNo, err)
+		response.Fail(c, response.CodeBusinessError, err.Error())
+		return
+	}
+	response.Success(c, gin.H{"payment_no": paymentNo, "status": "success"})
+}
+
 // WechatCallback 微信支付回调
 // @Summary 微信支付回调
 // @Tags 支付回调

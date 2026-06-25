@@ -159,12 +159,14 @@ func (s *PaymentService) CreatePayment(ctx context.Context, userID int64, req *C
 		`SELECT * FROM payments WHERE order_id = $1 AND status = $2 ORDER BY id DESC LIMIT 1`,
 		req.OrderID, model.PaymentStatusPending)
 	if err == nil {
+		payParams, _ := s.getChannel(existPayment.PayMethod).CreatePayment(ctx, &existPayment, nil)
 		// 存在未支付的支付记录，返回已有记录
 		return &CreatePaymentResponse{
 			PaymentNo: existPayment.PaymentNo,
 			OrderNo:   existPayment.OrderNo,
 			Amount:    existPayment.Amount,
 			PayMethod: existPayment.PayMethod,
+			PayParams: payParams,
 			Status:    existPayment.Status,
 		}, nil
 	}
@@ -236,6 +238,21 @@ func (s *PaymentService) CreatePayment(ctx context.Context, userID int64, req *C
 		Status:    model.PaymentStatusPending,
 		CreatedAt: now,
 	}, nil
+}
+
+// SimulatePaymentSuccess 开发环境模拟支付成功
+func (s *PaymentService) SimulatePaymentSuccess(ctx context.Context, userID int64, paymentNo string) error {
+	var payment model.Payment
+	if err := s.db.GetContext(ctx, &payment, `SELECT * FROM payments WHERE payment_no = $1`, paymentNo); err != nil {
+		return ErrPaymentNotFound
+	}
+	if payment.UserID != userID {
+		return errors.New("无权操作此支付单")
+	}
+	if payment.Status == model.PaymentStatusSuccess {
+		return nil
+	}
+	return s.handlePaymentSuccess(ctx, paymentNo, "SIMULATED_"+paymentNo)
 }
 
 // GetPayment 获取支付记录

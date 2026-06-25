@@ -19,6 +19,7 @@ interface UserState {
   isLoggedIn: boolean;
   loading: boolean;
   login: (phone: string, code: string) => Promise<void>;
+  wechatLogin: (code: string, state?: string) => Promise<void>;
   logout: () => Promise<void>;
   setUserInfo: (info: UserInfo) => void;
 }
@@ -44,6 +45,24 @@ export const useUserStore = create<UserState>()(
           });
         } catch (err: any) {
           const msg = err?.response?.data?.message || err?.message || '登录失败';
+          set({ loading: false });
+          throw new Error(msg);
+        }
+      },
+
+      wechatLogin: async (code, state) => {
+        set({ loading: true });
+        try {
+          const res: any = await authApi.wechatLogin(code, state);
+          setToken(res.data.token);
+          set({
+            token: res.data.token,
+            userInfo: res.data.user,
+            isLoggedIn: true,
+            loading: false,
+          });
+        } catch (err: any) {
+          const msg = err?.response?.data?.message || err?.message || '微信登录失败';
           set({ loading: false });
           throw new Error(msg);
         }
