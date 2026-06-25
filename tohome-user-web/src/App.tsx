@@ -1137,9 +1137,8 @@ function HomePage() {
                     </div>
                     <div style={{
                       position: 'absolute', left: 10, right: 10, bottom: 10,
-                      padding: '12px 10px 10px', borderRadius: 16,
-                      background: 'linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.08))',
-                      backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.16)',
+                      padding: '12px 10px 10px',
+                      background: 'transparent',
                       color: '#fff',
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 5 }}>
@@ -1152,7 +1151,7 @@ function HomePage() {
                         </span>
                       </div>
                       <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 8 }}>
-                        {t.tags.slice(0, 2).map((tag, ti) => (
+                        {t.tags.filter(tag => !/^\d+$/.test(String(tag))).slice(0, 2).map((tag, ti) => (
                           <span key={ti} style={{
                             fontSize: 10, fontWeight: 800, color: '#fff',
                             background: 'rgba(255,255,255,0.18)', padding: '3px 7px', borderRadius: 999,
