@@ -64,7 +64,7 @@ func (r *OrderRepository) GetByOrderNo(ctx context.Context, orderNo string) (*mo
 
 // ListByUserID 获取用户订单列表
 func (r *OrderRepository) ListByUserID(ctx context.Context, userID int64, status []int, page, pageSize int) ([]model.Order, int64, error) {
-	var orders []model.Order
+	orders := make([]model.Order, 0)
 	var total int64
 
 	args := []interface{}{userID}
@@ -90,7 +90,7 @@ func (r *OrderRepository) ListByUserID(ctx context.Context, userID int64, status
 
 // ListByTechnicianID 获取技师订单列表
 func (r *OrderRepository) ListByTechnicianID(ctx context.Context, techID int64, status []int, page, pageSize int) ([]model.Order, int64, error) {
-	var orders []model.Order
+	orders := make([]model.Order, 0)
 	var total int64
 
 	args := []interface{}{techID}
@@ -116,7 +116,7 @@ func (r *OrderRepository) ListByTechnicianID(ctx context.Context, techID int64, 
 
 // ListPendingOrders 获取待接订单
 func (r *OrderRepository) ListPendingOrders(ctx context.Context, limit int) ([]model.Order, error) {
-	var orders []model.Order
+	orders := make([]model.Order, 0)
 	err := r.db.SelectContext(ctx, &orders, `
 		SELECT * FROM orders
 		WHERE status = $1
@@ -146,7 +146,7 @@ func (r *OrderRepository) GetCurrentByTechnicianID(ctx context.Context, techID i
 
 // ListAll 管理员订单列表（所有状态）
 func (r *OrderRepository) ListAll(ctx context.Context, status []int, page, pageSize int) ([]model.Order, int64, error) {
-	var orders []model.Order
+	orders := make([]model.Order, 0)
 	var total int64
 
 	args := []interface{}{}

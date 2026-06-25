@@ -46,6 +46,11 @@ export const useAdminStore = create<AdminState>()(
     {
       name: 'tohome-admin-storage',
       storage: createJSONStorage(() => localStorage),
+      onRehydrateStorage: () => (state) => {
+        if (state?.token) {
+          api.setToken(state.token);
+        }
+      },
     }
   )
 );

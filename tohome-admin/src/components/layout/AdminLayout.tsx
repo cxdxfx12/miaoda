@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAdminStore } from '@/store/adminStore';
 import { Sidebar } from './Sidebar';
@@ -10,18 +10,26 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const isAuthenticated = useAdminStore((s) => s.isAuthenticated);
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    if (!isAuthenticated && pathname !== '/login') {
+    const persist = (useAdminStore as any).persist;
+    setHydrated(persist?.hasHydrated?.() ?? true);
+    const unsub = persist?.onFinishHydration?.(() => setHydrated(true));
+    return () => unsub?.();
+  }, []);
+
+  useEffect(() => {
+    if (hydrated && !isAuthenticated && pathname !== '/login') {
       router.replace('/login');
     }
-  }, [isAuthenticated, pathname, router]);
+  }, [hydrated, isAuthenticated, pathname, router]);
 
   if (pathname === '/login') {
     return <>{children}</>;
   }
 
-  if (!isAuthenticated) {
+  if (!hydrated || !isAuthenticated) {
     return (
       <div className="flex h-screen items-center justify-center bg-[#F5F7FA]">
         <div className="text-sm text-gray-400">加载中...</div>
