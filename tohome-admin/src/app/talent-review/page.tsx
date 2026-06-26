@@ -92,6 +92,7 @@ export default function TalentReviewPage() {
   const [rejectModal, setRejectModal] = useState<{ open: boolean; id: number | null }>({ open: false, id: null });
   const [rejectReason, setRejectReason] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
+  const [notice, setNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // 根据 tab 获取后端 status 值
   const getBackendStatus = (tab: string): number => {
@@ -130,9 +131,12 @@ export default function TalentReviewPage() {
   const handleApprove = async (id: number) => {
     setActionLoading(true);
     try {
-      await talentApi.review(id, '1');
-      setData((prev) => prev.map((item) => (item.id === id ? { ...item, status: 'approved' as const } : item)));
-    } catch {
+      await talentApi.review(id, 1);
+      setData((prev) => prev.filter((item) => item.id !== id));
+      setSelectedIds((prev) => prev.filter((x) => x !== id));
+      setNotice({ type: 'success', text: '审核已通过，达人已进入达人列表' });
+    } catch (err: any) {
+      setNotice({ type: 'error', text: err?.message || '审核通过失败，请刷新后重试' });
     } finally {
       setActionLoading(false);
     }
@@ -141,15 +145,13 @@ export default function TalentReviewPage() {
   const handleReject = async (id: number) => {
     setActionLoading(true);
     try {
-      await talentApi.review(id, '3', rejectReason);
-      setData((prev) =>
-        prev.map((item) =>
-          item.id === id ? { ...item, status: 'rejected' as const, rejectReason: rejectReason } : item
-        )
-      );
+      await talentApi.review(id, 3, rejectReason);
+      setData((prev) => prev.filter((item) => item.id !== id));
       setRejectModal({ open: false, id: null });
       setRejectReason('');
-    } catch {
+      setNotice({ type: 'success', text: '已驳回该达人申请' });
+    } catch (err: any) {
+      setNotice({ type: 'error', text: err?.message || '驳回失败，请刷新后重试' });
     } finally {
       setActionLoading(false);
     }
@@ -158,12 +160,12 @@ export default function TalentReviewPage() {
   const handleBatchApprove = async () => {
     setActionLoading(true);
     try {
-      await talentApi.batchReview(selectedIds, '1');
-      setData((prev) =>
-        prev.map((item) => (selectedIds.includes(item.id) ? { ...item, status: 'approved' as const } : item))
-      );
+      await talentApi.batchReview(selectedIds, 1);
+      setData((prev) => prev.filter((item) => !selectedIds.includes(item.id)));
       setSelectedIds([]);
-    } catch {
+      setNotice({ type: 'success', text: '已批量通过，达人已进入达人列表' });
+    } catch (err: any) {
+      setNotice({ type: 'error', text: err?.message || '批量通过失败，请刷新后重试' });
     } finally {
       setActionLoading(false);
     }
@@ -171,6 +173,16 @@ export default function TalentReviewPage() {
 
   return (
     <AdminLayout>
+      {notice && (
+        <div className={`fixed right-6 top-6 z-50 rounded-xl px-4 py-3 text-sm font-medium shadow-lg ${
+          notice.type === 'success' ? 'bg-[#F6FFED] text-[#389E0D] border border-[#B7EB8F]' : 'bg-[#FFF1F0] text-[#CF1322] border border-[#FFA39E]'
+        }`}>
+          <div className="flex items-center gap-3">
+            <span>{notice.text}</span>
+            <button onClick={() => setNotice(null)} className="text-current opacity-60 hover:opacity-100">×</button>
+          </div>
+        </div>
+      )}
       <div className="page-header">
         <div>
           <h1 className="page-title">达人审核</h1>

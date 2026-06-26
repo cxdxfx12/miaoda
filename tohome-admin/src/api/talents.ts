@@ -41,11 +41,11 @@ export const talentApi = {
   update: (id: number, data: Partial<CreateTalentParams>) =>
     api.put(`/api/v1/admin/talents/${id}`, data),
 
-  review: (id: number, status: string, reason?: string) =>
-    api.post(`/api/v1/admin/talents/${id}/review`, { status, reason }),
+  review: (id: number, status: number | string, reason?: string) =>
+    api.post(`/api/v1/admin/talents/${id}/review`, { status: Number(status), reason }),
 
-  batchReview: (ids: number[], status: string) =>
-    api.post('/api/v1/admin/talents/batch-review', { ids, status }),
+  batchReview: (ids: number[], status: number | string) =>
+    api.post('/api/v1/admin/talents/batch-review', { ids, status: Number(status) }),
 
   upload: (file: File) => {
     const formData = new FormData();
