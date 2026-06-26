@@ -38,6 +38,67 @@ type SupportConfig = {
   support_phone?: string;
 };
 
+type SiteConfig = {
+  app_name?: string;
+  logo_url?: string;
+  about_slogan?: string;
+  about_version?: string;
+  about_build?: string;
+  about_team?: string;
+  about_website?: string;
+  about_service_phone?: string;
+  about_service_email?: string;
+  about_intro?: string;
+  about_copyright?: string;
+  about_license?: string;
+  about_icp?: string;
+  support_title?: string;
+  support_subtitle?: string;
+  support_desc?: string;
+  support_welcome?: string;
+  support_auto_reply?: string;
+  support_quick?: string;
+  support_phone?: string;
+  support_email?: string;
+  support_work_time?: string;
+  support_notice?: string;
+};
+
+const DEFAULT_SITE_CONFIG: SiteConfig = {
+  app_name: '喵搭',
+  logo_url: '/logo.png',
+  about_slogan: '您身边的陪伴服务平台',
+  about_version: 'v1.0.0',
+  about_build: 'Build 20250625',
+  about_team: '喵搭科技',
+  about_website: 'www.miaoda.com',
+  about_service_phone: '400-888-0000',
+  about_service_email: 'support@miaoda.com',
+  about_intro: '喵搭专注于本地生活陪伴服务，连接用户与经过认证的达人，提供休闲、娱乐、按摩、影院等多场景服务。',
+  about_copyright: '© 2025 喵搭科技 版权所有',
+  about_license: '增值电信业务经营许可证: 川B2-2025XXXX',
+  about_icp: 'ICP备案号: 川ICP备2025XXXXXXXX号',
+  support_title: '在线客服',
+  support_subtitle: '喵搭官方客服',
+  support_desc: '咨询订单、退款、预约和平台规则等问题',
+  support_welcome: '您好！喵搭客服为您服务，请问有什么可以帮您的？',
+  support_auto_reply: '收到您的消息啦！我们的客服正在处理中，稍后会有专人回复您~',
+  support_quick: '如何下单？,退款政策,优惠券使用,投诉建议',
+  support_phone: '400-888-0000',
+  support_email: 'support@miaoda.com',
+  support_work_time: '09:00 - 22:00',
+  support_notice: '紧急订单问题建议直接拨打客服热线，普通咨询可在线留言。',
+};
+
+async function fetchSiteConfig(): Promise<SiteConfig> {
+  try {
+    const res: any = await api.get('/config/site');
+    return { ...DEFAULT_SITE_CONFIG, ...(res?.data || res || {}) };
+  } catch {
+    return DEFAULT_SITE_CONFIG;
+  }
+}
+
 async function openSupport(nav: (path: string) => void) {
   try {
     const res: any = await api.get('/config/support');
@@ -3929,38 +3990,59 @@ function InvitePage() {
    客服中心页 /support
    =================================================================== */
 function SupportPage() {
-  const [messages, setMessages] = useState<{from:'me'|'cs';text:string;time:string}[]>([
-    { from: 'cs', text: '您好！喵搭客服为您服务，请问有什么可以帮您的？', time: '14:30' },
-  ]);
+  const [siteConfig, setSiteConfig] = useState<SiteConfig>(DEFAULT_SITE_CONFIG);
+  const [messages, setMessages] = useState<{from:'me'|'cs';text:string;time:string}[]>([]);
   const [msg, setMsg] = useState('');
 
-  const sendMsg = () => {
-    if (!msg.trim()) return;
+  useEffect(() => {
+    fetchSiteConfig().then((cfg) => {
+      setSiteConfig(cfg);
+      setMessages([{ from: 'cs', text: cfg.support_welcome || DEFAULT_SITE_CONFIG.support_welcome!, time: '14:30' }]);
+    });
+  }, []);
+
+  const sendMsg = (preset?: string) => {
+    const content = (preset || msg).trim();
+    if (!content) return;
     const now = new Date();
     const timeStr = `${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
-    setMessages([...messages, { from: 'me', text: msg.trim(), time: timeStr }]);
+    setMessages(prev => [...prev, { from: 'me', text: content, time: timeStr }]);
     setMsg('');
     setTimeout(() => {
-      setMessages(prev => [...prev, { from: 'cs', text: '收到您的消息啦！我们的客服正在处理中，稍后会有专人回复您~', time: new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'}) }]);
+      setMessages(prev => [...prev, { from: 'cs', text: siteConfig.support_auto_reply || DEFAULT_SITE_CONFIG.support_auto_reply!, time: new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'}) }]);
     }, 1500);
   };
+  const quickQuestions = (siteConfig.support_quick || DEFAULT_SITE_CONFIG.support_quick || '').split(',').map(s => s.trim()).filter(Boolean);
 
   return (
-    <div className="page" style={{ background: '#F5F5F5', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <SubPageNav title="在线客服" />
+    <div className="page" style={{ background: 'linear-gradient(180deg, #FFF7ED 0%, #F0FDFA 45%, #F8FAFC 100%)', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <SubPageNav title={siteConfig.support_title || '在线客服'} />
       {/* 聊天区域 */}
       <div style={{ flex: 1, padding: '16px', overflowY: 'auto' }}>
         {/* 客服头像提示 */}
-        <div style={{ textAlign: 'center', marginBottom: 16 }}>
-          <div style={{ width: 48, height: 48, borderRadius: 16, margin: '0 auto 8px', background: 'linear-gradient(135deg, #7C5CFC, #A78BFA)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 22 }}>🐱</div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#333' }}>喵搭官方客服</div>
-          <div style={{ fontSize: 11, color: '#27AE60', marginTop: 2 }}>● 在线</div>
+        <div style={{ textAlign: 'center', marginBottom: 16, background: 'rgba(255,255,255,0.86)', border: '1px solid rgba(255,255,255,0.9)', borderRadius: 24, padding: '22px 16px', boxShadow: '0 14px 36px rgba(15,118,110,0.12)' }}>
+          <div style={{ width: 66, height: 66, borderRadius: 22, margin: '0 auto 10px', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 10px 26px rgba(217,130,85,0.18)', overflow: 'hidden', border: '1px solid #F7DCC8' }}>
+            <img src={siteConfig.logo_url || '/logo.png'} alt={siteConfig.app_name || '喵搭'} style={{ width: 56, height: 56, objectFit: 'contain' }} />
+          </div>
+          <div style={{ fontSize: 15, fontWeight: 900, color: '#10211D' }}>{siteConfig.support_subtitle || '喵搭官方客服'}</div>
+          <div style={{ fontSize: 12, color: '#0F766E', marginTop: 4, fontWeight: 700 }}>● 在线 · {siteConfig.support_work_time || '09:00 - 22:00'}</div>
+          <div style={{ fontSize: 12, color: '#8A7A68', marginTop: 8, lineHeight: 1.55 }}>{siteConfig.support_desc || DEFAULT_SITE_CONFIG.support_desc}</div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
+          <a href={`tel:${siteConfig.support_phone || ''}`} style={{ background: '#fff', borderRadius: 16, padding: '13px 14px', textDecoration: 'none', boxShadow: '0 5px 18px rgba(0,0,0,0.04)', border: '1px solid #F1F5F9' }}>
+            <div style={{ fontSize: 12, color: '#94A3B8' }}>客服热线</div>
+            <div style={{ fontSize: 14, fontWeight: 900, color: '#0F766E', marginTop: 3 }}>{siteConfig.support_phone || '暂未配置'}</div>
+          </a>
+          <div style={{ background: '#fff', borderRadius: 16, padding: '13px 14px', boxShadow: '0 5px 18px rgba(0,0,0,0.04)', border: '1px solid #F1F5F9' }}>
+            <div style={{ fontSize: 12, color: '#94A3B8' }}>客服邮箱</div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: '#D98255', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis' }}>{siteConfig.support_email || '暂未配置'}</div>
+          </div>
         </div>
         {/* 快捷问题 */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16, justifyContent: 'center' }}>
-          {['如何下单？','退款政策','优惠券使用','投诉建议'].map(q => (
-            <span key={q} onClick={() => { setMsg(q); sendMsg(); }} style={{
-              padding: '7px 14px', borderRadius: 16, fontSize: 12, color: '#7C5CFC', background: '#EDE9FE', cursor: 'pointer', fontWeight: 500,
+          {quickQuestions.map(q => (
+            <span key={q} onClick={() => sendMsg(q)} style={{
+              padding: '8px 14px', borderRadius: 16, fontSize: 12, color: '#0F766E', background: '#CCFBF1', cursor: 'pointer', fontWeight: 800,
             }}>{q}</span>
           ))}
         </div>
@@ -3970,9 +4052,9 @@ function SupportPage() {
             <div style={{ maxWidth: '75%' }}>
               <div style={{
                 padding: '12px 16px', borderRadius: m.from === 'me' ? '16px 4px 16px 16px' : '4px 16px 16px 16px',
-                background: m.from === 'me' ? 'linear-gradient(135deg, #7C5CFC, #A78BFA)' : '#fff',
+                background: m.from === 'me' ? 'linear-gradient(135deg, #0F766E, #14B8A6)' : '#fff',
                 color: m.from === 'me' ? '#fff' : '#333', fontSize: 14, lineHeight: 1.65,
-                boxShadow: m.from === 'me' ? '0 2px 8px rgba(124,92,252,0.25)' : '0 1px 4px rgba(0,0,0,0.06)',
+                boxShadow: m.from === 'me' ? '0 6px 16px rgba(15,118,110,0.22)' : '0 4px 14px rgba(0,0,0,0.06)',
                 wordBreak: 'break-all',
               }}>{m.text}</div>
               <div style={{ fontSize: 10, color: '#ccc', marginTop: 4, textAlign: m.from === 'me' ? 'right' : 'left' }}>{m.time}</div>
@@ -3980,16 +4062,21 @@ function SupportPage() {
           </div>
         ))}
       </div>
+      {siteConfig.support_notice && (
+        <div style={{ margin: '0 16px 10px', padding: '11px 14px', borderRadius: 14, background: '#FFFBEB', color: '#92400E', fontSize: 12, lineHeight: 1.55, border: '1px solid #FDE68A' }}>
+          {siteConfig.support_notice}
+        </div>
+      )}
       {/* 输入框 */}
       <div style={{ padding: '12px 16px', background: '#fff', borderTop: '1px solid #eee', display: 'flex', gap: 10, alignItems: 'center' }}>
         <input value={msg} onChange={(e) => setMsg(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && sendMsg()}
           placeholder="输入您的问题..."
           style={{ flex: 1, height: 42, border: '1px solid #eee', borderRadius: 21, padding: '0 18px', fontSize: 14, outline: 'none', background: '#F9F9F9' }} />
-        <button onClick={sendMsg} style={{
+        <button onClick={() => sendMsg()} style={{
           width: 42, height: 42, borderRadius: 12, border: 'none', cursor: 'pointer',
-          background: 'linear-gradient(135deg, #7C5CFC, #A78BFA)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-          boxShadow: '0 3px 10px rgba(124,92,252,0.3)',
+          background: 'linear-gradient(135deg, #0F766E, #D98255)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+          boxShadow: '0 3px 10px rgba(15,118,110,0.25)',
         }}>↑</button>
       </div>
     </div>
@@ -4256,45 +4343,53 @@ function NotificationsPage() {
    关于我们页 (菜单项)
    =================================================================== */
 function AboutPage() {
+  const [siteConfig, setSiteConfig] = useState<SiteConfig>(DEFAULT_SITE_CONFIG);
+  useEffect(() => {
+    fetchSiteConfig().then(setSiteConfig);
+  }, []);
+  const infoItems = [
+    { icon: '📝', label: '应用名称', value: siteConfig.app_name || '喵搭' },
+    { icon: '🏢', label: '开发团队', value: siteConfig.about_team || '喵搭科技' },
+    { icon: '🌐', label: '官方网站', value: siteConfig.about_website || 'www.miaoda.com' },
+    { icon: '📞', label: '客服热线', value: siteConfig.about_service_phone || siteConfig.support_phone || '400-888-0000' },
+    { icon: '📧', label: '联系邮箱', value: siteConfig.about_service_email || siteConfig.support_email || 'support@miaoda.com' },
+  ];
   return (
-    <div className="page" style={{ background: '#F5F0E8', minHeight: '100vh' }}>
+    <div className="page" style={{ background: 'linear-gradient(180deg, #FFF7ED 0%, #F0FDFA 46%, #F8FAFC 100%)', minHeight: '100vh' }}>
       <SubPageNav title="关于我们" />
       <div style={{ padding: '16px' }}>
         {/* Logo & 信息 */}
-        <div style={{ background: '#fff', borderRadius: 24, padding: '40px 24px', textAlign: 'center', marginBottom: 14, boxShadow: '0 4px 16px rgba(0,0,0,0.04)' }}>
-          <div style={{ width: 92, height: 92, borderRadius: 26, margin: '0 auto 16px', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 24px rgba(124,92,252,0.18)', overflow: 'hidden', border: '1px solid #F1EEF8' }}>
-            <img src="/logo.png" alt="喵搭" style={{ width: 78, height: 78, objectFit: 'contain' }} />
+        <div style={{ background: 'rgba(255,255,255,0.9)', borderRadius: 28, padding: '40px 24px 28px', textAlign: 'center', marginBottom: 14, boxShadow: '0 18px 46px rgba(15,118,110,0.12)', border: '1px solid rgba(255,255,255,0.88)' }}>
+          <div style={{ width: 104, height: 104, borderRadius: 30, margin: '0 auto 16px', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 14px 34px rgba(217,130,85,0.2)', overflow: 'hidden', border: '1px solid #F7DCC8' }}>
+            <img src={siteConfig.logo_url || '/logo.png'} alt={siteConfig.app_name || '喵搭'} style={{ width: 88, height: 88, objectFit: 'contain' }} />
           </div>
-          <div style={{ fontWeight: 900, fontSize: 24, color: '#1a1a2e', letterSpacing: 1 }}>喵 搭</div>
-          <div style={{ fontSize: 13, color: '#999', marginTop: 4 }}>MiaoDa · 您身边的陪伴服务平台</div>
+          <div style={{ fontWeight: 900, fontSize: 25, color: '#10211D', letterSpacing: 1 }}>{(siteConfig.app_name || '喵搭').split('').join(' ')}</div>
+          <div style={{ fontSize: 13, color: '#8A7A68', marginTop: 4 }}>MiaoDa · {siteConfig.about_slogan || '您身边的陪伴服务平台'}</div>
           <div style={{
             display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 14, padding: '6px 16px', borderRadius: 20,
-            background: '#F5F3FF', fontSize: 12, color: '#7C5CFC', fontWeight: 600,
-          }}>v1.0.0 (Build 20250625)</div>
+            background: '#CCFBF1', fontSize: 12, color: '#0F766E', fontWeight: 800,
+          }}>{siteConfig.about_version || 'v1.0.0'} ({siteConfig.about_build || 'Build 20250625'})</div>
+          <div style={{ marginTop: 18, padding: '14px 16px', borderRadius: 18, background: '#FFF7ED', color: '#7C4A2D', fontSize: 13, lineHeight: 1.75, textAlign: 'left', border: '1px solid #FED7AA' }}>
+            {siteConfig.about_intro || DEFAULT_SITE_CONFIG.about_intro}
+          </div>
         </div>
 
         {/* 信息项 */}
-        {[
-          { icon: '📝', label: '应用名称', value: '喵搭' },
-          { icon: '🏢', label: '开发团队', value: '喵搭科技' },
-          { icon: '🌐', label: '官方网站', value: 'www.miaoda.com' },
-          { icon: '📞', label: '客服热线', value: '400-888-0000' },
-          { icon: '📧', label: '联系邮箱', value: 'support@miaoda.com' },
-        ].map((info, i) => (
-          <div key={i} style={{ background: '#fff', borderRadius: 14, padding: '14px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: i === 4 ? 0 : 8 }}>
+        {infoItems.map((info, i) => (
+          <div key={i} style={{ background: '#fff', borderRadius: 16, padding: '14px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: i === 4 ? 0 : 8, boxShadow: '0 5px 18px rgba(0,0,0,0.035)', border: '1px solid #F1F5F9' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <span style={{ fontSize: 17 }}>{info.icon}</span>
               <span style={{ fontSize: 14, color: '#666' }}>{info.label}</span>
             </div>
-            <span style={{ fontSize: 14, fontWeight: 600, color: '#333' }}>{info.value}</span>
+            <span style={{ fontSize: 14, fontWeight: 700, color: '#10211D', textAlign: 'right' }}>{info.value}</span>
           </div>
         ))}
 
         {/* 版权 */}
-        <div style={{ textAlign: 'center', marginTop: 24, fontSize: 12, color: '#ccc', lineHeight: 1.8 }}>
-          © 2025 喵搭科技 版权所有<br />
-          增值电信业务经营许可证: 川B2-2025XXXX<br />
-          ICP备案号: 川ICP备2025XXXXXXXX号
+        <div style={{ textAlign: 'center', marginTop: 24, fontSize: 12, color: '#94A3B8', lineHeight: 1.8 }}>
+          {siteConfig.about_copyright || '© 2025 喵搭科技 版权所有'}<br />
+          {siteConfig.about_license || '增值电信业务经营许可证: 川B2-2025XXXX'}<br />
+          {siteConfig.about_icp || 'ICP备案号: 川ICP备2025XXXXXXXX号'}
         </div>
       </div>
     </div>

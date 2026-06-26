@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { AdminLayout } from '@/components/layout/AdminLayout';
-import { Save, Bell, Shield, Globe, Database, Server, MessageSquare, Loader2, Headphones, Percent, Car, Send } from 'lucide-react';
+import { Save, Bell, Shield, Globe, Database, Server, MessageSquare, Loader2, Headphones, Percent, Car, Send, FileText } from 'lucide-react';
 import { settingsApi } from '@/api';
 
 const sections = [
   { id: 'basic', name: '基础设置', icon: Globe },
+  { id: 'site', name: '页面内容', icon: FileText },
   { id: 'notify', name: '消息通知', icon: Bell },
   { id: 'support', name: '咨询客服', icon: Headphones },
   { id: 'commission', name: '达人分成', icon: Percent },
@@ -40,6 +41,7 @@ export default function SettingsPage() {
     setLoading(true);
     try {
       const endpoint = group === 'basic' ? settingsApi.getBasic() :
+        group === 'site' ? settingsApi.getSite() :
         group === 'notify' ? settingsApi.getNotify() :
         group === 'support' ? settingsApi.getSupport() :
         group === 'commission' ? settingsApi.getCommission() :
@@ -57,6 +59,31 @@ export default function SettingsPage() {
         map.support_phone = map.support_phone || '';
         map.support_title = map.support_title || '在线客服';
         map.support_desc = map.support_desc || '咨询订单、退款、预约和平台规则等问题';
+      }
+      if (group === 'site') {
+        map.app_name = map.app_name || '喵搭';
+        map.logo_url = map.logo_url || '/logo.png';
+        map.about_slogan = map.about_slogan || '您身边的陪伴服务平台';
+        map.about_version = map.about_version || 'v1.0.0';
+        map.about_build = map.about_build || 'Build 20250625';
+        map.about_team = map.about_team || '喵搭科技';
+        map.about_website = map.about_website || 'www.miaoda.com';
+        map.about_service_phone = map.about_service_phone || '400-888-0000';
+        map.about_service_email = map.about_service_email || 'support@miaoda.com';
+        map.about_intro = map.about_intro || '喵搭专注于本地生活陪伴服务，连接用户与经过认证的达人，提供休闲、娱乐、按摩、影院等多场景服务。';
+        map.about_copyright = map.about_copyright || '© 2025 喵搭科技 版权所有';
+        map.about_license = map.about_license || '增值电信业务经营许可证: 川B2-2025XXXX';
+        map.about_icp = map.about_icp || 'ICP备案号: 川ICP备2025XXXXXXXX号';
+        map.support_title = map.support_title || '在线客服';
+        map.support_subtitle = map.support_subtitle || '喵搭官方客服';
+        map.support_desc = map.support_desc || '咨询订单、退款、预约和平台规则等问题';
+        map.support_welcome = map.support_welcome || '您好！喵搭客服为您服务，请问有什么可以帮您的？';
+        map.support_auto_reply = map.support_auto_reply || '收到您的消息啦！我们的客服正在处理中，稍后会有专人回复您~';
+        map.support_quick = map.support_quick || '如何下单？,退款政策,优惠券使用,投诉建议';
+        map.support_phone = map.support_phone || '400-888-0000';
+        map.support_email = map.support_email || 'support@miaoda.com';
+        map.support_work_time = map.support_work_time || '09:00 - 22:00';
+        map.support_notice = map.support_notice || '紧急订单问题建议直接拨打客服热线，普通咨询可在线留言。';
       }
       if (group === 'commission') {
         map.commission_mode = map.commission_mode || 'monthly_revenue_tier';
@@ -105,6 +132,7 @@ export default function SettingsPage() {
     setSaving(true);
     try {
       const endpoint = group === 'basic' ? (settingsApi.saveBasic as any) :
+        group === 'site' ? (settingsApi.saveSite as any) :
         group === 'notify' ? (settingsApi.saveNotify as any) :
         group === 'support' ? (settingsApi.saveSupport as any) :
         group === 'commission' ? (settingsApi.saveCommission as any) :
@@ -172,6 +200,31 @@ export default function SettingsPage() {
       { label: '客服邮箱', key: 'service_email' },
       { label: 'ICP备案号', key: 'icp_number' },
       { label: '平台简介', key: 'description', type: 'textarea' },
+    ],
+    site: [
+      { label: '应用名称', key: 'app_name' },
+      { label: 'Logo 地址', key: 'logo_url' },
+      { label: '关于页标语', key: 'about_slogan' },
+      { label: '版本号', key: 'about_version' },
+      { label: '构建号', key: 'about_build' },
+      { label: '开发团队', key: 'about_team' },
+      { label: '官方网站', key: 'about_website' },
+      { label: '客服热线', key: 'about_service_phone' },
+      { label: '联系邮箱', key: 'about_service_email' },
+      { label: '关于页介绍', key: 'about_intro', type: 'textarea' },
+      { label: '版权信息', key: 'about_copyright' },
+      { label: '许可证信息', key: 'about_license' },
+      { label: 'ICP备案号', key: 'about_icp' },
+      { label: '客服页标题', key: 'support_title' },
+      { label: '客服名称', key: 'support_subtitle' },
+      { label: '客服页说明', key: 'support_desc', type: 'textarea' },
+      { label: '客服欢迎语', key: 'support_welcome', type: 'textarea' },
+      { label: '自动回复文案', key: 'support_auto_reply', type: 'textarea' },
+      { label: '快捷问题（英文逗号分隔）', key: 'support_quick' },
+      { label: '客服热线', key: 'support_phone' },
+      { label: '客服邮箱', key: 'support_email' },
+      { label: '服务时间', key: 'support_work_time' },
+      { label: '客服提示文案', key: 'support_notice', type: 'textarea' },
     ],
     notify: [
       { label: '邮件通知地址', key: 'email' },
@@ -249,6 +302,17 @@ export default function SettingsPage() {
       <h2 className="text-lg font-semibold text-[#1F2937]">消息通知</h2>
       <div className="space-y-4">
         {defaultConfigs.notify.map(f => renderField(f.label, f.key, f.type))}
+      </div>
+    </div>,
+    site: <div className="space-y-6">
+      <div className="rounded-2xl bg-gradient-to-br from-[#0F766E] to-[#F97316] p-5 text-white">
+        <div className="text-lg font-semibold">用户端页面内容</div>
+        <p className="mt-2 text-sm leading-6 text-white/75">
+          控制用户端 /about 和 /support 页面展示的信息，包括品牌 Logo、关于我们、客服欢迎语、快捷问题、联系方式和备案信息。
+        </p>
+      </div>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        {defaultConfigs.site.map(f => renderField(f.label, f.key, f.type))}
       </div>
     </div>,
     support: <div className="space-y-6">

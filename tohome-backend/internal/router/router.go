@@ -236,6 +236,7 @@ func RegisterPublicBannerRoutes(r *gin.Engine, h *handler.AdminHandler) {
 	api := r.Group("/api/v1")
 	api.GET("/banners", h.PublicListBanners)
 	api.GET("/config/support", h.PublicGetSupportConfig)
+	api.GET("/config/site", h.PublicGetSiteConfig)
 	api.GET("/config/billing-rules", h.PublicGetBillingRules)
 }
 
@@ -313,6 +314,8 @@ func RegisterAdminRoutes(r *gin.Engine, h *handler.AdminHandler, grabH *handler.
 		{
 			settingsAdmin.GET("/basic", h.AdminGetConfigSetting("basic"))
 			settingsAdmin.POST("/basic", h.AdminUpdateConfigSetting("basic"))
+			settingsAdmin.GET("/site", h.AdminGetConfigSetting("site"))
+			settingsAdmin.POST("/site", h.AdminUpdateConfigSetting("site"))
 			settingsAdmin.GET("/notify", h.AdminGetConfigSetting("notify"))
 			settingsAdmin.POST("/notify", h.AdminUpdateConfigSetting("notify"))
 			settingsAdmin.GET("/security", h.AdminGetConfigSetting("security"))

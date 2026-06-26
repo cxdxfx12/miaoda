@@ -7,6 +7,12 @@ export const settingsApi = {
   saveBasic: (data: Record<string, unknown>) =>
     api.post('/api/v1/admin/settings/basic', data),
 
+  getSite: () =>
+    api.get('/api/v1/admin/settings/site'),
+
+  saveSite: (data: Record<string, unknown>) =>
+    api.post('/api/v1/admin/settings/site', data),
+
   getNotify: () =>
     api.get('/api/v1/admin/settings/notify'),
 

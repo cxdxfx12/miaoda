@@ -677,6 +677,57 @@ func (h *AdminHandler) PublicGetSupportConfig(c *gin.Context) {
 	response.Success(c, result)
 }
 
+// PublicGetSiteConfig 获取用户端页面内容配置（无需认证）
+func (h *AdminHandler) PublicGetSiteConfig(c *gin.Context) {
+	siteConfigs, _ := h.userSvc.GetSystemConfigs(c.Request.Context(), "site")
+	basicConfigs, _ := h.userSvc.GetSystemConfigs(c.Request.Context(), "basic")
+	supportConfigs, _ := h.userSvc.GetSystemConfigs(c.Request.Context(), "support")
+	result := gin.H{
+		"app_name":            "喵搭",
+		"logo_url":            "/logo.png",
+		"about_slogan":        "您身边的陪伴服务平台",
+		"about_version":       "v1.0.0",
+		"about_build":         "Build 20250625",
+		"about_team":          "喵搭科技",
+		"about_website":       "www.miaoda.com",
+		"about_service_phone": "400-888-0000",
+		"about_service_email": "support@miaoda.com",
+		"about_intro":         "喵搭专注于本地生活陪伴服务，连接用户与经过认证的达人，提供休闲、娱乐、按摩、影院等多场景服务。",
+		"about_copyright":     "© 2025 喵搭科技 版权所有",
+		"about_license":       "增值电信业务经营许可证: 川B2-2025XXXX",
+		"about_icp":           "ICP备案号: 川ICP备2025XXXXXXXX号",
+		"support_title":       "在线客服",
+		"support_subtitle":    "喵搭官方客服",
+		"support_desc":        "咨询订单、退款、预约和平台规则等问题",
+		"support_welcome":     "您好！喵搭客服为您服务，请问有什么可以帮您的？",
+		"support_auto_reply":  "收到您的消息啦！我们的客服正在处理中，稍后会有专人回复您~",
+		"support_quick":       "如何下单？,退款政策,优惠券使用,投诉建议",
+		"support_phone":       "400-888-0000",
+		"support_email":       "support@miaoda.com",
+		"support_work_time":   "09:00 - 22:00",
+		"support_notice":      "紧急订单问题建议直接拨打客服热线，普通咨询可在线留言。",
+	}
+	merge := func(items []map[string]interface{}) {
+		for _, item := range items {
+			key, _ := item["key"].(string)
+			value, _ := item["value"].(string)
+			if key != "" {
+				result[key] = value
+			}
+		}
+	}
+	merge(basicConfigs)
+	merge(supportConfigs)
+	merge(siteConfigs)
+	if result["about_service_phone"] == "400-888-0000" && result["service_phone"] != nil {
+		result["about_service_phone"] = result["service_phone"]
+	}
+	if result["about_service_email"] == "support@miaoda.com" && result["service_email"] != nil {
+		result["about_service_email"] = result["service_email"]
+	}
+	response.Success(c, result)
+}
+
 // PublicGetBillingRules 获取计费规则配置（无需认证）
 func (h *AdminHandler) PublicGetBillingRules(c *gin.Context) {
 	commissionConfigs, _ := h.userSvc.GetSystemConfigs(c.Request.Context(), "commission")
