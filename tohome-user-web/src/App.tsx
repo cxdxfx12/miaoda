@@ -326,6 +326,21 @@ function normalizeTalentTags(values: any[]) {
     .slice(0, 3);
 }
 
+function normalizePhotoList(value: any): string[] {
+  if (Array.isArray(value)) return value.map((item) => String(item || '').trim()).filter(Boolean);
+  if (typeof value === 'string') {
+    const text = value.trim();
+    if (!text) return [];
+    try {
+      const parsed = JSON.parse(text);
+      if (Array.isArray(parsed)) return parsed.map((item) => String(item || '').trim()).filter(Boolean);
+    } catch {
+      return text.split(',').map((item) => item.trim()).filter(Boolean);
+    }
+  }
+  return [];
+}
+
 function renderServiceIcon(value?: string, size = 44) {
   const icon = normalizeServiceIcon(value);
   if (isImageIcon(icon)) {
@@ -422,8 +437,8 @@ function adaptApiTalent(raw: any): TalentItem {
     id: Number(raw.id),
     name: raw.real_name || raw.name || '',
     avatar: raw.avatar || '',
-    artPhotos: Array.isArray(raw.art_photos) ? raw.art_photos : [],
-    lifePhotos: Array.isArray(raw.life_photos) ? raw.life_photos : [],
+    artPhotos: normalizePhotoList(raw.art_photos || raw.artPhotos),
+    lifePhotos: normalizePhotoList(raw.life_photos || raw.lifePhotos),
     gender: raw.gender === 2 ? '女' : '男',
     age: raw.birthday ? Math.floor((Date.now() - new Date(raw.birthday).getTime()) / 31557600000) : 0,
     distance: Number(raw.distance || raw.distance_km || 0),
@@ -485,7 +500,31 @@ function TalentAvatar({ src, name, disabled = false }: { src?: string; name: str
 }
 
 function getTalentHeroImage(talent: TalentItem) {
-  return talent.artPhotos?.[0] || talent.lifePhotos?.[0] || talent.avatar || '';
+  return safeAvatarSrc(talent.artPhotos?.[0] || talent.lifePhotos?.[0] || talent.avatar || '');
+}
+
+function FloatingSkillTags({ tags, max = 3, bottom = 10 }: { tags: string[]; max?: number; bottom?: number }) {
+  const visible = tags.filter(Boolean).slice(0, max);
+  if (visible.length === 0) return null;
+  return (
+    <div style={{ position: 'absolute', left: 10, right: 10, bottom, display: 'flex', flexWrap: 'wrap', gap: 6, zIndex: 3 }}>
+      {visible.map((tag, i) => (
+        <span key={`${tag}-${i}`} style={{
+          fontSize: 10.5,
+          padding: '4px 9px',
+          borderRadius: 999,
+          color: '#fff',
+          fontWeight: 800,
+          background: 'rgba(17,24,39,0.46)',
+          border: '1px solid rgba(255,255,255,0.55)',
+          boxShadow: '0 5px 14px rgba(0,0,0,0.20)',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+          textShadow: '0 1px 2px rgba(0,0,0,0.28)',
+        }}>{tag}</span>
+      ))}
+    </div>
+  );
 }
 
 function StatusBadge({ status }: { status: number | string }) {
@@ -2156,10 +2195,11 @@ function TalentDetailDrawer({ talent, services, onClose, onBook }: {
       }}>
         {/* 顶部头部区域 — 艺术照大图 */}
         <div style={{
-          height: 260, background: '#111827', position: 'relative', overflow: 'hidden', borderRadius: '26px 26px 0 0',
+          height: 320, background: '#111827', position: 'relative', overflow: 'hidden', borderRadius: '26px 26px 0 0',
         }}>
           {heroImage && <img src={heroImage} alt={talent.name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.20) 44%, rgba(0,0,0,0.72) 100%)' }} />
+          <FloatingSkillTags tags={talent.tags} max={4} bottom={108} />
 
           <div style={{ position: 'absolute', inset: 0, zIndex: 1, padding: '18px 20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
             {/* 关闭按钮 */}
@@ -2171,13 +2211,13 @@ function TalentDetailDrawer({ talent, services, onClose, onBook }: {
 
             <div />
             <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-              {/* 大头像 */}
+              {/* 头像 */}
               <div style={{
-                width: 144, height: 144, borderRadius: '50%',
-                padding: 4, background: 'rgba(255,255,255,0.88)',
+                width: 84, height: 84, borderRadius: '50%',
+                padding: 3, background: 'rgba(255,255,255,0.88)',
                 boxShadow: '0 8px 30px rgba(0,0,0,0.22)',
               }}>
-                <img src={talent.avatar} alt={talent.name} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover', display: 'block' }} />
+                <img src={safeAvatarSrc(talent.avatar)} alt={talent.name} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover', display: 'block' }} />
               </div>
               <div>
                 <div style={{ color: '#fff', fontWeight: 900, fontSize: 21, letterSpacing: 0.3 }}>{talent.name}</div>
@@ -2196,13 +2236,6 @@ function TalentDetailDrawer({ talent, services, onClose, onBook }: {
 
         {/* 内容滚动区 */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '18px 18px 24px', marginTop: -18 }}>
-          {/* 标签 */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16, background: '#FAFAFA', borderRadius: 12, padding: '10px 12px' }}>
-            {talent.tags.map((tg, i) => (
-              <span key={i} style={{ fontSize: 12, padding: '4px 12px', borderRadius: 14, background: theme.light, color: theme.accent, fontWeight: 700 }}>{tg}</span>
-            ))}
-          </div>
-
           {/* 简介 */}
           <div style={{ marginBottom: 18 }}>
             <div style={{ fontWeight: 800, fontSize: 15, color: '#222', marginBottom: 6 }}>个人介绍</div>
@@ -2710,6 +2743,7 @@ function TalentFeedPage() {
               const sv = serviceList.find(s => s.id === sid);
               return sv?.name || '';
             }).filter(Boolean);
+            const displayTags = svcNames.length > 0 ? svcNames : t.tags;
             return (
               <div key={t.id} onClick={() => setDetailId(t.id)} style={{
                 borderRadius: 16, overflow: 'hidden', background: '#fff',
@@ -2728,10 +2762,11 @@ function TalentFeedPage() {
                   height: cs.h, position: 'relative', overflow: 'hidden',
                   background: `linear-gradient(160deg, ${cs.bg}22, ${cs.bgl})`,
                 }}>
-                  <img src={t.avatar} alt={t.name} style={{
+                  <img src={getTalentHeroImage(t)} alt={t.name} style={{
                     width: '100%', height: '100%', objectFit: 'cover',
                     transition: 'transform 0.35s ease',
                   }} onMouseEnter={(e) => { (e.currentTarget as HTMLImageElement).style.transform = 'scale(1.05)'; }} onMouseLeave={(e) => { (e.currentTarget as HTMLImageElement).style.transform = ''; }} />
+                  <FloatingSkillTags tags={displayTags} max={2} />
                   {/* 代际标签 — 左上角 */}
                   <span style={{
                     position: 'absolute', top: 8, left: 8,
@@ -2765,16 +2800,6 @@ function TalentFeedPage() {
                   {/* 简介 */}
                   <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 7, lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                     {t.intro}
-                  </div>
-                  {/* 服务标签 */}
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                    {svcNames.map((sn, i) => (
-                      <span key={i} style={{
-                        fontSize: 9, padding: '2px 7px', borderRadius: 8,
-                        background: `linear-gradient(135deg, ${cs.bg}18, ${cs.bgl})`,
-                        color: cs.bg, fontWeight: 700,
-                      }}>{sn}</span>
-                    ))}
                   </div>
                 </div>
               </div>
@@ -2790,6 +2815,7 @@ function TalentFeedPage() {
               const sv = serviceList.find(s => s.id === sid);
               return sv?.name || '';
             }).filter(Boolean);
+            const displayTags = svcNames.length > 0 ? svcNames : t.tags;
             return (
               <div key={t.id} onClick={() => setDetailId(t.id)} style={{
                 borderRadius: 16, overflow: 'hidden', background: '#fff',
@@ -2808,10 +2834,11 @@ function TalentFeedPage() {
                   height: cs.h, position: 'relative', overflow: 'hidden',
                   background: `linear-gradient(160deg, ${cs.bg}22, ${cs.bgl})`,
                 }}>
-                  <img src={t.avatar} alt={t.name} style={{
+                  <img src={getTalentHeroImage(t)} alt={t.name} style={{
                     width: '100%', height: '100%', objectFit: 'cover',
                     transition: 'transform 0.35s ease',
                   }} onMouseEnter={(e) => { (e.currentTarget as HTMLImageElement).style.transform = 'scale(1.05)'; }} onMouseLeave={(e) => { (e.currentTarget as HTMLImageElement).style.transform = ''; }} />
+                  <FloatingSkillTags tags={displayTags} max={2} />
                   {/* 代际标签 — 左上角 */}
                   <span style={{
                     position: 'absolute', top: 8, left: 8,
@@ -2845,16 +2872,6 @@ function TalentFeedPage() {
                   {/* 简介 */}
                   <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 7, lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                     {t.intro}
-                  </div>
-                  {/* 服务标签 */}
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                    {svcNames.map((sn, i) => (
-                      <span key={i} style={{
-                        fontSize: 9, padding: '2px 7px', borderRadius: 8,
-                        background: `linear-gradient(135deg, ${cs.bg}18, ${cs.bgl})`,
-                        color: cs.bg, fontWeight: 700,
-                      }}>{sn}</span>
-                    ))}
                   </div>
                 </div>
               </div>
@@ -2887,12 +2904,13 @@ function TalentFeedPage() {
             }}>
               {/* 头部大图 */}
               <div style={{
-                height: 260, position: 'relative', flexShrink: 0, overflow: 'hidden',
+                height: 320, position: 'relative', flexShrink: 0, overflow: 'hidden',
                 background: `linear-gradient(160deg, ${getTalentCardStyle(detailId).bg}22, ${getTalentCardStyle(detailId).bgl})`,
                 borderRadius: '24px 24px 0 0',
               }}>
                 {heroImage && <img src={heroImage} alt={talent.name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
                 <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0.02) 0%, rgba(0,0,0,0.18) 48%, rgba(0,0,0,0.68) 100%)' }} />
+                <FloatingSkillTags tags={talent.tags} max={4} bottom={72} />
                 <div style={{ position: 'absolute', left: 16, right: 56, bottom: 14, color: '#fff' }}>
                   <div style={{ fontWeight: 900, fontSize: 24, textShadow: '0 2px 8px rgba(0,0,0,0.35)' }}>{talent.name}</div>
                   <div style={{ marginTop: 3, fontSize: 12.5, opacity: 0.92 }}>{getGenerationLabel(talent.age)} · {talent.age}岁 · 已服务 {talent.orderCount} 单</div>
@@ -2925,14 +2943,6 @@ function TalentFeedPage() {
                 <div style={{ fontSize: 13, color: '#9CA3AF', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="10" r="3"/><path d="M12 21.7C17.3 17 20 13 20 10a8 8 0 1 0-16 0c0 3 2.7 7 8 11.7z"/></svg>
                   <span>距您 {talent.distance}km</span>
-                </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
-                  {talent.tags.map((tg, i) => (
-                    <span key={i} style={{
-                      fontSize: 11, padding: '4px 10px', borderRadius: 8,
-                      background: '#F3F4F6', color: 'var(--text-secondary)',
-                    }}>{tg}</span>
-                  ))}
                 </div>
                 <div style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.8, marginBottom: 20 }}>
                   {talent.intro}
