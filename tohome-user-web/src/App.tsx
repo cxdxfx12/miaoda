@@ -3998,7 +3998,7 @@ function AddressPage() {
       const lng = Number(pos.coords.longitude.toFixed(6));
       let next = { ...form, lat, lng };
       try {
-        const res: any = await api.get('/map/reverse-geocode', { lat, lng });
+        const res: any = await api.get('/map/reverse-geocode', { params: { lat, lng } });
         const address = res?.data?.address || '';
         const parsed = parseAddressCity(address);
         next = { ...next, city: parsed.city || next.city, district: parsed.district || next.district, detail: address || next.detail };
