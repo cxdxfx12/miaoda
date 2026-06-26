@@ -419,6 +419,42 @@ func (s *UserService) AdminChangePassword(ctx context.Context, adminID int64, ol
 	return s.userRepo.UpdateAdminPassword(ctx, adminID, string(hashedPwd))
 }
 
+// GetAdminProfile 获取当前管理员个人信息
+func (s *UserService) GetAdminProfile(ctx context.Context, adminID int64) (map[string]interface{}, error) {
+	admin, err := s.userRepo.FindAdminByID(ctx, adminID)
+	if err != nil {
+		return nil, fmt.Errorf("管理员不存在")
+	}
+	return s.formatAdminProfile(admin), nil
+}
+
+// UpdateAdminProfile 更新当前管理员个人信息
+func (s *UserService) UpdateAdminProfile(ctx context.Context, adminID int64, nickname, email, phone, avatar string) (map[string]interface{}, error) {
+	if nickname == "" {
+		return nil, fmt.Errorf("昵称不能为空")
+	}
+	if err := s.userRepo.UpdateAdminProfile(ctx, adminID, nickname, email, phone, avatar); err != nil {
+		return nil, err
+	}
+	return s.GetAdminProfile(ctx, adminID)
+}
+
+func (s *UserService) formatAdminProfile(admin *model.Admin) map[string]interface{} {
+	return map[string]interface{}{
+		"id":         admin.ID,
+		"username":   admin.Username,
+		"nickname":   admin.Nickname.String,
+		"real_name":  admin.Nickname.String,
+		"role":       "admin",
+		"avatar":     admin.Avatar.String,
+		"email":      admin.Email.String,
+		"phone":      admin.Phone.String,
+		"status":     admin.Status,
+		"created_at": admin.CreatedAt,
+		"updated_at": admin.UpdatedAt,
+	}
+}
+
 // GetDashboard 仪表盘
 func (s *UserService) GetDashboard(ctx context.Context) (map[string]interface{}, error) {
 	return s.getDashboardData(ctx)

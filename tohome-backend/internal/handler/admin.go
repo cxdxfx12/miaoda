@@ -67,6 +67,46 @@ func (h *AdminHandler) AdminChangePassword(c *gin.Context) {
 	response.Success(c, gin.H{"message": "密码修改成功，请重新登录"})
 }
 
+// AdminGetProfile 获取当前管理员个人信息
+func (h *AdminHandler) AdminGetProfile(c *gin.Context) {
+	adminID, ok := c.Get("user_id")
+	if !ok {
+		response.Unauthorized(c)
+		return
+	}
+	result, err := h.userSvc.GetAdminProfile(c.Request.Context(), adminID.(int64))
+	if err != nil {
+		response.ParamError(c, err.Error())
+		return
+	}
+	response.Success(c, result)
+}
+
+// AdminUpdateProfile 更新当前管理员个人信息
+func (h *AdminHandler) AdminUpdateProfile(c *gin.Context) {
+	var req struct {
+		Nickname string `json:"nickname" binding:"required"`
+		Email    string `json:"email"`
+		Phone    string `json:"phone"`
+		Avatar   string `json:"avatar"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.ParamError(c, "参数错误")
+		return
+	}
+	adminID, ok := c.Get("user_id")
+	if !ok {
+		response.Unauthorized(c)
+		return
+	}
+	result, err := h.userSvc.UpdateAdminProfile(c.Request.Context(), adminID.(int64), req.Nickname, req.Email, req.Phone, req.Avatar)
+	if err != nil {
+		response.ParamError(c, err.Error())
+		return
+	}
+	response.Success(c, result)
+}
+
 // GetDashboard 仪表盘数据
 func (h *AdminHandler) GetDashboard(c *gin.Context) {
 	data, err := h.userSvc.GetDashboard(c.Request.Context())

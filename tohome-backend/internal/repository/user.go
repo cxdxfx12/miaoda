@@ -101,6 +101,16 @@ func (r *UserRepository) UpdateAdminPassword(ctx context.Context, id int64, pass
 	return err
 }
 
+// UpdateAdminProfile 更新管理员个人信息
+func (r *UserRepository) UpdateAdminProfile(ctx context.Context, id int64, nickname, email, phone, avatar string) error {
+	_, err := r.db.ExecContext(ctx,
+		`UPDATE admins
+		 SET nickname = $1, email = $2, phone = $3, avatar = $4, updated_at = $5
+		 WHERE id = $6 AND deleted_at IS NULL`,
+		nickname, email, phone, avatar, time.Now(), id)
+	return err
+}
+
 // Create 创建用户
 func (r *UserRepository) Create(ctx context.Context, user *model.User) error {
 	query := `
