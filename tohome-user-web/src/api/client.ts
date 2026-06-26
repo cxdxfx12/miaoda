@@ -33,7 +33,8 @@ apiClient.interceptors.response.use(
       localStorage.removeItem('miaoda_token');
       localStorage.removeItem('user_info');
       if (window.location.pathname !== '/login') {
-        window.location.href = '/login';
+        const redirect = encodeURIComponent(window.location.pathname + window.location.search);
+        window.location.href = `/login?redirect=${redirect}`;
       }
     }
     return Promise.reject(err);

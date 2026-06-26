@@ -8,6 +8,7 @@ import { talentApi } from './api/talent';
 import { orderApi } from './api/order';
 import { paymentApi } from './api/payment';
 import { authApi } from './api/auth';
+import { addressApi } from './api/address';
 import { api, getToken } from './api/client';
 import './index.css';
 
@@ -521,9 +522,9 @@ function LoginPage() {
   const wechatLogin = useUserStore(s => s.wechatLogin);
   const loading = useUserStore(s => s.loading);
 
-  const finishLogin = () => {
+  const finishLogin = (fallback?: string) => {
     const params = new URLSearchParams(loc.search);
-    nav(params.get('redirect') || '/home');
+    nav(fallback || params.get('redirect') || '/home', { replace: true });
   };
 
   useEffect(() => {
@@ -532,7 +533,7 @@ function LoginPage() {
     const state = params.get('state') || undefined;
     if (!code) return;
     setError('');
-    wechatLogin(code, state).then(finishLogin).catch((err: any) => {
+    wechatLogin(code, state).then(() => finishLogin(state)).catch((err: any) => {
       setError(err?.message || '微信授权失败，请重新登录');
     });
   }, [loc.search]);
@@ -3410,15 +3411,15 @@ function ProfilePage() {
               gap: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.05), 0 0 0 1px rgba(255,255,255,0.8)',
             }}>
               {[
-                { icon: '💰', label: '余额', value: `¥${(Math.random() * 500 + 50).toFixed(0)}`, tip: '充值享优惠' },
-                { icon: '⭐', label: '积分', value: String(userInfo?.member_points || 1280), tip: `抵¥${((userInfo?.member_points || 1280) / 100).toFixed(0)}` },
-                { icon: '🎫', label: '优惠券', value: `${Math.floor(Math.random() * 5 + 1)}张`, tip: '去领取 >' },
-                { icon: '📋', label: '全部订单', value: `${MOCK_ORDER_DATA.length}`, tip: '查看详情 >' },
+                { icon: '💰', label: '余额', value: `¥${(Number((userInfo as any)?.balance || 0)).toFixed(0)}`, tip: '查看资产', path: '/coupons' },
+                { icon: '⭐', label: '积分', value: String(userInfo?.member_points || 0), tip: `抵¥${((userInfo?.member_points || 0) / 100).toFixed(0)}`, path: '/invite' },
+                { icon: '🎫', label: '优惠券', value: '去查看', tip: '立即使用 >', path: '/coupons' },
+                { icon: '📋', label: '全部订单', value: `${MOCK_ORDER_DATA.length}`, tip: '查看详情 >', path: '/orders' },
               ].map((item, i) => (
-                <div key={i} onClick={() => i === 3 ? nav('/order-detail?id=0') : undefined}
-                  style={{ textAlign: 'center', cursor: i === 3 ? 'pointer' : 'default', transition: 'transform 0.2s' }}
-                  onMouseEnter={(e) => { if (i === 3) e.currentTarget.style.transform = 'scale(1.05)'; }}
-                  onMouseLeave={(e) => { if (i === 3) e.currentTarget.style.transform = ''; }}
+                <div key={i} onClick={() => nav(item.path)}
+                  style={{ textAlign: 'center', cursor: 'pointer', transition: 'transform 0.2s' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.transform = ''; }}
                 >
                   <div style={{ fontSize: 24, marginBottom: 4 }}>{item.icon}</div>
                   <div style={{ fontSize: 17, fontWeight: 900, color: '#1a1a2e' }}>{item.value}</div>
@@ -3565,7 +3566,7 @@ function ProfilePage() {
             </div>
 
             {/* ---- 退出登录 ---- */}
-            <button onClick={logout} style={{
+            <button onClick={async () => { await logout(); nav('/profile', { replace: true }); }} style={{
               width: '100%', padding: 15, border: '1.5px solid #FEE2E2', borderRadius: 16,
               background: '#fff', color: '#EF4444', fontSize: 14.5, fontWeight: 750, cursor: 'pointer',
               marginBottom: 16, transition: 'all 0.2s',
@@ -3915,56 +3916,215 @@ function ReviewsPage() {
    地址管理页 /address
    =================================================================== */
 function AddressPage() {
-  const [addresses, setAddresses] = useState([
-    { id: 1, name: '张三', phone: '138****1234', address: '四川省成都市武侯区天府大道中段126号', tag: '家', isDefault: true },
-    { id: 2, name: '张三', phone: '138****1234', address: '成都市高新区天府软件园E区1栋', tag: '公司', isDefault: false },
-    { id: 3, name: '李四', phone: '139****5678', address: '四川省成都市锦江区春熙路88号', tag: '', isDefault: false },
-  ]);
-  const [editing, setEditing] = useState<number | null>(null);
+  const nav = useNavigate();
+  const isLoggedIn = useUserStore(s => s.isLoggedIn);
+  const userInfo = useUserStore(s => s.userInfo);
+  const [addresses, setAddresses] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [editing, setEditing] = useState<any | null>(null);
+  const [locating, setLocating] = useState(false);
+  const [toastMsg, setToastMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+  const emptyForm = {
+    contact_name: userInfo?.nickname || '',
+    contact_phone: userInfo?.phone || '',
+    province: '',
+    city: '杭州',
+    district: '',
+    detail: '',
+    lat: null as number | null,
+    lng: null as number | null,
+    is_default: 0,
+    tag: '家',
+  };
+  const [form, setForm] = useState(emptyForm);
+
+  const loadAddresses = async () => {
+    setLoading(true);
+    try {
+      const res: any = await addressApi.list();
+      setAddresses(Array.isArray(res?.data) ? res.data : []);
+    } catch (e: any) {
+      setToastMsg({ text: e?.message || '地址加载失败', type: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!isLoggedIn || !getToken()) {
+      nav('/login?redirect=/address', { replace: true });
+      return;
+    }
+    loadAddresses();
+  }, [isLoggedIn]);
+
+  useEffect(() => {
+    if (toastMsg) {
+      const t = setTimeout(() => setToastMsg(null), 2600);
+      return () => clearTimeout(t);
+    }
+  }, [toastMsg]);
+
+  const openForm = (addr?: any) => {
+    if (addr) {
+      setEditing(addr);
+      setForm({
+        contact_name: addr.contact_name || '',
+        contact_phone: addr.contact_phone || '',
+        province: addr.province || '',
+        city: addr.city || '杭州',
+        district: addr.district || '',
+        detail: addr.detail || '',
+        lat: addr.lat ?? null,
+        lng: addr.lng ?? null,
+        is_default: Number(addr.is_default || 0),
+        tag: addr.tag || '家',
+      });
+    } else {
+      setEditing({ id: 0 });
+      setForm({ ...emptyForm, contact_name: userInfo?.nickname || '', contact_phone: userInfo?.phone || '' });
+    }
+  };
+
+  const useCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      setToastMsg({ text: '当前浏览器不支持定位', type: 'error' });
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(async pos => {
+      const lat = Number(pos.coords.latitude.toFixed(6));
+      const lng = Number(pos.coords.longitude.toFixed(6));
+      let next = { ...form, lat, lng };
+      try {
+        const res: any = await api.get('/map/reverse-geocode', { lat, lng });
+        const address = res?.data?.address || '';
+        const parsed = parseAddressCity(address);
+        next = { ...next, city: parsed.city || next.city, district: parsed.district || next.district, detail: address || next.detail };
+      } catch {
+        // 地图配置不可用时仍保存经纬度，用户可手动补详细地址
+      }
+      setForm(next);
+      setToastMsg({ text: '已获取当前位置，请补充门牌号', type: 'success' });
+      setLocating(false);
+    }, () => {
+      setLocating(false);
+      setToastMsg({ text: '定位失败，请在浏览器权限中允许定位', type: 'error' });
+    }, { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 });
+  };
+
+  const saveAddress = async () => {
+    if (!form.contact_name.trim() || !form.contact_phone.trim() || !form.city.trim() || !form.detail.trim()) {
+      setToastMsg({ text: '请填写联系人、手机号、城市和详细地址', type: 'error' });
+      return;
+    }
+    setSaving(true);
+    try {
+      if (editing?.id) {
+        await addressApi.update(editing.id, form);
+      } else {
+        await addressApi.create(form);
+      }
+      setToastMsg({ text: '地址已保存', type: 'success' });
+      setEditing(null);
+      await loadAddresses();
+    } catch (e: any) {
+      setToastMsg({ text: e?.response?.data?.message || e?.message || '保存地址失败', type: 'error' });
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="page" style={{ background: '#F5F0E8', minHeight: '100vh' }}>
+      {toastMsg && (
+        <div style={{
+          position: 'fixed', top: 60, left: '50%', transform: 'translateX(-50%)',
+          zIndex: 100, padding: '10px 20px', borderRadius: 22,
+          background: toastMsg.type === 'success' ? '#10B981' : '#EF4444',
+          color: '#fff', fontWeight: 700, fontSize: 13,
+        }}>{toastMsg.text}</div>
+      )}
       <SubPageNav title="地址管理" right={
         <span style={{ fontSize: 14, color: '#7C5CFC', fontWeight: 700, cursor: 'pointer' }}
-          onClick={() => alert('添加地址（演示）')}>+ 新增</span>
+          onClick={() => openForm()}>+ 新增</span>
       } />
       <div style={{ padding: '16px' }}>
+        {loading && <div style={{ textAlign: 'center', color: '#999', padding: 40 }}>地址加载中...</div>}
+        {editing && (
+          <div style={{ background: '#fff', borderRadius: 18, padding: 16, marginBottom: 14, boxShadow: '0 4px 18px rgba(0,0,0,0.06)' }}>
+            <div style={{ fontWeight: 900, color: '#1a1a2e', marginBottom: 12 }}>{editing.id ? '编辑地址' : '新增地址'}</div>
+            {[
+              { key: 'contact_name', label: '联系人', placeholder: '请输入联系人' },
+              { key: 'contact_phone', label: '手机号', placeholder: '请输入手机号' },
+              { key: 'city', label: '城市', placeholder: '例如：杭州' },
+              { key: 'district', label: '区县', placeholder: '例如：西湖区' },
+              { key: 'detail', label: '详细地址', placeholder: '小区/楼栋/门牌号' },
+              { key: 'tag', label: '标签', placeholder: '家 / 公司 / 学校' },
+            ].map(item => (
+              <label key={item.key} style={{ display: 'block', marginBottom: 10 }}>
+                <span style={{ display: 'block', fontSize: 12, color: '#666', fontWeight: 700, marginBottom: 5 }}>{item.label}</span>
+                <input
+                  value={(form as any)[item.key] || ''}
+                  onChange={e => setForm(f => ({ ...f, [item.key]: e.target.value }))}
+                  placeholder={item.placeholder}
+                  style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #E5E7EB', borderRadius: 12, padding: '11px 13px', outline: 'none', fontSize: 14 }}
+                />
+              </label>
+            ))}
+            <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+              <button onClick={useCurrentLocation} disabled={locating} style={{ flex: 1, border: '1px solid #C4B5FD', color: '#7C5CFC', background: '#F5F3FF', borderRadius: 12, padding: '11px 10px', fontWeight: 800 }}>
+                {locating ? '定位中...' : '📍 定位辅助填写'}
+              </button>
+              <button onClick={() => setForm(f => ({ ...f, is_default: f.is_default ? 0 : 1 }))} style={{ flex: 1, border: '1px solid #E5E7EB', color: form.is_default ? '#7C5CFC' : '#666', background: form.is_default ? '#F5F3FF' : '#fff', borderRadius: 12, padding: '11px 10px', fontWeight: 800 }}>
+                {form.is_default ? '★ 默认地址' : '设为默认'}
+              </button>
+            </div>
+            {form.lat && form.lng && <div style={{ marginTop: 8, fontSize: 11, color: '#999' }}>已记录坐标：{form.lat}, {form.lng}</div>}
+            <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
+              <button onClick={() => setEditing(null)} style={{ flex: 1, border: '1px solid #E5E7EB', background: '#fff', borderRadius: 13, padding: 13, color: '#666', fontWeight: 800 }}>取消</button>
+              <button onClick={saveAddress} disabled={saving} style={{ flex: 1, border: 'none', background: 'linear-gradient(135deg, #7C5CFC, #A78BFA)', borderRadius: 13, padding: 13, color: '#fff', fontWeight: 900 }}>{saving ? '保存中...' : '保存地址'}</button>
+            </div>
+          </div>
+        )}
         {addresses.map(addr => (
           <div key={addr.id} style={{
             background: '#fff', borderRadius: 16, padding: '16px 18px', marginBottom: 12,
             boxShadow: '0 2px 10px rgba(0,0,0,0.04)', position: 'relative',
-            borderLeft: addr.isDefault ? '4px solid #7C5CFC' : '4px solid transparent',
+            borderLeft: Number(addr.is_default) === 1 ? '4px solid #7C5CFC' : '4px solid transparent',
           }}>
-            {addr.isDefault && <span style={{
+            {Number(addr.is_default) === 1 && <span style={{
               position: 'absolute', top: 12, right: 14, fontSize: 10, fontWeight: 800,
               color: '#7C5CFC', background: '#EDE9FE', padding: '2px 10px', borderRadius: 8,
             }}>默认</span>}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-              <span style={{ fontWeight: 800, fontSize: 16, color: '#1a1a2e' }}>{addr.name}</span>
-              <span style={{ fontSize: 14, color: '#666', fontFamily: 'monospace' }}>{addr.phone}</span>
+              <span style={{ fontWeight: 800, fontSize: 16, color: '#1a1a2e' }}>{addr.contact_name}</span>
+              <span style={{ fontSize: 14, color: '#666', fontFamily: 'monospace' }}>{addr.contact_phone}</span>
               {addr.tag && <span style={{
                 fontSize: 10, fontWeight: 700, color: '#fff', background: 'linear-gradient(135deg, #FF6B9D, #FF8FB1)', padding: '2px 10px', borderRadius: 8,
               }}>{addr.tag}</span>}
             </div>
-            <div style={{ fontSize: 13, color: '#666', lineHeight: 1.6, marginBottom: 12 }}>{addr.address}</div>
+            <div style={{ fontSize: 13, color: '#666', lineHeight: 1.6, marginBottom: 12 }}>{[addr.province, addr.city, addr.district, addr.detail].filter(Boolean).join(' ')}</div>
             <div style={{ display: 'flex', gap: 16, borderTop: '1px solid #f5f5f5', paddingTop: 12 }}>
               <span style={{ fontSize: 13, color: '#7C5CFC', fontWeight: 600, cursor: 'pointer' }}
-                onClick={() => setAddresses(a => a.map(x => ({ ...x, isDefault: x.id === addr.id })))}>
-                {addr.isDefault ? '★ 已设为默认' : '设为默认'}
+                onClick={async () => { await addressApi.setDefault(addr.id); await loadAddresses(); }}>
+                {Number(addr.is_default) === 1 ? '★ 已设为默认' : '设为默认'}
               </span>
               <span style={{ fontSize: 13, color: '#3B82F6', fontWeight: 600, cursor: 'pointer' }}
-                onClick={() => setEditing(editing === addr.id ? null : addr.id)}>
+                onClick={() => openForm(addr)}>
                 ✏️ 编辑
               </span>
               <span style={{ fontSize: 13, color: '#EF4444', fontWeight: 600, cursor: 'pointer' }}
-                onClick={() => setAddresses(a => a.filter(x => x.id !== addr.id))}>🗑️ 删除</span>
+                onClick={async () => { if (window.confirm('确定删除这个地址吗？')) { await addressApi.remove(addr.id); await loadAddresses(); } }}>🗑️ 删除</span>
             </div>
           </div>
         ))}
-        {addresses.length === 0 && (
+        {!loading && addresses.length === 0 && (
           <div style={{ textAlign: 'center', paddingTop: 80 }}>
             <div style={{ fontSize: 48, opacity: 0.5 }}>📍</div>
             <div style={{ color: '#999', marginTop: 12, fontSize: 14 }}>暂无收货地址</div>
+            <button onClick={() => openForm()} style={{ marginTop: 18, border: 'none', background: 'linear-gradient(135deg, #7C5CFC, #A78BFA)', color: '#fff', borderRadius: 16, padding: '12px 28px', fontWeight: 900 }}>新增地址</button>
           </div>
         )}
       </div>
@@ -4671,6 +4831,8 @@ function OrdersPage() {
    =================================================================== */
 function TalentApplyPage() {
   const nav = useNavigate();
+  const isLoggedIn = useUserStore(s => s.isLoggedIn);
+  const userInfo = useUserStore(s => s.userInfo);
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [toastMsg, setToastMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
@@ -4691,6 +4853,18 @@ function TalentApplyPage() {
     introduction: '',
   });
   const [uploading, setUploading] = useState<'avatar' | 'life' | 'art' | null>(null);
+
+  useEffect(() => {
+    if (!isLoggedIn || !getToken()) {
+      nav('/login?redirect=/talent-apply', { replace: true });
+    }
+  }, [isLoggedIn]);
+
+  useEffect(() => {
+    if (isLoggedIn && userInfo?.phone && !form.phone) {
+      setForm(f => ({ ...f, phone: userInfo.phone || f.phone }));
+    }
+  }, [isLoggedIn, userInfo?.phone]);
 
   const skillOptions = [
     { id: 1, name: '中式按摩' },
@@ -4756,7 +4930,8 @@ function TalentApplyPage() {
       }
     } catch (e: any) {
       if (e?.code === 1002 || e?.response?.data?.code === 1002) {
-        setToastMsg({ text: '图片可先选择，提交申请前请完成登录', type: 'error' });
+        setToastMsg({ text: '请先登录后再上传资料', type: 'error' });
+        setTimeout(() => nav('/login?redirect=/talent-apply'), 600);
       } else {
         setToastMsg({ text: e?.response?.data?.message || e?.message || '上传失败', type: 'error' });
       }
@@ -4788,7 +4963,7 @@ function TalentApplyPage() {
     setLoading(true);
     try {
       await talentApi.apply(form);
-      setToastMsg({ text: '申请已提交，请等待审核', type: 'success' });
+      setToastMsg({ text: '申请已提交，已进入后台审核', type: 'success' });
       setStep(4);
     } catch (e: any) {
       if (e?.code === 1002 || e?.response?.data?.code === 1002) {
@@ -4808,6 +4983,19 @@ function TalentApplyPage() {
       return () => clearTimeout(t);
     }
   }, [toastMsg]);
+
+  if (!isLoggedIn || !getToken()) {
+    return (
+      <div className="page" style={{ background: '#F5F0E8', minHeight: '100vh' }}>
+        <SubPageNav title="达人入驻" />
+        <div style={{ textAlign: 'center', padding: '80px 24px' }}>
+          <div style={{ fontSize: 44, marginBottom: 12 }}>🔐</div>
+          <div style={{ fontWeight: 900, fontSize: 18, color: '#1a1a2e' }}>请先登录</div>
+          <div style={{ color: '#888', fontSize: 13, marginTop: 8 }}>登录后即可填写达人入驻资料并提交后台审核</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="page" style={{ background: '#F5F0E8', minHeight: '100vh' }}>

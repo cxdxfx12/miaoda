@@ -94,11 +94,14 @@ func (r *AddressRepository) Update(ctx context.Context, addr *model.UserAddress)
 		UPDATE user_addresses
 		SET contact_name = $1, contact_phone = $2, province = $3, city = $4, district = $5,
 		    detail = $6, lat = $7, lng = $8, is_default = $9, tag = $10, updated_at = $11
-		WHERE id = $12 AND deleted_at IS NULL`
+		WHERE id = $12 AND user_id = $13 AND deleted_at IS NULL`
 	_, err = tx.ExecContext(ctx, query,
 		addr.ContactName, addr.ContactPhone, addr.Province, addr.City, addr.District,
-		addr.Detail, addr.Lat, addr.Lng, addr.IsDefault, addr.Tag, time.Now(), addr.ID)
-	return err
+		addr.Detail, addr.Lat, addr.Lng, addr.IsDefault, addr.Tag, time.Now(), addr.ID, addr.UserID)
+	if err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 // Delete 删除地址
