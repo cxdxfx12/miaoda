@@ -503,6 +503,24 @@ function getTalentHeroImage(talent: TalentItem) {
   return safeAvatarSrc(talent.artPhotos?.[0] || talent.lifePhotos?.[0] || talent.avatar || '');
 }
 
+function getTalentServiceOptions(talent: TalentItem, serviceList: ServiceItem[]): ServiceItem[] {
+  const matched = serviceList.filter((service) => talent.serviceIds.includes(service.id));
+  if (matched.length > 0) return matched;
+
+  return talent.tags.filter(Boolean).map((tag, index) => ({
+    id: -(index + 1),
+    name: tag,
+    category: 'leisure',
+    price: 0,
+    icon: '✨',
+    desc: '达人可提供的技能服务，具体项目和价格请以实际下单服务为准',
+    tags: [tag],
+    duration: '可咨询',
+    rating: talent.rating || 0,
+    orderCount: talent.orderCount || 0,
+  }));
+}
+
 function FloatingSkillTags({ tags, max = 3, bottom = 10 }: { tags: string[]; max?: number; bottom?: number }) {
   const visible = tags.filter(Boolean).slice(0, max);
   if (visible.length === 0) return null;
@@ -2261,12 +2279,12 @@ function TalentDetailDrawer({ talent, services, onClose, onBook }: {
                     <div style={{ fontSize: 11, color: '#AAA' }}>{s.duration} · ⭐{s.rating}</div>
                   </div>
                 </div>
-                <button onClick={() => onBook(s.id)} style={{
+                <button onClick={() => s.id > 0 && onBook(s.id)} disabled={s.id <= 0} style={{
                   padding: '7px 16px', borderRadius: 16,
-                  background: `linear-gradient(135deg, ${theme.accent}, #9B6FFF)`, color: '#fff',
+                  background: s.id > 0 ? `linear-gradient(135deg, ${theme.accent}, #9B6FFF)` : 'rgba(17,24,39,0.08)', color: s.id > 0 ? '#fff' : '#6B7280',
                   border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer',
                   whiteSpace: 'nowrap', boxShadow: `0 3px 12px ${theme.accent}35`,
-                }}>¥{s.price} 预约</button>
+                }}>{s.id > 0 ? `¥${s.price} 预约` : '可咨询'}</button>
               </div>
             ))}
           </div>
@@ -2887,7 +2905,7 @@ function TalentFeedPage() {
       {detailId !== null && (() => {
         const talent = allTalents.find(t => t.id === detailId);
         if (!talent) return null;
-        const talentServices = serviceList.filter(s => talent.serviceIds.includes(s.id));
+        const talentServices = getTalentServiceOptions(talent, serviceList);
         const heroImage = getTalentHeroImage(talent);
         return (
           <>
@@ -2955,29 +2973,33 @@ function TalentFeedPage() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {talentServices.map(s => {
                     const cCfg = getCategoryConfig(s.category);
+                    const card = (
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
+                        borderRadius: 14, border: '1px solid var(--border)',
+                        transition: 'all 0.2s',
+                      }}>
+                        <div style={{
+                          width: 48, height: 48, borderRadius: 12, flexShrink: 0,
+                          background: cCfg?.bgGrad || '#F3F4F6',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: 22,
+                        }}>
+                          {renderServiceIcon(s.icon, 36)}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text-h)' }}>{s.name}</div>
+                          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>{s.duration} · {s.desc.slice(0, 30)}...</div>
+                        </div>
+                        <div style={{ fontWeight: 700, fontSize: 15, color: '#FF6B9D', flexShrink: 0 }}>
+                          {s.id > 0 ? `¥${s.price}` : '可咨询'}
+                        </div>
+                      </div>
+                    );
+                    if (s.id <= 0) return <div key={s.id}>{card}</div>;
                     return (
                       <NavLink to={`/service-detail?id=${s.id}&talentId=${talent.id}`} key={s.id} className="no-underline" onClick={() => setDetailId(null)}>
-                        <div style={{
-                          display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
-                          borderRadius: 14, border: '1px solid var(--border)',
-                          transition: 'all 0.2s',
-                        }}>
-                          <div style={{
-                            width: 48, height: 48, borderRadius: 12, flexShrink: 0,
-                            background: cCfg?.bgGrad || '#F3F4F6',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: 22,
-                          }}>
-                            {renderServiceIcon(s.icon, 36)}
-                          </div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text-h)' }}>{s.name}</div>
-                            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>{s.duration} · {s.desc.slice(0, 30)}...</div>
-                          </div>
-                          <div style={{ fontWeight: 700, fontSize: 17, color: '#FF6B9D', flexShrink: 0 }}>
-                            ¥{s.price}
-                          </div>
-                        </div>
+                        {card}
                       </NavLink>
                     );
                   })}
@@ -2989,9 +3011,12 @@ function TalentFeedPage() {
                   width: '100%', height: 50, borderRadius: 14, fontSize: 16,
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                 }} onClick={() => {
-                  if (talentServices.length > 0) {
-                    nav(`/service-detail?id=${talentServices[0].id}&talentId=${talent.id}`);
+                  const firstBookable = talentServices.find(s => s.id > 0);
+                  if (firstBookable) {
+                    nav(`/service-detail?id=${firstBookable.id}&talentId=${talent.id}`);
                     setDetailId(null);
+                  } else {
+                    nav('/services');
                   }
                 }}>
                   <Eye size={18} /> 立即预约 {talent.name}
@@ -3682,8 +3707,10 @@ function TalentStandalonePage() {
   const [detailTalentId, setDetailTalentId] = useState<number | null>(null);
   const nearbyQuery = useNearbyTalentQuery();
   const { data: talentsData } = useQuery({ queryKey: ['talents-nearby', nearbyQuery.lat, nearbyQuery.lng], queryFn: () => talentApi.nearby(nearbyQuery) });
+  const { data: servicesData } = useQuery({ queryKey: ['services-for-talent-standalone'], queryFn: () => serviceApi.listServices({ page_size: 200 }) });
   const apiTalentsRaw = Array.isArray((talentsData as any)?.data) ? (talentsData as any).data : ((talentsData as any)?.data?.list || []);
   const allTalentsForPage = apiTalentsRaw.map(adaptApiTalent);
+  const serviceList: ServiceItem[] = ((servicesData as any)?.data?.list || []).map(adaptApiService);
 
   return (
     <div className="page" style={{ background: '#F5F0E8', minHeight: '100vh' }}>
@@ -3723,7 +3750,7 @@ function TalentStandalonePage() {
       {detailTalentId !== null && (() => {
         const talent = allTalentsForPage.find(t => t.id === detailTalentId);
         if (!talent) return null;
-        const talentServices = FALLBACK_SERVICES.filter(s => talent.serviceIds.includes(s.id));
+        const talentServices = getTalentServiceOptions(talent, serviceList);
         return <TalentDetailDrawer talent={talent} services={talentServices} onClose={() => setDetailTalentId(null)} onBook={(svcId) => { setDetailTalentId(null); nav(`/service-detail?id=${svcId}&talentId=${talent.id}`); }} />;
       })()}
     </div>
