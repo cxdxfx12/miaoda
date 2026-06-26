@@ -112,23 +112,23 @@ const DEFAULT_SITE_CONFIG: SiteConfig = {
   logo_url: '/logo.png',
   about_slogan: '您身边的陪伴服务平台',
   about_version: 'v1.0.0',
-  about_build: 'Build 20250625',
-  about_team: '喵搭科技',
-  about_website: 'www.miaoda.com',
-  about_service_phone: '400-888-0000',
-  about_service_email: 'support@miaoda.com',
+  about_build: '',
+  about_team: '',
+  about_website: '',
+  about_service_phone: '',
+  about_service_email: '',
   about_intro: '喵搭专注于本地生活陪伴服务，连接用户与经过认证的达人，提供休闲、娱乐、按摩、影院等多场景服务。',
   about_copyright: '© 2025 喵搭科技 版权所有',
-  about_license: '增值电信业务经营许可证: 川B2-2025XXXX',
-  about_icp: 'ICP备案号: 川ICP备2025XXXXXXXX号',
+  about_license: '',
+  about_icp: '',
   support_title: '在线客服',
   support_subtitle: '喵搭官方客服',
   support_desc: '咨询订单、退款、预约和平台规则等问题',
   support_welcome: '您好！喵搭客服为您服务，请问有什么可以帮您的？',
-  support_auto_reply: '收到您的消息啦！我们的客服正在处理中，稍后会有专人回复您~',
+  support_auto_reply: '收到您的消息啦！机器人客服已记录问题，请继续补充订单号或联系方式；紧急问题请使用页面展示的电话或邮箱。',
   support_quick: '如何下单？,退款政策,优惠券使用,投诉建议',
-  support_phone: '400-888-0000',
-  support_email: 'support@miaoda.com',
+  support_phone: '',
+  support_email: '',
   support_work_time: '09:00 - 22:00',
   support_notice: '紧急订单问题建议直接拨打客服热线，普通咨询可在线留言。',
   support_knowledge_base: DEFAULT_SUPPORT_KNOWLEDGE_TEXT,
@@ -646,18 +646,18 @@ function BannerCarousel({ banners: inputBanners }: { banners?: BannerData[] }) {
   const [paused, setPaused] = useState(false);
   const banners: BannerData[] = inputBanners || [];
   const nav = useNavigate();
-
-  if (banners.length === 0) return null;
+  const [touchStart, setTouchStart] = useState(0);
 
   useEffect(() => {
-    if (paused) return;
+    if (paused || banners.length === 0) return;
     const timer = setInterval(() => {
       setCurrent(prev => (prev + 1) % banners.length);
     }, 4000);
     return () => clearInterval(timer);
   }, [banners.length, paused]);
 
-  const [touchStart, setTouchStart] = useState(0);
+  if (banners.length === 0) return null;
+
   const handleTouchStart = (e: React.TouchEvent) => setTouchStart(e.touches[0].clientX);
   const handleTouchEnd = (e: React.TouchEvent) => {
     const diff = touchStart - e.changedTouches[0].clientX;
@@ -2253,8 +2253,7 @@ function ServiceDetailPage() {
   const apiSvc = (data as any)?.data;
   const apiCategories = Array.isArray((serviceCatsData as any)?.data) ? (serviceCatsData as any).data : [];
   const apiCategory = apiSvc?.category || apiCategories.find((cat: any) => Number(cat.id) === Number(apiSvc?.category_id));
-  const mockSvc = FALLBACK_SERVICES.find(s => s.id === id);
-  const svc = apiSvc && Object.keys(apiSvc).length > 0 ? adaptApiService({ ...apiSvc, category: apiCategory }) : mockSvc;
+  const svc = apiSvc && Object.keys(apiSvc).length > 0 ? adaptApiService({ ...apiSvc, category: apiCategory }) : null;
   const cCfg = svc ? getCategoryConfig((svc as any).category) : null;
 
   // 达人列表：优先 API 数据
@@ -2269,10 +2268,10 @@ function ServiceDetailPage() {
   const mustSelectTwo = minOrderQty > 1;
   const serviceQtyName = qtyFromList > 1 ? `${name}*${qtyFromList}` : name;
   const originalPrice = (svc as any)?.original_price ?? (svc as any)?.originalPrice ?? null;
-  const rating = (svc as any)?.rating || 4.7;
+  const rating = (svc as any)?.rating || 0;
   const orderCount = (svc as any)?.order_count ?? (svc as any)?.orderCount ?? 0;
-  const description = (svc as any)?.description || (svc as any)?.desc || '品质服务，值得信赖';
-  const icon = (svc as any)?.icon || '🎬';
+  const description = (svc as any)?.description || (svc as any)?.desc || '';
+  const icon = (svc as any)?.icon || '✨';
   const tags = (svc as any)?.tags || [];
   const duration = (svc as any)?.duration || '';
   const hasServiceHeroImage = isImageIcon(icon);
@@ -2307,7 +2306,11 @@ function ServiceDetailPage() {
     }
     setCreatingOrder(true);
     try {
-      const contactPhone = /^1[3-9]\d{9}$/.test(String(userInfo?.phone || '')) ? String(userInfo?.phone) : '13800000000';
+      const contactPhone = String(userInfo?.phone || '');
+      if (!/^1[3-9]\d{9}$/.test(contactPhone)) {
+        alert('请先在个人资料中绑定有效手机号后再下单');
+        return;
+      }
       const orderRes: any = await orderApi.create({
         service_id: id,
         spec_name: '默认',
@@ -2315,12 +2318,12 @@ function ServiceDetailPage() {
         quantity: qtyFromList,
         appointment_time: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
         address: {
-          province: selectedTalent.serviceCity ? `${selectedTalent.serviceCity}市` : '浙江省',
-          city: selectedTalent.serviceCity || '杭州',
-          district: selectedTalent.distance ? '' : '西湖区',
-          detail: '微信一键下单地址',
-          lat: selectedTalent.currentLat || 30.2741,
-          lng: selectedTalent.currentLng || 120.1551,
+          province: '',
+          city: selectedTalent.serviceCity || '',
+          district: '',
+          detail: (userInfo as any)?.city ? `${(userInfo as any).city}用户下单地址待确认` : '下单地址待客服确认',
+          lat: selectedTalent.currentLat || 0,
+          lng: selectedTalent.currentLng || 0,
         },
         contact_name: userInfo?.nickname || '微信用户',
         contact_phone: contactPhone,
@@ -2355,7 +2358,13 @@ function ServiceDetailPage() {
         <div className="animate-float" style={{ position: 'absolute', right: -20, top: -20, width: 140, height: 140, borderRadius: '50%', background: 'rgba(255,255,255,0.06)', pointerEvents: 'none' }} />
       </div>
 
-      {isLoading ? <LoadingView /> :
+      {isLoading ? <LoadingView /> : !svc ? (
+        <div style={{ background: 'var(--bg)', borderRadius: '20px 20px 0 0', marginTop: -56, position: 'relative', zIndex: 2, padding: '72px 20px', textAlign: 'center' }}>
+          <div style={{ fontSize: 48, opacity: 0.5 }}>📭</div>
+          <div style={{ marginTop: 12, fontWeight: 800, color: '#555' }}>服务不存在或已下架</div>
+          <button onClick={() => nav('/services')} className="btn-primary" style={{ marginTop: 18, width: 160, height: 44, borderRadius: 14 }}>返回服务列表</button>
+        </div>
+      ) :
         <div style={{ background: 'var(--bg)', borderRadius: '20px 20px 0 0', marginTop: -56, position: 'relative', zIndex: 2, padding: '24px 20px' }}>
           <div className="card" style={{ padding: 20, borderRadius: 16, marginTop: -60, position: 'relative' }}>
             <div style={{
@@ -4352,10 +4361,11 @@ function SupportPage() {
     const timeStr = `${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
     setMessages(prev => [...prev, { from: 'me', text: content, time: timeStr }]);
     setMsg('');
+    const answer = findSupportAnswer(content, siteConfig);
+    const fallback = siteConfig.support_auto_reply || DEFAULT_SITE_CONFIG.support_auto_reply!;
     setTimeout(() => {
-      const answer = findSupportAnswer(content, siteConfig) || siteConfig.support_auto_reply || DEFAULT_SITE_CONFIG.support_auto_reply!;
-      setMessages(prev => [...prev, { from: 'cs', text: answer, time: new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'}) }]);
-    }, 700);
+      setMessages(prev => [...prev, { from: 'cs', text: answer || fallback, time: new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'}) }]);
+    }, 500);
   };
   const quickQuestions = (siteConfig.support_quick || DEFAULT_SITE_CONFIG.support_quick || '').split(',').map(s => s.trim()).filter(Boolean);
 
@@ -4432,13 +4442,28 @@ function SupportPage() {
    设置页 /settings
    =================================================================== */
 function SettingsPage() {
-  const [items, setItems] = useState([
+  const [cacheCleared, setCacheCleared] = useState(false);
+  const [items, setItems] = useState(() => {
+    const defaults = [
     { key: 'push', label: '推送通知', desc: '接收订单、活动等消息提醒', enabled: true, icon: '🔔', color: '#F59E0B' },
     { key: 'sms', label: '短信通知', desc: '订单状态变更时短信通知', enabled: true, icon: '📱', color: '#3B82F6' },
     { key: 'dark', label: '深色模式', desc: '护眼暗色主题', enabled: false, icon: '🌙', color: '#7C5CFC' },
     { key: 'location', label: '位置权限', desc: '用于显示附近达人和服务', enabled: true, icon: '📍', color: '#EF4444' },
     { key: 'wifi', label: '仅WiFi加载图片', desc: '节省流量', enabled: false, icon: '📶', color: '#10B981' },
-  ]);
+    ];
+    try {
+      const saved = JSON.parse(localStorage.getItem('user_settings') || 'null');
+      return defaults.map(item => ({ ...item, enabled: saved?.[item.key] ?? item.enabled }));
+    } catch {
+      return defaults;
+    }
+  });
+
+  const updateSetting = (key: string) => {
+    const next = items.map(x => x.key === key ? { ...x, enabled: !x.enabled } : x);
+    setItems(next);
+    localStorage.setItem('user_settings', JSON.stringify(Object.fromEntries(next.map(x => [x.key, x.enabled]))));
+  };
 
   return (
     <div className="page" style={{ background: '#F5F0E8', minHeight: '100vh' }}>
@@ -4457,7 +4482,7 @@ function SettingsPage() {
                 <div style={{ fontSize: 11.5, color: '#bbb', marginTop: 2 }}>{it.desc}</div>
               </div>
               {/* Toggle Switch */}
-              <div onClick={() => setItems(items.map(x => x.key === it.key ? { ...x, enabled: !x.enabled } : x))}
+              <div onClick={() => updateSetting(it.key)}
                 style={{
                   width: 48, height: 28, borderRadius: 14, cursor: 'pointer', position: 'relative', transition: 'background 0.3s',
                   background: it.enabled ? 'linear-gradient(135deg, #7C5CFC, #A78BFA)' : '#E5E7EB',
@@ -4475,12 +4500,20 @@ function SettingsPage() {
 
         {/* 其他选项 */}
         {[
-          { icon: '🗑️', label: '清除缓存', value: '23.5MB', color: '#6B7280' },
+          { icon: '🗑️', label: '清除缓存', value: cacheCleared ? '已清除' : '本地缓存', color: '#6B7280' },
           { icon: 'ℹ️', label: '关于喵搭', value: 'v1.0.0', color: '#7C5CFC' },
           { icon: '⚖️', label: '用户协议', value: '', color: '#3B82F6' },
           { icon: '🔒', label: '隐私政策', value: '', color: '#10B981' },
         ].map((opt, i) => (
-          <div key={i} onClick={() => opt.label === '清除缓存' ? alert('缓存已清除！(演示)') : null} style={{
+          <div key={i} onClick={() => {
+            if (opt.label === '清除缓存') {
+              localStorage.removeItem('service_cache');
+              localStorage.removeItem('talent_cache');
+              setCacheCleared(true);
+            } else if (opt.label === '关于喵搭') {
+              window.location.href = '/about';
+            }
+          }} style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 18px', background: '#fff',
             borderRadius: i === 0 ? 18 : (i === 1 ? 18 : 0), marginTop: i > 0 ? 10 : 14, boxShadow: '0 1px 6px rgba(0,0,0,0.02)',
             borderBottomLeftRadius: i >= 2 ? 0 : undefined, borderBottomRightRadius: i >= 2 ? 0 : undefined,
@@ -4559,7 +4592,10 @@ function HelpPage() {
           onFocus={(e) => e.currentTarget.style.borderColor = '#7C5CFC'}
           onBlur={(e) => e.currentTarget.style.borderColor = '#eee'} />
           <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
-            <button onClick={() => { setFeedback(''); alert('反馈已提交，感谢您的宝贵意见！'); }}
+            <button onClick={() => {
+              if (!feedback.trim()) return;
+              window.location.href = `/support?message=${encodeURIComponent(feedback.trim())}`;
+            }}
               disabled={!feedback.trim()}
               style={{
                 flex: 1, height: 46, border: 'none', borderRadius: 14, cursor: feedback.trim() ? 'pointer' : 'not-allowed',
@@ -4582,6 +4618,12 @@ function HelpPage() {
    账号安全页 /security
    =================================================================== */
 function SecurityPage() {
+  const userInfo = useUserStore(s => s.userInfo);
+  const phone = String(userInfo?.phone || '');
+  const maskedPhone = /^1[3-9]\d{9}$/.test(phone) ? `${phone.slice(0,3)}****${phone.slice(7)}` : '未绑定';
+  const realName = String((userInfo as any)?.real_name || '');
+  const isVerified = !!realName;
+  const score = (phone ? 45 : 0) + (isVerified ? 35 : 0);
   return (
     <div className="page" style={{ background: '#F5F0E8', minHeight: '100vh' }}>
       <SubPageNav title="账号安全" />
@@ -4590,24 +4632,24 @@ function SecurityPage() {
         <div style={{ background: 'linear-gradient(135deg, #7C5CFC, #A78BFA)', borderRadius: 20, padding: '24px 20px', marginBottom: 14, color: '#fff' }}>
           <div style={{ fontSize: 13, opacity: 0.85, marginBottom: 8 }}>安全评分</div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-            <span style={{ fontSize: 48, fontWeight: 900, lineHeight: 1 }}>85</span>
+            <span style={{ fontSize: 48, fontWeight: 900, lineHeight: 1 }}>{score}</span>
             <span style={{ fontSize: 16, fontWeight: 600, opacity: 0.9 }}>/ 100</span>
-            <span style={{ fontSize: 12, opacity: 0.75, marginLeft: 'auto' }}>良好 ✓</span>
+            <span style={{ fontSize: 12, opacity: 0.75, marginLeft: 'auto' }}>{score >= 80 ? '良好 ✓' : '待完善'}</span>
           </div>
           <div style={{ height: 6, borderRadius: 3, background: 'rgba(255,255,255,0.3)', marginTop: 12, overflow: 'hidden' }}>
-            <div style={{ width: '85%', height: '100%', background: '#fff', borderRadius: 3 }} />
+            <div style={{ width: `${score}%`, height: '100%', background: '#fff', borderRadius: 3 }} />
           </div>
           <div style={{ fontSize: 11, opacity: 0.7, marginTop: 8 }}>建议开启所有安全选项以提升账户安全性</div>
         </div>
 
         {/* 安全项 */}
         {[
-          { icon: '🔐', label: '登录密码', status: '已设置', tip: '上次修改: 30天前', color: '#34D399', action: '修改' },
-          { icon: '📱', label: '手机绑定', status: '138****1234', tip: '已验证', color: '#34D399', action: '更换' },
-          { icon: '📧', label: '邮箱绑定', status: '未绑定', tip: '可用于找回密码', color: '#F59E0B', action: '绑定' },
-          { icon: '🧾', label: '实名认证', status: '已认证', tip: '姓名：张*', color: '#34D399', action: '查看' },
-          { icon: '🔑', label: '两步验证', status: '未开启', tip: '登录时额外验证码保护', color: '#EF4444', action: '开启' },
-          { icon: '🖥️', label: '登录设备', status: '3台设备', tip: 'iPhone 15 · Windows PC · iPad', color: '#7C5CFC', action: '管理' },
+          { icon: '🔐', label: '登录密码', status: '微信/短信登录', tip: '暂未开放独立密码管理', color: '#9CA3AF', action: '未开通' },
+          { icon: '📱', label: '手机绑定', status: maskedPhone, tip: phone ? '已读取当前账号手机号' : '请在个人资料中完善', color: phone ? '#34D399' : '#F59E0B', action: phone ? '查看' : '去完善' },
+          { icon: '📧', label: '邮箱绑定', status: '未开通', tip: '平台暂未开放邮箱绑定', color: '#9CA3AF', action: '未开通' },
+          { icon: '🧾', label: '实名认证', status: isVerified ? '已认证' : '未认证', tip: isVerified ? `姓名：${realName.slice(0,1)}*` : '提交达人入驻后完成认证', color: isVerified ? '#34D399' : '#F59E0B', action: isVerified ? '查看' : '去认证' },
+          { icon: '🔑', label: '两步验证', status: '未开通', tip: '平台暂未开放两步验证', color: '#9CA3AF', action: '未开通' },
+          { icon: '🖥️', label: '登录设备', status: '未开通', tip: '平台暂未开放设备管理', color: '#9CA3AF', action: '未开通' },
         ].map((sec, i) => (
           <div key={i} style={{
             background: '#fff', borderRadius: 16, padding: '16px 18px', marginBottom: 10,
@@ -4618,9 +4660,12 @@ function SecurityPage() {
               <div style={{ fontWeight: 700, fontSize: 14.5, color: '#333' }}>{sec.label}</div>
               <div style={{ fontSize: 11.5, color: sec.color, marginTop: 2 }}>{sec.status} · <span style={{ color: '#bbb' }}>{sec.tip}</span></div>
             </div>
-            <button onClick={() => alert(`${sec.label}${sec.action}(演示)`)} style={{
+            <button onClick={() => {
+              if (sec.action === '去完善') window.location.href = '/profile-edit';
+              if (sec.action === '去认证') window.location.href = '/talent-apply';
+            }} disabled={sec.action === '未开通'} style={{
               padding: '6px 16px', border: `1.5px solid ${sec.color}`, borderRadius: 10, cursor: 'pointer',
-              fontSize: 12.5, fontWeight: 700, color: sec.color, background: 'transparent',
+              fontSize: 12.5, fontWeight: 700, color: sec.color, background: 'transparent', opacity: sec.action === '未开通' ? 0.6 : 1,
             }}>{sec.action}</button>
           </div>
         ))}
@@ -4706,11 +4751,11 @@ function AboutPage() {
   }, []);
   const infoItems = [
     { icon: '📝', label: '应用名称', value: siteConfig.app_name || '喵搭' },
-    { icon: '🏢', label: '开发团队', value: siteConfig.about_team || '喵搭科技' },
-    { icon: '🌐', label: '官方网站', value: siteConfig.about_website || 'www.miaoda.com' },
-    { icon: '📞', label: '客服热线', value: siteConfig.about_service_phone || siteConfig.support_phone || '400-888-0000' },
-    { icon: '📧', label: '联系邮箱', value: siteConfig.about_service_email || siteConfig.support_email || 'support@miaoda.com' },
-  ];
+    { icon: '🏢', label: '开发团队', value: siteConfig.about_team || '暂未配置' },
+    { icon: '🌐', label: '官方网站', value: siteConfig.about_website || '暂未配置' },
+    { icon: '📞', label: '客服热线', value: siteConfig.about_service_phone || siteConfig.support_phone || '暂未配置' },
+    { icon: '📧', label: '联系邮箱', value: siteConfig.about_service_email || siteConfig.support_email || '暂未配置' },
+  ].filter(info => info.value !== '暂未配置' || ['开发团队', '官方网站'].includes(info.label));
   return (
     <div className="page" style={{ background: 'linear-gradient(180deg, #FFF7ED 0%, #F0FDFA 46%, #F8FAFC 100%)', minHeight: '100vh' }}>
       <SubPageNav title="关于我们" />
@@ -4725,7 +4770,7 @@ function AboutPage() {
           <div style={{
             display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 14, padding: '6px 16px', borderRadius: 20,
             background: '#CCFBF1', fontSize: 12, color: '#0F766E', fontWeight: 800,
-          }}>{siteConfig.about_version || 'v1.0.0'} ({siteConfig.about_build || 'Build 20250625'})</div>
+          }}>{siteConfig.about_version || 'v1.0.0'}{siteConfig.about_build ? ` (${siteConfig.about_build})` : ''}</div>
           <div style={{ marginTop: 18, padding: '14px 16px', borderRadius: 18, background: '#FFF7ED', color: '#7C4A2D', fontSize: 13, lineHeight: 1.75, textAlign: 'left', border: '1px solid #FED7AA' }}>
             {siteConfig.about_intro || DEFAULT_SITE_CONFIG.about_intro}
           </div>
@@ -4744,9 +4789,9 @@ function AboutPage() {
 
         {/* 版权 */}
         <div style={{ textAlign: 'center', marginTop: 24, fontSize: 12, color: '#94A3B8', lineHeight: 1.8 }}>
-          {siteConfig.about_copyright || '© 2025 喵搭科技 版权所有'}<br />
-          {siteConfig.about_license || '增值电信业务经营许可证: 川B2-2025XXXX'}<br />
-          {siteConfig.about_icp || 'ICP备案号: 川ICP备2025XXXXXXXX号'}
+          {siteConfig.about_copyright || '© 2025 喵搭 版权所有'}<br />
+          {siteConfig.about_license ? <><span>{siteConfig.about_license}</span><br /></> : null}
+          {siteConfig.about_icp || ''}
         </div>
       </div>
     </div>

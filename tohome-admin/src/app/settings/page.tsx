@@ -197,7 +197,7 @@ export default function SettingsPage() {
         window.dispatchEvent(new CustomEvent('admin-basic-settings-saved', { detail: configData.service_phone || '' }));
       }
       alert('保存成功');
-    } catch { alert('保存失败（后端未连接）'); }
+    } catch { alert('保存失败，请检查接口返回或稍后重试'); }
     finally { setSaving(false); }
   }
 

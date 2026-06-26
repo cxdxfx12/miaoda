@@ -132,8 +132,7 @@ func (s *SmsService) VerifySmsCode(ctx context.Context, phone, code, typ string)
 func (s *SmsService) sendViaAliyun(phone, code, typ string) error {
 	cfg := s.cfg.ThirdParty.Sms.Aliyun
 	if cfg.AccessKeyID == "" {
-		logger.Warn("阿里云短信未配置，使用模拟模式: phone=%s, code=%s", phone, code)
-		return nil
+		return fmt.Errorf("阿里云短信未配置，验证码未发送")
 	}
 
 	templateParam := fmt.Sprintf(`{"code":"%s"}`, code)
@@ -229,8 +228,7 @@ func (s *SmsService) buildQuery(params map[string]string) string {
 func (s *SmsService) sendViaTencent(phone, code, typ string) error {
 	cfg := s.cfg.ThirdParty.Sms.Tencent
 	if cfg.AppID == "" {
-		logger.Warn("腾讯云短信未配置，使用模拟模式: phone=%s, code=%s", phone, code)
-		return nil
+		return fmt.Errorf("腾讯云短信未配置，验证码未发送")
 	}
 
 	timestamp := time.Now().Unix()

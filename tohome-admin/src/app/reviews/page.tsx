@@ -56,7 +56,7 @@ export default function ReviewsPage() {
       setReplyText('');
       setReplying(null);
       loadReviews();
-    } catch { alert('回复失败（后端未连接）'); }
+    } catch { alert('回复失败，请检查接口返回或稍后重试'); }
   }
 
   return (

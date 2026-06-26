@@ -48,7 +48,7 @@ export default function DispatchPage() {
     try {
       await dispatchApi.dispatch(orderId, techId);
       loadData();
-    } catch { alert('派单失败（后端未连接）'); }
+    } catch { alert('派单失败，请检查订单和达人状态后重试'); }
     finally { setDispatching(null); }
   }
 
@@ -57,7 +57,7 @@ export default function DispatchPage() {
     try {
       await dispatchApi.autoDispatch();
       loadData();
-    } catch { alert('自动派单失败（后端未连接）'); }
+    } catch { alert('自动派单失败，请检查待派订单和可用达人后重试'); }
     finally { setDispatching(null); }
   }
 

@@ -28,7 +28,7 @@ function calcAgeRange(birthday: string): { label: string; desc: string; color: s
   return { label: '资深', desc: '行业资深，技艺无双', color: 'bg-gradient-to-r from-[#EC4899] to-[#F472B6]' };
 }
 
-// ==================== 技能选项（模拟来自后端） ====================
+// ==================== 技能选项 ====================
 const SKILL_OPTIONS = [
   { id: 1, name: '中式按摩', icon: '💆' },
   { id: 2, name: '推拿', icon: '👐' },

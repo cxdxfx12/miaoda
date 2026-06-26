@@ -515,8 +515,7 @@ type WechatPayParams struct {
 // CreatePayment 创建微信支付
 func (w *WechatChannel) CreatePayment(ctx context.Context, payment *model.Payment, cfgIface interface{}) (interface{}, error) {
 	if w.cfg.AppID == "" || w.cfg.MchID == "" {
-		// 配置为空时使用模拟模式
-		return w.createSimulatedPayment(payment), nil
+		return nil, fmt.Errorf("微信支付未配置，无法创建真实支付")
 	}
 
 	// 构建微信支付V3 JSAPI下单请求
@@ -544,29 +543,13 @@ func (w *WechatChannel) CreatePayment(ctx context.Context, payment *model.Paymen
 	}, nil
 }
 
-// createSimulatedPayment 模拟支付（开发环境用）
-func (w *WechatChannel) createSimulatedPayment(payment *model.Payment) WechatPayParams {
-	nonceStr := fmt.Sprintf("%d%s", time.Now().UnixNano(), uuid.New().String()[:8])
-	prepayID := fmt.Sprintf("wx%s%s", time.Now().Format("20060102150405"), uuid.New().String()[:16])
-	payment.PrepayID = &prepayID
-	timeStamp := fmt.Sprintf("%d", time.Now().Unix())
-
-	return WechatPayParams{
-		AppID:     w.cfg.AppID,
-		TimeStamp: timeStamp,
-		NonceStr:  nonceStr,
-		Package:   "prepay_id=" + prepayID,
-		SignType:  "RSA",
-		PaySign:   "SIMULATED_SIGN",
-	}
-}
-
 // QueryPayment 查询微信支付
 func (w *WechatChannel) QueryPayment(ctx context.Context, payment *model.Payment, cfgIface interface{}) (*PaymentQueryResult, error) {
-	// 调用微信支付查询API
-	// GET https://api.mch.weixin.qq.com/v3/pay/transactions/out-trade-no/{payment_no}
+	if w.cfg.AppID == "" || w.cfg.MchID == "" {
+		return nil, fmt.Errorf("微信支付未配置，无法查询真实支付状态")
+	}
 	return &PaymentQueryResult{
-		Status: model.PaymentStatusSuccess,
+		Status: model.PaymentStatusPending,
 	}, nil
 }
 
@@ -678,7 +661,8 @@ func (w *WechatChannel) generateSign(nonceStr, timeStamp, prepayID string) strin
 		}
 		return sign
 	}
-	return "SIMULATED_SIGN"
+	logger.Error("微信支付商户私钥未配置，无法生成真实签名")
+	return ""
 }
 
 // ===================== 支付宝渠道 =====================
@@ -709,7 +693,7 @@ type AlipayParams struct {
 // CreatePayment 创建支付宝支付
 func (a *AlipayChannel) CreatePayment(ctx context.Context, payment *model.Payment, cfgIface interface{}) (interface{}, error) {
 	if a.cfg.AppID == "" || a.cfg.PrivateKey == "" {
-		return a.createSimulatedPayment(payment), nil
+		return nil, fmt.Errorf("支付宝未配置，无法创建真实支付")
 	}
 
 	// 构造支付宝订单信息
@@ -761,18 +745,13 @@ func (a *AlipayChannel) CreatePayment(ctx context.Context, payment *model.Paymen
 	}, nil
 }
 
-func (a *AlipayChannel) createSimulatedPayment(payment *model.Payment) AlipayParams {
-	return AlipayParams{
-		TradeNo: payment.PaymentNo,
-		PayURL:  "https://openapi.alipay.com/gateway.do",
-		Params:  "SIMULATED",
-	}
-}
-
 // QueryPayment 查询支付宝支付
 func (a *AlipayChannel) QueryPayment(ctx context.Context, payment *model.Payment, cfgIface interface{}) (*PaymentQueryResult, error) {
+	if a.cfg.AppID == "" || a.cfg.PrivateKey == "" {
+		return nil, fmt.Errorf("支付宝未配置，无法查询真实支付状态")
+	}
 	return &PaymentQueryResult{
-		Status: model.PaymentStatusSuccess,
+		Status: model.PaymentStatusPending,
 	}, nil
 }
 

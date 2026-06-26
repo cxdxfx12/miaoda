@@ -106,32 +106,27 @@ func (s *VirtualPhoneService) BindVirtualPhone(ctx context.Context, orderID int6
 	switch provider {
 	case "tencent":
 		if vpCfg.Tencent.SecretID == "" {
-			logger.Warn("腾讯云虚拟电话未配置，使用模拟模式")
-			return s.mockBind(orderID, userPhone, talentPhone, bindExpire)
+			return nil, fmt.Errorf("腾讯云虚拟电话未配置，无法绑定真实隐私号码")
 		}
 		virtualX, bindID, err = s.tencentBindAXB(userPhone, talentPhone, bindExpire)
 	case "cloopen":
 		if vpCfg.Cloopen.AccountSid == "" {
-			logger.Warn("容联云虚拟电话未配置，使用模拟模式")
-			return s.mockBind(orderID, userPhone, talentPhone, bindExpire)
+			return nil, fmt.Errorf("容联云虚拟电话未配置，无法绑定真实隐私号码")
 		}
 		virtualX, bindID, err = s.cloopenBindCall(userPhone, talentPhone, bindExpire)
 	case "huawei":
 		if vpCfg.Huawei.AppKey == "" {
-			logger.Warn("华为虚拟电话未配置，使用模拟模式")
-			return s.mockBind(orderID, userPhone, talentPhone, bindExpire)
+			return nil, fmt.Errorf("华为虚拟电话未配置，无法绑定真实隐私号码")
 		}
 		virtualX, bindID, err = s.huaweiBindAXB(userPhone, talentPhone, bindExpire)
 	case "custom":
 		if vpCfg.Custom.AppKey == "" {
-			logger.Warn("自定义虚拟电话未配置，使用模拟模式")
-			return s.mockBind(orderID, userPhone, talentPhone, bindExpire)
+			return nil, fmt.Errorf("自定义虚拟电话未配置，无法绑定真实隐私号码")
 		}
 		virtualX, bindID, err = s.customBind(userPhone, talentPhone, bindExpire)
 	default: // "aliyun" or empty
 		if vpCfg.Aliyun.AccessKeyID == "" {
-			logger.Warn("阿里云虚拟电话未配置，使用模拟模式")
-			return s.mockBind(orderID, userPhone, talentPhone, bindExpire)
+			return nil, fmt.Errorf("阿里云虚拟电话未配置，无法绑定真实隐私号码")
 		}
 		virtualX, bindID, err = s.aliyunBindAXB(userPhone, talentPhone, bindExpire)
 	}
@@ -231,27 +226,6 @@ func (s *VirtualPhoneService) GetVirtualPhone(ctx context.Context, orderID int64
 	var vp model.VirtualPhone
 	json.Unmarshal([]byte(data), &vp)
 	return &vp, nil
-}
-
-// mockBind 模拟绑定（未配置时使用）
-func (s *VirtualPhoneService) mockBind(orderID int64, userPhone, talentPhone string, expireSec int) (*model.VirtualPhone, error) {
-	if expireSec <= 0 {
-		expireSec = 3600
-	}
-	virtualX := fmt.Sprintf("170%08d", rand.Intn(100000000))
-	vp := &model.VirtualPhone{
-		OrderID:     orderID,
-		UserPhone:   userPhone,
-		TalentPhone: talentPhone,
-		VirtualX:    virtualX,
-		BindID:      fmt.Sprintf("mock_%d_%d", orderID, time.Now().Unix()),
-		ExpireAt:    time.Now().Add(time.Duration(expireSec) * time.Second),
-		Status:      0,
-	}
-	cacheKey := fmt.Sprintf("vphone:order:%d", orderID)
-	data, _ := json.Marshal(vp)
-	s.redis.Set(context.Background(), cacheKey, data, time.Duration(expireSec)*time.Second)
-	return vp, nil
 }
 
 // aliyunBindAXB 阿里云AXB绑定
@@ -438,77 +412,39 @@ func (s *VirtualPhoneService) TestVirtualPhoneConnection(ctx context.Context) er
 // ===================== 腾讯云 NPP =====================
 
 func (s *VirtualPhoneService) tencentBindAXB(userPhone, talentPhone string, expireSec int) (virtualX, bindID string, err error) {
-	cfg := s.cfg.ThirdParty.VirtualPhone.Tencent
-	// TODO: 对接腾讯云号码保护 NPP API (npp.tencentcloudapi.com)
-	// 腾讯云使用 V3 签名 (TC3-HMAC-SHA256)，需要实现签名 V3 逻辑
-	// API: CreateCallBack -> Bind Number
-	// 临时使用模拟模式
-	logger.Info("[腾讯云NPP] 绑定(模拟): appId=%s, user=%s, talent=%s", cfg.AppID, userPhone, talentPhone)
-	virtualX = fmt.Sprintf("95013%06d", rand.Intn(1000000))
-	bindID = fmt.Sprintf("tencent_%d_%d", time.Now().UnixNano(), rand.Intn(10000))
-	return virtualX, bindID, nil
+	return "", "", fmt.Errorf("腾讯云虚拟电话真实接口尚未接入")
 }
 
 func (s *VirtualPhoneService) tencentUnbind(bindID string) error {
-	cfg := s.cfg.ThirdParty.VirtualPhone.Tencent
-	// TODO: 对接腾讯云 NPP 解绑 API
-	logger.Info("[腾讯云NPP] 解绑(模拟): appId=%s, bindId=%s", cfg.AppID, bindID)
-	return nil
+	return fmt.Errorf("腾讯云虚拟电话真实解绑接口尚未接入")
 }
 
 // ===================== 容联云双向回拨 =====================
 
 func (s *VirtualPhoneService) cloopenBindCall(userPhone, talentPhone string, expireSec int) (virtualX, bindID string, err error) {
-	cfg := s.cfg.ThirdParty.VirtualPhone.Cloopen
-	// TODO: 对接容联云双向回拨 REST API (yo2o.cloopen.com)
-	// 容联云使用 主账号+Token 鉴权 (Authorization: base64(sid:timestamp))
-	// API: /2013-12-26/Accounts/{sid}/Calls/DuplexCallback
-	// 容联云双向回拨模式: 平台先拨 userPhone，接通后拨 talentPhone，然后桥接双方
-	logger.Info("[容联云] 双向回拨(模拟): appId=%s, user=%s, talent=%s", cfg.AppID, userPhone, talentPhone)
-	virtualX = fmt.Sprintf("010%07d", rand.Intn(10000000)) // 容联云双向回拨无中间号，此处为占位
-	bindID = fmt.Sprintf("cloopen_%d_%d", time.Now().UnixNano(), rand.Intn(10000))
-	return virtualX, bindID, nil
+	return "", "", fmt.Errorf("容联云虚拟电话真实接口尚未接入")
 }
 
 func (s *VirtualPhoneService) cloopenUnbind(bindID string) error {
-	cfg := s.cfg.ThirdParty.VirtualPhone.Cloopen
-	// 容联云双向回拨无需主动解绑，通话结束自动释放
-	logger.Info("[容联云] 解绑(模拟): appId=%s, bindId=%s", cfg.AppID, bindID)
-	return nil
+	return fmt.Errorf("容联云虚拟电话真实解绑接口尚未接入")
 }
 
 // ===================== 华为隐私保护通话 =====================
 
 func (s *VirtualPhoneService) huaweiBindAXB(userPhone, talentPhone string, expireSec int) (virtualX, bindID string, err error) {
-	cfg := s.cfg.ThirdParty.VirtualPhone.Huawei
-	// TODO: 对接华为云隐私保护通话 REST API
-	// 华为云使用 WS-Security 签名或 OAuth2 Token 鉴权
-	// API: POST {domain}/rest/caas/privatenumber/v1.0
-	logger.Info("[华为云] 绑定(模拟): appKey=%s, user=%s, talent=%s", cfg.AppKey, userPhone, talentPhone)
-	virtualX = fmt.Sprintf("170%08d", rand.Intn(100000000))
-	bindID = fmt.Sprintf("huawei_%d_%d", time.Now().UnixNano(), rand.Intn(10000))
-	return virtualX, bindID, nil
+	return "", "", fmt.Errorf("华为云虚拟电话真实接口尚未接入")
 }
 
 func (s *VirtualPhoneService) huaweiUnbind(bindID string) error {
-	cfg := s.cfg.ThirdParty.VirtualPhone.Huawei
-	logger.Info("[华为云] 解绑(模拟): appKey=%s, bindId=%s", cfg.AppKey, bindID)
-	return nil
+	return fmt.Errorf("华为云虚拟电话真实解绑接口尚未接入")
 }
 
 // ===================== 自定义服务商 =====================
 
 func (s *VirtualPhoneService) customBind(userPhone, talentPhone string, expireSec int) (virtualX, bindID string, err error) {
-	cfg := s.cfg.ThirdParty.VirtualPhone.Custom
-	logger.Info("[自定义] 绑定(模拟): provider=%s, endpoint=%s, user=%s, talent=%s",
-		cfg.ProviderName, cfg.APIEndpoint, userPhone, talentPhone)
-	virtualX = fmt.Sprintf("170%08d", rand.Intn(100000000))
-	bindID = fmt.Sprintf("custom_%d_%d", time.Now().UnixNano(), rand.Intn(10000))
-	return virtualX, bindID, nil
+	return "", "", fmt.Errorf("自定义虚拟电话真实接口尚未接入")
 }
 
 func (s *VirtualPhoneService) customUnbind(bindID string) error {
-	cfg := s.cfg.ThirdParty.VirtualPhone.Custom
-	logger.Info("[自定义] 解绑(模拟): provider=%s, bindId=%s", cfg.ProviderName, bindID)
-	return nil
+	return fmt.Errorf("自定义虚拟电话真实解绑接口尚未接入")
 }
