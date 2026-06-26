@@ -94,6 +94,18 @@ function numberText(value: any) {
   return n.toLocaleString();
 }
 
+function safeText(value: any, fallback = '') {
+  if (value === null || value === undefined) return fallback;
+  if (typeof value === 'string' || typeof value === 'number') return String(value);
+  if (typeof value === 'object') {
+    if ('Valid' in value && value.Valid === false) return fallback;
+    if ('String' in value) return value.String || fallback;
+    if ('Float64' in value) return String(value.Float64 ?? fallback);
+    if ('Int64' in value) return String(value.Int64 ?? fallback);
+  }
+  return fallback;
+}
+
 export default function MobileAdminPage() {
   const loginStore = useAdminStore((s) => s.login);
   const logoutStore = useAdminStore((s) => s.logout);
@@ -123,7 +135,8 @@ export default function MobileAdminPage() {
     api.loadToken();
     setTokenReady(true);
     const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : '';
-    if (token) {
+    const mobileUnlocked = typeof window !== 'undefined' ? sessionStorage.getItem('mobile_admin_unlocked') : '';
+    if (token && mobileUnlocked === '1') {
       loadAll();
     } else {
       setLoading(false);
@@ -166,6 +179,7 @@ export default function MobileAdminPage() {
       if (!d?.token) throw new Error('登录失败');
       loginStore(d.admin, d.token);
       api.setToken(d.token);
+      sessionStorage.setItem('mobile_admin_unlocked', '1');
       await loadAll();
     } catch (e: any) {
       alert(e?.message || '登录失败');
@@ -175,6 +189,7 @@ export default function MobileAdminPage() {
   }
 
   function handleLogout() {
+    sessionStorage.removeItem('mobile_admin_unlocked');
     logoutStore();
     setMe(null);
   }
@@ -393,8 +408,8 @@ function ListPanel({ items, type, query, setQuery }: any) {
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
                 <div className="truncate text-sm font-black">{item.service_name || '订单服务'}</div>
-                <div className="mt-1 text-xs text-slate-400">{item.order_no} · {item.city || '未定位城市'}</div>
-                <div className="mt-2 text-xs text-slate-500">{item.user_name} / {item.technician_name?.String || item.technician_name || '待分配'}</div>
+                <div className="mt-1 text-xs text-slate-400">{safeText(item.order_no)} · {safeText(item.city, '未定位城市')}</div>
+                <div className="mt-2 text-xs text-slate-500">{safeText(item.user_name, '用户')} / {safeText(item.technician_name, '待分配')}</div>
               </div>
               <div className="text-right">
                 <div className="text-lg font-black text-[#0F766E]">¥{Number(item.final_amount || 0).toFixed(0)}</div>
