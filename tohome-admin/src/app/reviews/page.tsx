@@ -8,27 +8,12 @@ import { reviewApi } from '@/api';
 interface Review { id: number; user_name: string; talent_name: string; rating: number; content: string; tags: any; reply_content?: string; created_at: string; }
 interface ReviewStats { total_reviews: number; reply_rate: string; avg_rating: string; pending_reply: number; }
 
-// --- Mock 数据 ---
-const MOCK_STATS: ReviewStats = { total_reviews: 2856, reply_rate: '96.8%', avg_rating: '4.8', pending_reply: 38 };
-const MOCK_REVIEWS: Review[] = [
-  { id: 1, user_name: '张先生', talent_name: '李达人', rating: 5, content: '手法非常专业，力道适中，按完浑身轻松。下次还会预约！', tags: ['专业', '手法好'], created_at: '2026-06-23 14:30' },
-  { id: 2, user_name: '王女士', talent_name: '陈达人', rating: 5, content: '服务特别周到，环境也很干净。精油SPA太舒服了，必须五星好评！', tags: ['服务好', '环境佳'], reply_content: '感谢您的认可！期待再次为您服务~', created_at: '2026-06-23 12:15' },
-  { id: 3, user_name: '刘先生', talent_name: '王达人', rating: 4, content: '整体还不错，就是等待时间稍微有点长，希望改进。', tags: ['态度好'], created_at: '2026-06-23 10:00' },
-  { id: 4, user_name: '赵女士', talent_name: '林达人', rating: 5, content: '朋友推荐来的，果然没让我失望。推拿技术一流，解决了我长期的腰酸问题。', tags: ['专业', '效果好'], created_at: '2026-06-22 19:20' },
-  { id: 5, user_name: '孙先生', talent_name: '周达人', rating: 3, content: '一般般吧，没有宣传的那么好。', tags: [], reply_content: '非常抱歉给您带来不好的体验，我们会加强培训提升服务质量。', created_at: '2026-06-22 16:45' },
-  { id: 6, user_name: '杨女士', talent_name: '吴达人', rating: 5, content: '太棒了！按完感觉整个人都轻松了，已经推荐给身边的朋友了。', tags: ['推荐', '专业'], created_at: '2026-06-22 14:00' },
-  { id: 7, user_name: '周先生', talent_name: '郑达人', rating: 4, content: '服务态度很好，技术也不错，价格合理。', tags: ['性价比', '态度好'], reply_content: '谢谢您的支持，我们会继续努力！', created_at: '2026-06-22 11:30' },
-  { id: 8, user_name: '吴女士', talent_name: '黄达人', rating: 5, content: '已经是第三次预约了，每次体验都很棒。泰式按摩特别正宗！', tags: ['回头客', '专业'], created_at: '2026-06-22 09:00' },
-  { id: 9, user_name: '郑先生', talent_name: '马达人', rating: 4, content: '整体体验不错，达人很准时，手法也可以。', tags: ['准时'], created_at: '2026-06-21 20:30' },
-  { id: 10, user_name: '陈女士', talent_name: '谢达人', rating: 5, content: '手法专业，态度亲切，精油用的是进口品牌，体验一级棒！', tags: ['专业', '品质好'], created_at: '2026-06-21 18:00' },
-];
-
 export default function ReviewsPage() {
   const [loading, setLoading] = useState(true);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [stats, setStats] = useState<ReviewStats>({ total_reviews: 0, reply_rate: '0%', avg_rating: '0', pending_reply: 0 });
   const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(MOCK_REVIEWS.length);
+  const [total, setTotal] = useState(0);
   const [replying, setReplying] = useState<number | null>(null);
   const [replyText, setReplyText] = useState('');
 

@@ -190,8 +190,15 @@ func (r *TalentRepository) List(ctx context.Context, status *int, page, pageSize
 // Approve 审核通过
 func (r *TalentRepository) Approve(ctx context.Context, id int64) error {
 	_, err := r.db.ExecContext(ctx,
-		`UPDATE technicians SET status = $1, updated_at = $2 WHERE id = $3`,
-		model.TalentStatusNormal, time.Now(), id)
+		`UPDATE technicians
+		SET status = $1,
+		    work_status = CASE WHEN work_status = 0 THEN $2 ELSE work_status END,
+		    current_lat = COALESCE(current_lat, 30.2741),
+		    current_lng = COALESCE(current_lng, 120.1551),
+		    location_updated_at = COALESCE(location_updated_at, $3),
+		    updated_at = $3
+		WHERE id = $4`,
+		model.TalentStatusNormal, model.WorkStatusOnline, time.Now(), id)
 	return err
 }
 

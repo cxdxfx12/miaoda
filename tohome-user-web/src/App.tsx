@@ -221,39 +221,7 @@ const CATEGORIES = [
   { key: 'cinema', icon: '🎬', label: '影院陪伴', color: '#F5F3FF', tagColor: '#8B5CF6', bgGrad: 'linear-gradient(135deg, #EDE9FE, #DDD6FE)' },
 ];
 
-const MOCK_SERVICES: ServiceItem[] = [
-  // —— 休闲陪伴 ——
-  { id: 101, name: '台球陪练', category: 'leisure', price: 88, originalPrice: 128, icon: '🎱', desc: '专业台球陪练，技术指导+对打练习，适合各水平玩家', tags: ['热门','新手友好'], duration: '1小时', rating: 4.8, orderCount: 326 },
-  { id: 102, name: '观影陪伴', category: 'leisure', price: 68, icon: '🍿', desc: '陪你看电影，聊剧情、分享感悟，让观影不再孤单', tags: ['轻松','休闲'], duration: '1场', rating: 4.7, orderCount: 512 },
-  { id: 103, name: '茶艺品鉴', category: 'leisure', price: 128, originalPrice: 168, icon: '🍵', desc: '专业茶艺师带你品味各类名茶，讲解茶文化知识与冲泡技艺', tags: ['高端','文化'], duration: '2小时', rating: 4.9, orderCount: 189 },
-  { id: 104, name: '爬山徒步', category: 'leisure', price: 158, icon: '⛰️', desc: '户外爬山徒步，沿途赏景拍照，健康运动新方式', tags: ['户外','运动'], duration: '半天', rating: 4.8, orderCount: 257 },
-  { id: 105, name: '麻将陪玩', category: 'leisure', price: 98, icon: '🀄', desc: '麻将搭子陪玩，川麻、广麻、国标均可，技术水平在线', tags: ['趣味','益智'], duration: '2小时', rating: 4.6, orderCount: 445 },
-  { id: 106, name: '吃饭陪伴', category: 'leisure', price: 128, icon: '🍽️', desc: '陪你吃饭聊天，探店网红餐厅，让每一餐都有温度', tags: ['美食','社交'], duration: '1餐', rating: 4.7, orderCount: 623 },
-  { id: 107, name: '逛街陪伴', category: 'leisure', price: 108, icon: '🛍️', desc: '专业逛街搭子，帮你搭配、参考意见，购物不再纠结', tags: ['购物','时尚'], duration: '2小时', rating: 4.8, orderCount: 378 },
-  { id: 108, name: '桌游陪玩', category: 'leisure', price: 78, icon: '🎲', desc: '狼人杀、剧本杀、三国杀，各种桌游陪玩，组局无压力', tags: ['社交','游戏'], duration: '2小时', rating: 4.6, orderCount: 534 },
-
-  // —— 娱乐陪伴 ——
-  { id: 201, name: '电竞游戏', category: 'entertainment', price: 88, originalPrice: 108, icon: '🎮', desc: 'LOL/王者/吃鸡/PUBG陪玩，大神带你飞，轻松上分', tags: ['热门','竞技'], duration: '1小时', rating: 4.7, orderCount: 892 },
-  { id: 202, name: 'K歌微醺', category: 'entertainment', price: 168, icon: '🎤', desc: 'KTV包厢陪同欢唱，从经典老歌到热门新曲，气氛担当', tags: ['嗨翻','解压'], duration: '3小时', rating: 4.9, orderCount: 456 },
-  { id: 203, name: '商务酒局', category: 'entertainment', price: 288, icon: '🍷', desc: '商务宴请陪同出席，专业礼仪、得体应酬，帮你hold住全场', tags: ['商务','高端'], duration: '1场', rating: 4.8, orderCount: 134 },
-  { id: 204, name: '同城旅游', category: 'entertainment', price: 328, icon: '🏙️', desc: '同城景点一日游，网红打卡、小众秘境，本地达人带你玩', tags: ['旅游','探索'], duration: '1天', rating: 4.7, orderCount: 298 },
-  { id: 205, name: '异地旅游', category: 'entertainment', price: 688, icon: '✈️', desc: '周边城市短期旅行陪伴，行程规划+全程陪同，说走就走', tags: ['深度','长途'], duration: '1-3天', rating: 4.9, orderCount: 87 },
-  { id: 206, name: '密室逃脱', category: 'entertainment', price: 128, icon: '🔍', desc: '密室/剧本杀队友，智商在线、演技在线，帮你通关解密', tags: ['智力','冒险'], duration: '2小时', rating: 4.6, orderCount: 367 },
-
-  // —— 按摩服务 ——
-  { id: 301, name: '中式按摩', category: 'massage', price: 168, originalPrice: 218, icon: '💆‍♂️', desc: '传统中式推拿手法，舒筋活络、缓解疲劳，肩颈腰背全方位放松', tags: ['经典','热销'], duration: '60分钟', rating: 4.8, orderCount: 1205 },
-  { id: 302, name: '泰式SPA', category: 'massage', price: 238, icon: '🧘', desc: '正宗泰式拉伸按摩，配合精油SPA，深层放松身心', tags: ['高端','SPA'], duration: '90分钟', rating: 4.9, orderCount: 876 },
-  { id: 303, name: '扶阳SPA', category: 'massage', price: 298, originalPrice: 398, icon: '🔥', desc: '中医扶阳理论，温灸+经络疏通，提升阳气、改善亚健康', tags: ['养生','热门'], duration: '90分钟', rating: 4.9, orderCount: 654 },
-  { id: 304, name: '足疗保健', category: 'massage', price: 128, icon: '🦶', desc: '足底穴位按摩+中药泡脚，疏通反射区，缓解全身疲劳', tags: ['实惠','养生'], duration: '60分钟', rating: 4.7, orderCount: 1023 },
-  { id: 305, name: '精油推背', category: 'massage', price: 198, icon: '🌸', desc: '植物精油推背SPA，舒缓肌肉紧张、改善睡眠质量', tags: ['芳疗','放松'], duration: '60分钟', rating: 4.8, orderCount: 745 },
-  { id: 306, name: '经络疏通', category: 'massage', price: 218, icon: '💪', desc: '经络刮痧+穴位点压+拔罐，疏通经络、排除湿气', tags: ['中医','理疗'], duration: '80分钟', rating: 4.7, orderCount: 567 },
-
-  // —— 影院陪伴 ——
-  { id: 401, name: '情窦初开', category: 'cinema', price: 198, originalPrice: 258, icon: '💕', desc: '私人影院双人观影，温馨氛围，轻松愉悦的陪伴体验', tags: ['入门','温馨'], duration: '2小时', rating: 4.8, orderCount: 423 },
-  { id: 402, name: '情难自控', category: 'cinema', price: 298, icon: '💓', desc: '沉浸式影院体验，亲密陪伴，私享二人世界的美好时光', tags: ['沉浸','浪漫'], duration: '3小时', rating: 4.9, orderCount: 356 },
-  { id: 403, name: '共度今宵', category: 'cinema', price: 398, icon: '🌙', desc: '高端私人影院包场，精致布置+香槟小食，难忘的专属夜晚', tags: ['高端','定制'], duration: '4小时', rating: 5.0, orderCount: 187 },
-  { id: 404, name: '经典观影', category: 'cinema', price: 128, icon: '🎞️', desc: '经典影片重温，专业解说陪伴，解读电影背后的故事与美学', tags: ['文艺','影评'], duration: '2小时', rating: 4.7, orderCount: 289 },
-];
+const FALLBACK_SERVICES: ServiceItem[] = [];
 
 const DEFAULT_USER_LOCATION = { lat: 30.2741, lng: 120.1551, city: '杭州', district: '西湖区', address: '杭州默认定位' };
 const NEARBY_TALENT_QUERY = { ...DEFAULT_USER_LOCATION, radius: 5000, limit: 100 };
@@ -315,8 +283,8 @@ function useNearbyTalentQuery() {
 }
 
 function getServicesByCategory(cat: string | null): ServiceItem[] {
-  if (!cat) return MOCK_SERVICES;
-  return MOCK_SERVICES.filter(s => s.category === cat);
+  if (!cat) return FALLBACK_SERVICES;
+  return FALLBACK_SERVICES.filter(s => s.category === cat);
 }
 
 function getCategoryConfig(cat: string | null) {
@@ -386,19 +354,18 @@ function adaptApiService(raw: any): ServiceItem {
     '影院陪伴': 'cinema',
   };
   const category = categoryMap[Number(raw.category_id)] || categoryNameMap[raw.category?.name] || 'leisure';
-  const mock = MOCK_SERVICES.find(s => s.id === Number(raw.id)) || MOCK_SERVICES.find(s => s.category === category);
-  const icon = normalizeServiceIcon(raw.cover_image || raw.category?.icon, mock?.icon || '✨');
+  const icon = normalizeServiceIcon(raw.cover_image || raw.category?.icon, CATEGORIES.find(c => c.key === category)?.icon || '✨');
   return {
     id: Number(raw.id),
-    name: raw.name || mock?.name || '',
+    name: raw.name || '',
     category,
-    price: Number(raw.base_price ?? raw.price ?? mock?.price ?? 0),
-    originalPrice: Number(raw.original_price ?? raw.originalPrice ?? mock?.originalPrice ?? 0) || undefined,
+    price: Number(raw.base_price ?? raw.price ?? 0),
+    originalPrice: Number(raw.original_price ?? raw.originalPrice ?? 0) || undefined,
     icon,
-    desc: raw.description || raw.desc || mock?.desc || '',
-    tags: Array.isArray(raw.tags) ? raw.tags : (mock?.tags || []),
-    duration: raw.duration || mock?.duration || '1小时',
-    rating: Number(raw.rating || mock?.rating || 4.8),
+    desc: raw.description || raw.desc || '',
+    tags: Array.isArray(raw.tags) ? raw.tags : [],
+    duration: raw.duration || '',
+    rating: Number(raw.rating || 0),
     orderCount: Number(raw.order_count || raw.orderCount || 0),
   };
 }
@@ -420,8 +387,16 @@ interface TalentItem {
   serviceCity?: string;
   currentLat?: number;
   currentLng?: number;
+  createdAt?: string;
   tags: string[];
   intro: string;
+}
+
+function isNewTalent(talent: Pick<TalentItem, 'createdAt'>) {
+  if (!talent.createdAt) return false;
+  const created = new Date(talent.createdAt).getTime();
+  if (!Number.isFinite(created)) return false;
+  return Date.now() - created <= 30 * 24 * 60 * 60 * 1000;
 }
 
 /** 将 API 返回的达人数据转换为前端 TalentItem 格式 */
@@ -444,6 +419,7 @@ function adaptApiTalent(raw: any): TalentItem {
     serviceCity: raw.service_city || raw.city || '',
     currentLat: Number(raw.current_lat || raw.lat || 0),
     currentLng: Number(raw.current_lng || raw.lng || 0),
+    createdAt: raw.created_at || raw.createdAt || '',
     tags,
     intro: raw.introduction || raw.intro || '',
   };
@@ -665,18 +641,13 @@ interface BannerData {
   theme_color: string;
 }
 
-const MOCK_BANNERS: BannerData[] = [
-  { id: 1, title: '首单立减50元', subtitle: '休闲·娱乐·按摩·影院', image_url: '', link_url: '/invite', icon: '🎁', theme_color: 'linear-gradient(135deg, #FF6B9D 0%, #C44DFF 100%)' },
-  { id: 2, title: '新人大礼包', subtitle: '注册即送188元券包', image_url: '', link_url: '/coupons', icon: '🧧', theme_color: 'linear-gradient(135deg, #7C5CFC 0%, #6366F1 100%)' },
-  { id: 3, title: '真人认证', subtitle: '100%真人·不满意可退款', image_url: '', link_url: '/about', icon: '🛡️', theme_color: 'linear-gradient(135deg, #34D399 0%, #06B6D4 100%)' },
-  { id: 4, title: '限时特惠', subtitle: '休闲约会只要88元起', image_url: '', link_url: '/services?sort=price_asc', icon: '🔥', theme_color: 'linear-gradient(135deg, #F59E0B 0%, #F97316 100%)' },
-];
-
 function BannerCarousel({ banners: inputBanners }: { banners?: BannerData[] }) {
   const [current, setCurrent] = useState(0);
   const [paused, setPaused] = useState(false);
-  const banners: BannerData[] = (inputBanners && inputBanners.length > 0 ? inputBanners : MOCK_BANNERS);
+  const banners: BannerData[] = inputBanners || [];
   const nav = useNavigate();
+
+  if (banners.length === 0) return null;
 
   useEffect(() => {
     if (paused) return;
@@ -1251,8 +1222,8 @@ function HomePage() {
           {/* 推荐服务卡片 - 横向滑动 */}
           <div style={{ display: 'flex', gap: 14, overflowX: 'auto', paddingBottom: 8, scrollbarWidth: 'none' }}
             onWheel={(e) => { if (e.deltaY !== 0) { (e.currentTarget as HTMLElement).scrollLeft += e.deltaY; e.preventDefault(); } }}>
-            {(Array.isArray(services) ? services : MOCK_SERVICES).slice(0, 4).map((s: any, i: number) => {
-              const svc = s.id ? s : MOCK_SERVICES[i];
+            {(Array.isArray(services) ? services : FALLBACK_SERVICES).slice(0, 4).map((s: any, i: number) => {
+              const svc = s.id ? s : FALLBACK_SERVICES[i];
               const hasServiceImage = isImageIcon(svc.icon);
               const themes = [
                 { gradient: 'linear-gradient(160deg, #FF6B9D, #FF8FAB)', light: '#FFF5F7', accent: '#FF6B9D' },
@@ -1941,10 +1912,12 @@ function TalentListSection({ onSelectTalent, onBookTalent }: {
   const apiTalentsRaw = Array.isArray((talentsData as any)?.data) ? (talentsData as any).data : ((talentsData as any)?.data?.list || []);
   const allTalents = apiTalentsRaw.map(adaptApiTalent);
   const apiServices = ((servicesData as any)?.data?.list || []).map(adaptApiService);
-  const serviceList: ServiceItem[] = apiServices.length > 0 ? apiServices : MOCK_SERVICES;
+  const serviceList: ServiceItem[] = apiServices.length > 0 ? apiServices : FALLBACK_SERVICES;
   const [sortBy, setSortBy] = useState<'rating' | 'distance' | 'orders'>('distance');
 
   const sorted = [...allTalents].sort((a, b) => {
+    const newDiff = Number(isNewTalent(b)) - Number(isNewTalent(a));
+    if (newDiff !== 0) return newDiff;
     if (sortBy === 'rating') return b.rating - a.rating;
     if (sortBy === 'distance') return a.distance - b.distance;
     return b.orderCount - a.orderCount;
@@ -1994,6 +1967,7 @@ function TalentListSection({ onSelectTalent, onBookTalent }: {
       <div style={{ padding: '14px 16px', paddingBottom: 100 }}>
         {sorted.map((t, idx) => {
           const theme = getTalentTheme(idx);
+          const newTalent = isNewTalent(t);
           const svcNames = t.serviceIds.slice(0, 4).map(sid => serviceList.find(s => s.id === sid)?.name).filter(Boolean) as string[];
           const displayTags = [
             ...t.tags.filter(tag => !/^\d+$/.test(String(tag))),
@@ -2030,6 +2004,16 @@ function TalentListSection({ onSelectTalent, onBookTalent }: {
                 <div style={{ position: 'absolute', bottom: -8, right: -8, width: 34, height: 34, borderRadius: '50%', background: `${theme.accent}08`, pointerEvents: 'none' }} />
                 {/* 高光线 */}
                 <div style={{ position: 'absolute', left: 3, top: 20, width: 3, height: 44, borderRadius: 4, background: 'rgba(255,255,255,0.45)', pointerEvents: 'none' }} />
+                {newTalent && (
+                  <div style={{
+                    position: 'absolute', top: 10, left: 10, zIndex: 3,
+                    padding: '4px 10px', borderRadius: 999,
+                    background: 'linear-gradient(135deg, #FDE68A 0%, #F59E0B 46%, #B45309 100%)',
+                    color: '#fff', fontSize: 10, fontWeight: 900, letterSpacing: 0.8,
+                    boxShadow: '0 6px 16px rgba(180,83,9,0.35), inset 0 1px 0 rgba(255,255,255,0.5)',
+                    border: '1px solid rgba(255,255,255,0.7)',
+                  }}>✦ 新人上线</div>
+                )}
 
                 {/* 头像（圆形+边框） */}
                 <div style={{
@@ -2039,7 +2023,7 @@ function TalentListSection({ onSelectTalent, onBookTalent }: {
                   boxShadow: `0 8px 26px ${theme.ring}, 0 0 0 3px ${theme.accent}25`,
                   marginBottom: 10,
                 }}>
-                  <img src={t.avatar} alt={t.name} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover', display: 'block' }} />
+                  <img src={safeAvatarSrc(t.avatar)} alt={t.name} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover', display: 'block' }} />
                 </div>
 
                 {/* 世代标签 */}
@@ -2062,6 +2046,12 @@ function TalentListSection({ onSelectTalent, onBookTalent }: {
                   {/* 名字行 */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                     <span style={{ fontWeight: 800, fontSize: 17, color: '#222', letterSpacing: 0.3 }}>{t.name}</span>
+                    {newTalent && <span style={{
+                      padding: '2px 7px', borderRadius: 999,
+                      background: 'linear-gradient(135deg,#FEF3C7,#FCD34D)',
+                      color: '#92400E', fontSize: 10, fontWeight: 900,
+                      border: '1px solid #FBBF24',
+                    }}>新人上线</span>}
                     <span style={{ fontSize: 11.5, color: '#999' }}>{t.age}岁 · {t.gender}</span>
                   </div>
 
@@ -2259,11 +2249,11 @@ function ServiceDetailPage() {
   const { data: serviceCatsData } = useQuery({ queryKey: ['service-categories-for-detail'], queryFn: () => serviceApi.listCategories() });
   const { data: talentsData } = useQuery({ queryKey: ['talents-nearby', nearbyQuery.lat, nearbyQuery.lng], queryFn: () => talentApi.nearby(nearbyQuery) });
 
-  // 优先 API 数据，无则查 mock
+  // 优先 API 数据，无则显示空状态
   const apiSvc = (data as any)?.data;
   const apiCategories = Array.isArray((serviceCatsData as any)?.data) ? (serviceCatsData as any).data : [];
   const apiCategory = apiSvc?.category || apiCategories.find((cat: any) => Number(cat.id) === Number(apiSvc?.category_id));
-  const mockSvc = MOCK_SERVICES.find(s => s.id === id);
+  const mockSvc = FALLBACK_SERVICES.find(s => s.id === id);
   const svc = apiSvc && Object.keys(apiSvc).length > 0 ? adaptApiService({ ...apiSvc, category: apiCategory }) : mockSvc;
   const cCfg = svc ? getCategoryConfig((svc as any).category) : null;
 
@@ -2496,7 +2486,7 @@ function ServiceDetailPage() {
               </div>
               {availableTalents.map(t => {
                 const talentCfg = CATEGORIES.find(c => t.serviceIds.some(sid => {
-                  const sv = MOCK_SERVICES.find(s => s.id === sid);
+                  const sv = FALLBACK_SERVICES.find(s => s.id === sid);
                   return sv?.category === c.key;
                 }));
                 const isSelected = selectedTalent?.id === t.id;
@@ -2644,7 +2634,7 @@ function TalentFeedPage() {
   const apiTalentsRaw = Array.isArray((talentsData as any)?.data) ? (talentsData as any).data : ((talentsData as any)?.data?.list || []);
   const allTalents = apiTalentsRaw.map(adaptApiTalent);
   const apiServices = ((servicesData as any)?.data?.list || []).map(adaptApiService);
-  const serviceList: ServiceItem[] = apiServices.length > 0 ? apiServices : MOCK_SERVICES;
+  const serviceList: ServiceItem[] = apiServices.length > 0 ? apiServices : FALLBACK_SERVICES;
 
   // 双列分配
   const leftCol = allTalents.filter((_, i) => i % 2 === 0);
@@ -3699,7 +3689,7 @@ function TalentStandalonePage() {
       {detailTalentId !== null && (() => {
         const talent = allTalentsForPage.find(t => t.id === detailTalentId);
         if (!talent) return null;
-        const talentServices = MOCK_SERVICES.filter(s => talent.serviceIds.includes(s.id));
+        const talentServices = FALLBACK_SERVICES.filter(s => talent.serviceIds.includes(s.id));
         return <TalentDetailDrawer talent={talent} services={talentServices} onClose={() => setDetailTalentId(null)} onBook={(svcId) => { setDetailTalentId(null); nav(`/service-detail?id=${svcId}&talentId=${talent.id}`); }} />;
       })()}
     </div>

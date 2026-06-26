@@ -6,14 +6,6 @@ import { Plus, Pencil, Trash2, Image, Eye, EyeOff, GripVertical, Save, X, Loader
 import { marketingApi, BannerItem } from '@/api/marketing';
 import { safePrepareUpload, UPLOAD_LIMITS, type UploadType } from '@/lib/utils';
 
-/* ---- Mock 默认数据（后端API未就绪时使用） ---- */
-const MOCK_BANNERS: BannerItem[] = [
-  { id: 1, title: '首单立减50元', subtitle: '休闲·娱乐·按摩·影院', image_url: '', link_url: '', sort: 1, status: 1, theme_color: 'linear-gradient(135deg, #FF6B9D 0%, #C44DFF 100%)', icon: '🎁' },
-  { id: 2, title: '新人大礼包', subtitle: '注册即送188元券包', image_url: '', link_url: '', sort: 2, status: 1, theme_color: 'linear-gradient(135deg, #7C5CFC 0%, #6366F1 100%)', icon: '🧧' },
-  { id: 3, title: '真人认证', subtitle: '100%真人·不满意可退款', image_url: '', link_url: '', sort: 3, status: 1, theme_color: 'linear-gradient(135deg, #34D399 0%, #06B6D4 100%)', icon: '🛡️' },
-  { id: 4, title: '限时特惠', subtitle: '休闲约会只要88元起', image_url: '', link_url: '', sort: 4, status: 1, theme_color: 'linear-gradient(135deg, #F59E0B 0%, #F97316 100%)', icon: '🔥' },
-];
-
 const defaultBanner = (): Partial<BannerItem> => ({
   title: '', subtitle: '', image_url: '', link_url: '',
   sort: 99, status: 1, theme_color: 'linear-gradient(135deg, #7C5CFC 0%, #A78BFA 100%)', icon: '🎬',

@@ -1,24 +1,10 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { AdminLayout } from '@/components/layout/AdminLayout';
 import { Search, UserPlus, Crown, Loader2, X, Edit3, Trash2, Check, AlertTriangle } from 'lucide-react';
 import { userApi } from '@/api/users';
 import type { UserCreateParams } from '@/api/users';
-
-// Mock 用户数据 — 始终作为本地数据源，后端可用时同步
-const INITIAL_MOCK_USERS: any[] = [
-  { id: 1, nickname: '张小明', phone: '13800001001', gender: 1, avatar: '', city: '深圳', member_level: 3, status: 1, created_at: '2025-12-01T10:30:00', last_login_at: '2026-06-24T09:15:00' },
-  { id: 2, nickname: '李婷婷', phone: '13800001002', gender: 0, avatar: '', city: '广州', member_level: 2, status: 1, created_at: '2026-01-05T14:20:00', last_login_at: '2026-06-23T18:30:00' },
-  { id: 3, nickname: '王大伟', phone: '13800001003', gender: 1, avatar: '', city: '北京', member_level: 1, status: 1, created_at: '2026-02-10T09:00:00', last_login_at: '2026-06-22T20:45:00' },
-  { id: 4, nickname: '赵雅琪', phone: '13800001004', gender: 0, avatar: '', city: '上海', member_level: 3, status: 1, created_at: '2025-11-20T16:45:00', last_login_at: '2026-06-24T11:00:00' },
-  { id: 5, nickname: '陈大鹏', phone: '13800001005', gender: 1, avatar: '', city: '杭州', member_level: 0, status: 1, created_at: '2026-03-15T12:10:00', last_login_at: '2026-06-20T08:30:00' },
-  { id: 6, nickname: '刘芳芳', phone: '13800001006', gender: 0, avatar: '', city: '成都', member_level: 2, status: 1, created_at: '2026-04-01T10:00:00', last_login_at: '2026-06-24T07:50:00' },
-  { id: 7, nickname: '周建国', phone: '13800001007', gender: 1, avatar: '', city: '重庆', member_level: 0, status: 0, created_at: '2026-02-28T11:30:00', last_login_at: '2026-05-15T16:20:00' },
-  { id: 8, nickname: '吴小美', phone: '13800001008', gender: 0, avatar: '', city: '武汉', member_level: 1, status: 1, created_at: '2026-05-10T08:15:00', last_login_at: '2026-06-23T22:10:00' },
-  { id: 9, nickname: '郑文博', phone: '13800001009', gender: 1, avatar: '', city: '南京', member_level: 0, status: 1, created_at: '2026-06-01T14:00:00', last_login_at: '2026-06-24T06:30:00' },
-  { id: 10, nickname: '何雨萱', phone: '13800001010', gender: 0, avatar: '', city: '苏州', member_level: 2, status: 1, created_at: '2026-03-20T09:45:00', last_login_at: '2026-06-21T19:00:00' },
-];
 
 const levelMap: Record<number, string> = {
   0: '普通会员', 1: '白银会员', 2: '黄金会员', 3: '钻石会员',
@@ -40,11 +26,6 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const pageSize = 20;
 
-  // 用 useRef 保证 mock 数据在组件生命周期内持久化，不被 HMR 重置
-  const mockUsersRef = useRef<any[]>([...INITIAL_MOCK_USERS.map(u => ({ ...u }))]);
-  const mockIdSeqRef = useRef(100);
-  const useMockRef = useRef(true); // 始终优先本地 mock
-
   // Modal states
   const [showCreate, setShowCreate] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
@@ -55,24 +36,8 @@ export default function UsersPage() {
   const emptyForm = { phone: '', nickname: '', password: '', gender: 1, avatar: '', city: '', member_level: 0 };
   const [form, setForm] = useState({ ...emptyForm });
 
-  // 局部筛选 + 分页
-  const applyLocalFilter = useCallback(() => {
-    let filtered = [...mockUsersRef.current];
-    if (keyword) {
-      const kw = keyword.toLowerCase();
-      filtered = filtered.filter(u => u.nickname?.toLowerCase().includes(kw) || u.phone?.includes(kw));
-    }
-    if (statusFilter) filtered = filtered.filter(u => String(u.status) === statusFilter);
-    if (levelFilter) filtered = filtered.filter(u => String(u.member_level) === levelFilter);
-    setTotal(filtered.length);
-    const start = (page - 1) * pageSize;
-    setUsers(filtered.slice(start, start + pageSize));
-    setLoading(false);
-  }, [keyword, statusFilter, levelFilter, page, pageSize]);
-
   const fetchUsers = useCallback(async () => {
     setLoading(true);
-    // 先尝试后端 API
     try {
       const params: any = { page, page_size: pageSize };
       if (keyword) params.keyword = keyword;
@@ -80,59 +45,32 @@ export default function UsersPage() {
       if (levelFilter) params.level = levelFilter;
       const res: any = await userApi.list(params);
       const list = res?.data?.list;
-      if (Array.isArray(list) && list.length > 0) {
-        // 后端有真实数据，切换到 API 模式
-        useMockRef.current = false;
-        setUsers(list);
-        setTotal(res?.data?.total || list.length);
-        setLoading(false);
-        return;
-      }
+      setUsers(Array.isArray(list) ? list : []);
+      setTotal(res?.data?.total || 0);
     } catch {
-      // 后端不可用
+      setUsers([]);
+      setTotal(0);
+    } finally {
+      setLoading(false);
     }
-    // 降级：使用本地 mock
-    useMockRef.current = true;
-    applyLocalFilter();
-  }, [page, keyword, statusFilter, levelFilter, pageSize, applyLocalFilter]);
+  }, [page, keyword, statusFilter, levelFilter, pageSize]);
 
   useEffect(() => { setPage(1); }, [keyword, statusFilter, levelFilter]);
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
 
   const totalPages = Math.ceil(total / pageSize);
 
-  // Create user — 总是先尝试真实 API，失败再降级本地 mock
+  // Create user
   const handleCreate = async () => {
     if (!form.phone || !form.nickname || !form.password) return;
     setSubmitting(true);
     try {
-      // 优先尝试真实 API
       await userApi.create(form);
       setShowCreate(false);
       setForm({ ...emptyForm });
-      fetchUsers(); // 重新从 API 拉取
-      return;
+      fetchUsers();
     } catch (apiErr: any) {
-      console.warn('API 创建用户失败，降级到本地模拟:', apiErr?.message || apiErr);
-    }
-    // 降级：本地 mock
-    try {
-      const newUser = {
-        id: ++mockIdSeqRef.current,
-        nickname: form.nickname,
-        phone: form.phone,
-        gender: form.gender,
-        avatar: form.avatar,
-        city: form.city,
-        member_level: form.member_level,
-        status: 1,
-        created_at: new Date().toISOString(),
-        last_login_at: null,
-      };
-      mockUsersRef.current.unshift(newUser);
-      setShowCreate(false);
-      setForm({ ...emptyForm });
-      applyLocalFilter();
+      alert(apiErr?.message || '创建用户失败');
     } finally {
       setSubmitting(false);
     }
@@ -157,7 +95,6 @@ export default function UsersPage() {
     if (!editingUser || !form.nickname || !form.phone) return;
     setSubmitting(true);
     try {
-      // 优先尝试真实 API
       const data: any = { phone: form.phone, nickname: form.nickname, gender: form.gender, avatar: form.avatar, city: form.city, member_level: form.member_level };
       if (form.password) data.password = form.password;
       await userApi.update(editingUser.id, data);
@@ -165,34 +102,14 @@ export default function UsersPage() {
       setEditingUser(null);
       setForm({ ...emptyForm });
       fetchUsers();
-      return;
     } catch (apiErr: any) {
-      console.warn('API 编辑用户失败，降级到本地模拟:', apiErr?.message || apiErr);
-    }
-    // 降级：本地 mock
-    try {
-      const idx = mockUsersRef.current.findIndex(u => u.id === editingUser.id);
-      if (idx !== -1) {
-        mockUsersRef.current[idx] = {
-          ...mockUsersRef.current[idx],
-          nickname: form.nickname,
-          phone: form.phone,
-          gender: form.gender,
-          avatar: form.avatar,
-          city: form.city,
-          member_level: form.member_level,
-        };
-      }
-      setShowEdit(false);
-      setEditingUser(null);
-      setForm({ ...emptyForm });
-      applyLocalFilter();
+      alert(apiErr?.message || '编辑用户失败');
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Toggle status — 先尝试 API，失败降级本地
+  // Toggle status
   const toggleStatus = async (u: any) => {
     try {
       if (u.status === 1) {
@@ -202,17 +119,11 @@ export default function UsersPage() {
       }
       fetchUsers();
     } catch (apiErr: any) {
-      console.warn('API 操作失败，降级到本地模拟:', apiErr?.message || apiErr);
-      // 降级：本地 mock
-      const idx = mockUsersRef.current.findIndex(x => x.id === u.id);
-      if (idx !== -1) {
-        mockUsersRef.current[idx].status = mockUsersRef.current[idx].status === 1 ? 0 : 1;
-      }
-      applyLocalFilter();
+      alert(apiErr?.message || '操作失败');
     }
   };
 
-  // Delete user — 先尝试 API，失败降级本地
+  // Delete user
   const handleDelete = async () => {
     if (!deleteConfirm) return;
     setSubmitting(true);
@@ -220,15 +131,8 @@ export default function UsersPage() {
       await userApi.delete(deleteConfirm);
       setDeleteConfirm(null);
       fetchUsers();
-      return;
     } catch (apiErr: any) {
-      console.warn('API 删除用户失败，降级到本地模拟:', apiErr?.message || apiErr);
-    }
-    // 降级：本地 mock
-    try {
-      mockUsersRef.current = mockUsersRef.current.filter(u => u.id !== deleteConfirm);
-      setDeleteConfirm(null);
-      applyLocalFilter();
+      alert(apiErr?.message || '删除用户失败');
     } finally {
       setSubmitting(false);
     }
@@ -238,7 +142,7 @@ export default function UsersPage() {
     <AdminLayout>
       <div className="page-header">
         <div>
-          <h1 className="page-title">用户管理<span className="ml-2 inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-600">演示数据</span></h1>
+          <h1 className="page-title">用户管理</h1>
           <p className="mt-1 text-sm text-gray-400">共 {total.toLocaleString()} 位注册用户</p>
         </div>
         <button

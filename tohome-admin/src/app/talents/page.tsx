@@ -3,34 +3,10 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { AdminLayout } from '@/components/layout/AdminLayout';
-import { Search, Plus, Star, MapPin, Phone, Loader2, WifiOff, X, Edit3, Trash2, Check, Upload, Camera, ImageIcon, AlertCircle } from 'lucide-react';
+import { Search, Plus, Star, MapPin, Phone, Loader2, X, Edit3, Trash2, Check, Upload, Camera, ImageIcon, AlertCircle } from 'lucide-react';
 import { talentApi } from '@/api/talents';
 import { serviceApi, ServiceCategory, ServiceItem } from '@/api/services';
 import { safePrepareUpload, UPLOAD_LIMITS } from '@/lib/utils';
-
-/* ========== Mock 真人达人数据（20位） ========== */
-const MOCK_TALENTS: any[] = [
-  { id: 1001, real_name: '林悦儿', phone: '13800101001', gender: 0, birthday: '1998-03-15', avatar: 'https://randomuser.me/api/portraits/women/1.jpg', skills: '["中式按摩","精油SPA","肩颈理疗"]', service_city: '北京', service_districts: '["朝阳区","海淀区"]', rating: 4.9, service_count: 1256, total_income: 286400, positive_rate: 0.98, work_status: 1, introduction: '8年按摩经验，擅长中式推拿与精油SPA，手法细腻温柔', age_range: '95后' },
-  { id: 1002, real_name: '苏婉清', phone: '13800101002', gender: 0, birthday: '1996-08-22', avatar: 'https://randomuser.me/api/portraits/women/2.jpg', skills: '["泰式按摩","经络疏通","足疗"]', service_city: '上海', service_districts: '["浦东新区","黄浦区"]', rating: 4.8, service_count: 1023, total_income: 235600, positive_rate: 0.97, work_status: 1, introduction: '泰国进修归国，正宗泰式按摩传承人，深得客户信赖', age_range: '95后' },
-  { id: 1003, real_name: '赵雨萱', phone: '13800101003', gender: 0, birthday: '2000-01-10', avatar: 'https://randomuser.me/api/portraits/women/3.jpg', skills: '["头部按摩","采耳","推拿"]', service_city: '广州', service_districts: '["天河区","越秀区"]', rating: 4.7, service_count: 687, total_income: 142800, positive_rate: 0.95, work_status: 1, introduction: '00后新生代技师，头部按摩与采耳技艺精湛，深受年轻客户喜爱', age_range: '00后' },
-  { id: 1004, real_name: '陈思琪', phone: '13800101004', gender: 0, birthday: '1993-06-18', avatar: 'https://randomuser.me/api/portraits/women/4.jpg', skills: '["纤体塑形","精油SPA","经络疏通"]', service_city: '深圳', service_districts: '["南山区","福田区"]', rating: 4.9, service_count: 1534, total_income: 358200, positive_rate: 0.99, work_status: 1, introduction: '10年资深技师，纤体塑形领域专家，手法精准到位', age_range: '90后' },
-  { id: 1005, real_name: '王语嫣', phone: '13800101005', gender: 0, birthday: '1999-11-03', avatar: 'https://randomuser.me/api/portraits/women/5.jpg', skills: '["中式按摩","拔罐","刮痧"]', service_city: '杭州', service_districts: '["西湖区","上城区"]', rating: 4.6, service_count: 512, total_income: 98100, positive_rate: 0.93, work_status: 1, introduction: '中医世家出身，精通拔罐刮痧等传统理疗，有独特调理心得', age_range: '95后' },
-  { id: 1006, real_name: '张若曦', phone: '13800101006', gender: 0, birthday: '1992-04-25', avatar: 'https://randomuser.me/api/portraits/women/6.jpg', skills: '["中式按摩","推拿","肩颈理疗","足疗"]', service_city: '成都', service_districts: '["锦江区","武侯区"]', rating: 4.8, service_count: 1820, total_income: 425000, positive_rate: 0.98, work_status: 1, introduction: '成都本地知名技师，手法专业服务周到，常年排名前三', age_range: '90后' },
-  { id: 1007, real_name: '刘思涵', phone: '13800101007', gender: 0, birthday: '1997-09-12', avatar: 'https://randomuser.me/api/portraits/women/7.jpg', skills: '["精油SPA","泰式按摩","头部按摩"]', service_city: '重庆', service_districts: '["渝中区","江北区"]', rating: 4.7, service_count: 768, total_income: 163500, positive_rate: 0.96, work_status: 1, introduction: '温柔细腻的SPA手法，让每位客户感受极致的放松体验', age_range: '95后' },
-  { id: 1008, real_name: '黄诗雨', phone: '13800101008', gender: 0, birthday: '1995-12-08', avatar: 'https://randomuser.me/api/portraits/women/8.jpg', skills: '["经络疏通","纤体塑形","中式按摩"]', service_city: '武汉', service_districts: '["武昌区","汉口区"]', rating: 4.8, service_count: 945, total_income: 212800, positive_rate: 0.97, work_status: 2, introduction: '擅长经络疏通与纤体塑形，手法专业，服务耐心细致', age_range: '95后' },
-  { id: 1009, real_name: '杨梦瑶', phone: '13800101009', gender: 0, birthday: '1994-02-20', avatar: 'https://randomuser.me/api/portraits/women/9.jpg', skills: '["足疗","推拿","刮痧","拔罐"]', service_city: '南京', service_districts: '["玄武区","鼓楼区"]', rating: 4.6, service_count: 598, total_income: 120400, positive_rate: 0.94, work_status: 1, introduction: '足疗专业出身，精通足底穴位，擅长结合推拿进行全身调理', age_range: '90后' },
-  { id: 1010, real_name: '周雪莹', phone: '13800101010', gender: 0, birthday: '1991-07-30', avatar: 'https://randomuser.me/api/portraits/women/10.jpg', skills: '["中式按摩","精油SPA","肩颈理疗","采耳"]', service_city: '北京', service_districts: '["东城区","西城区"]', rating: 4.9, service_count: 2100, total_income: 528000, positive_rate: 0.99, work_status: 1, introduction: '12年从业经验，北京区域王牌技师，客户满意度常年第一', age_range: '90后' },
-  { id: 1011, real_name: '吴佳怡', phone: '13800101011', gender: 0, birthday: '1998-05-17', avatar: 'https://randomuser.me/api/portraits/women/11.jpg', skills: '["头部按摩","采耳","肩颈理疗"]', service_city: '西安', service_districts: '["雁塔区","碑林区"]', rating: 4.5, service_count: 389, total_income: 76400, positive_rate: 0.92, work_status: 1, introduction: '头部按摩与采耳专精，手法轻柔让人瞬间入眠', age_range: '95后' },
-  { id: 1012, real_name: '郑欣怡', phone: '13800101012', gender: 0, birthday: '1996-10-28', avatar: 'https://randomuser.me/api/portraits/women/12.jpg', skills: '["泰式按摩","经络疏通","推拿"]', service_city: '长沙', service_districts: '["芙蓉区","岳麓区"]', rating: 4.7, service_count: 654, total_income: 138900, positive_rate: 0.96, work_status: 1, introduction: '泰式按摩达人，力度适中节奏流畅，让客户流连忘返', age_range: '95后' },
-  { id: 1013, real_name: '孙曼妮', phone: '13800101013', gender: 0, birthday: '2001-08-05', avatar: 'https://randomuser.me/api/portraits/women/13.jpg', skills: '["中式按摩","足疗","精油SPA"]', service_city: '郑州', service_districts: '["金水区","郑东新区"]', rating: 4.4, service_count: 267, total_income: 51200, positive_rate: 0.90, work_status: 1, introduction: '00后新生代技师，年轻有活力，手法正统基础扎实', age_range: '00后' },
-  { id: 1014, real_name: '李筱雅', phone: '13800101014', gender: 0, birthday: '1993-01-14', avatar: 'https://randomuser.me/api/portraits/women/14.jpg', skills: '["纤体塑形","精油SPA","经络疏通","中式按摩"]', service_city: '苏州', service_districts: '["姑苏区","工业园区"]', rating: 4.9, service_count: 1678, total_income: 396500, positive_rate: 0.98, work_status: 1, introduction: '苏州区域明星技师，纤体塑形技术一流，客户口碑极佳', age_range: '90后' },
-  { id: 1015, real_name: '钱若琳', phone: '13800101015', gender: 0, birthday: '1999-04-09', avatar: 'https://randomuser.me/api/portraits/women/15.jpg', skills: '["刮痧","拔罐","肩颈理疗","推拿"]', service_city: '天津', service_districts: '["和平区","河西区"]', rating: 4.6, service_count: 432, total_income: 87500, positive_rate: 0.94, work_status: 2, introduction: '中医理疗专业，刮痧拔罐手法正宗，调理效果显著', age_range: '95后' },
-  { id: 1016, real_name: '何思韵', phone: '13800101016', gender: 0, birthday: '1997-06-22', avatar: 'https://randomuser.me/api/portraits/women/16.jpg', skills: '["中式按摩","足疗","头部按摩"]', service_city: '东莞', service_districts: '["东城区","南城区"]', rating: 4.5, service_count: 543, total_income: 104200, positive_rate: 0.93, work_status: 1, introduction: '技术扎实服务用心，中式按摩配合足疗深受本地客户欢迎', age_range: '95后' },
-  { id: 1017, real_name: '唐诗涵', phone: '13800101017', gender: 0, birthday: '1992-09-15', avatar: 'https://randomuser.me/api/portraits/women/17.jpg', skills: '["精油SPA","泰式按摩","纤体塑形"]', service_city: '上海', service_districts: '["静安区","徐汇区"]', rating: 4.8, service_count: 1432, total_income: 338700, positive_rate: 0.97, work_status: 1, introduction: 'SPA领域资深专家，精油按摩技艺高超，高端客户指定技师', age_range: '90后' },
-  { id: 1018, real_name: '马晓菲', phone: '13800101018', gender: 0, birthday: '2002-02-28', avatar: 'https://randomuser.me/api/portraits/women/18.jpg', skills: '["采耳","头部按摩","肩颈理疗"]', service_city: '佛山', service_districts: '["禅城区","南海区"]', rating: 4.3, service_count: 198, total_income: 35600, positive_rate: 0.88, work_status: 1, introduction: '最年轻的技师之一，采耳与头部按摩专长，手法温柔细腻', age_range: '00后' },
-  { id: 1019, real_name: '方雅婷', phone: '13800101019', gender: 0, birthday: '1995-11-20', avatar: 'https://randomuser.me/api/portraits/women/19.jpg', skills: '["中式按摩","经络疏通","精油SPA","拔罐"]', service_city: '广州', service_districts: '["海珠区","番禺区"]', rating: 4.7, service_count: 876, total_income: 192400, positive_rate: 0.96, work_status: 1, introduction: '全能型技师，中式、经络、精油SPA样样精通', age_range: '95后' },
-  { id: 1020, real_name: '韩冰洁', phone: '13800101020', gender: 0, birthday: '1990-05-08', avatar: 'https://randomuser.me/api/portraits/women/20.jpg', skills: '["中式按摩","推拿","肩颈理疗","足疗","刮痧"]', service_city: '深圳', service_districts: '["罗湖区","龙华区"]', rating: 4.9, service_count: 2380, total_income: 586000, positive_rate: 0.99, work_status: 1, introduction: '15年经验金牌技师，深圳区域TOP1，全能型专家，客户满意度100%', age_range: '90后' },
-];
 
 const workStatusLabel: Record<number, string> = { 0: '离线', 1: '在线', 2: '休息' };
 const workStatusDot: Record<number, string> = { 0: 'bg-gray-400', 1: 'bg-[#10B981]', 2: 'bg-[#FF9800]' };
@@ -76,6 +52,12 @@ function getLevel(count: number): { label: string; color: string } {
   return { label: '初级', color: 'bg-gray-100 text-gray-600' };
 }
 
+function formatPositiveRate(value: number) {
+  const n = Number(value || 0);
+  const percent = n > 1 ? n : n * 100;
+  return `${Math.round(Math.min(percent, 100))}%`;
+}
+
 export default function TechniciansPage() {
   const router = useRouter();
   const [talents, setTalents] = useState<any[]>([]);
@@ -84,7 +66,6 @@ export default function TechniciansPage() {
   const [keyword, setKeyword] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [loading, setLoading] = useState(true);
-  const [isMock, setIsMock] = useState(false);
   const pageSize = 100;
 
   // 编辑弹窗
@@ -125,11 +106,9 @@ export default function TechniciansPage() {
       const list = res?.data?.list || [];
       setTalents(Array.isArray(list) ? list : []);
       setTotal(res?.data?.total || (Array.isArray(list) ? list.length : 0));
-      setIsMock(false);
     } catch {
       setTalents([]);
       setTotal(0);
-      setIsMock(false);
     } finally {
       setLoading(false);
     }
@@ -183,28 +162,11 @@ export default function TechniciansPage() {
       .map(([categoryId, group]) => ({ categoryId, ...group }));
   }, [services, categories]);
 
-  // 关键词/状态筛选：真实接口已在服务端完成筛选，只有 mock 数据需要前端筛选
-  const filteredTalents = useMemo(() => {
-    let result = talents;
-    if (!isMock) return result;
-    if (keyword) {
-      result = result.filter(t =>
-        t.real_name?.includes(keyword) || t.phone?.includes(keyword)
-      );
-    }
-    if (statusFilter) {
-      result = result.filter(t => String(t.work_status) === statusFilter);
-    }
-    return result;
-  }, [talents, keyword, statusFilter]);
+  const filteredTalents = talents;
 
-  const pagedTalents = useMemo(() => {
-    if (!isMock) return filteredTalents;
-    const start = (page - 1) * pageSize;
-    return filteredTalents.slice(start, start + pageSize);
-  }, [filteredTalents, page, isMock]);
+  const pagedTalents = filteredTalents;
 
-  const totalPages = Math.max(1, Math.ceil((isMock ? filteredTalents.length : total) / pageSize));
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   useEffect(() => { setPage(1); }, [keyword, statusFilter]);
   useEffect(() => { fetchTalents(); }, [page, keyword, statusFilter]);
@@ -420,11 +382,6 @@ export default function TechniciansPage() {
           <h1 className="page-title">达人管理</h1>
           <p className="mt-1 text-sm text-gray-400">
             共 {filteredTalents.length.toLocaleString()} 位达人
-            {isMock && (
-              <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs text-amber-600">
-                <WifiOff className="h-3 w-3" /> 演示数据
-              </span>
-            )}
           </p>
         </div>
         <button
@@ -542,7 +499,7 @@ export default function TechniciansPage() {
                   </div>
                   <div>
                     <div className="text-[11px] text-gray-400">好评率</div>
-                    <div className="mt-0.5 text-sm font-semibold text-[#1F2937]">{t.positive_rate ? Math.round(t.positive_rate * 100) : 0}%</div>
+                    <div className="mt-0.5 text-sm font-semibold text-[#1F2937]">{formatPositiveRate(t.positive_rate)}</div>
                   </div>
                 </div>
 

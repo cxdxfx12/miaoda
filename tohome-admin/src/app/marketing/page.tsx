@@ -20,23 +20,6 @@ const statusColor: Record<string, string> = {
   '进行中': 'bg-[#E6F9F0] text-[#10B981]', '已结束': 'bg-gray-100 text-gray-500', '未开始': 'bg-[#E8EBFD] text-[#6B7FD7]',
 };
 
-// --- Mock 数据 ---
-const MOCK_OVERVIEW = { coupon_total: 12, coupon_used: 3856, activity_active: 3 };
-const MOCK_COUPONS: Coupon[] = [
-  { id: 1, name: '新人专享满减券', type: 1, value: 30, min_amount: 200, total_count: 1000, receive_count: 856, start_time: '2026-06-01', end_time: '2026-07-15', status: 1 },
-  { id: 2, name: '夏日优惠8折券', type: 2, value: 8, min_amount: 0, total_count: 500, receive_count: 420, start_time: '2026-06-15', end_time: '2026-08-31', status: 1 },
-  { id: 3, name: '老客回馈50元代金券', type: 3, value: 50, min_amount: 300, total_count: 300, receive_count: 198, start_time: '2026-05-01', end_time: '2026-06-30', status: 1 },
-  { id: 4, name: '端午特惠满减券', type: 1, value: 20, min_amount: 150, total_count: 800, receive_count: 800, start_time: '2026-05-25', end_time: '2026-06-25', status: 2 },
-  { id: 5, name: '会员专属7.5折券', type: 2, value: 7.5, min_amount: 0, total_count: 200, receive_count: 156, start_time: '2026-06-01', end_time: '2026-12-31', status: 1 },
-  { id: 6, name: '春季养生券', type: 3, value: 100, min_amount: 500, total_count: 150, receive_count: 150, start_time: '2026-03-01', end_time: '2026-05-31', status: 2 },
-];
-const MOCK_ACTIVITIES: Activity[] = [
-  { id: 1, name: '618年中大促', type: '满减活动', start_time: '2026-06-15T00:00', end_time: '2026-06-25T23:59', status: 1, order_count: 420, revenue: 126000 },
-  { id: 2, name: '端午安康·按摩礼', type: '折扣活动', start_time: '2026-05-25T00:00', end_time: '2026-06-25T23:59', status: 1, order_count: 680, revenue: 198000 },
-  { id: 3, name: '新人首单立减', type: '新人活动', start_time: '2026-06-01T00:00', end_time: '2026-12-31T23:59', status: 1, order_count: 520, revenue: 156000 },
-  { id: 4, name: '会员日专属折扣', type: '会员活动', start_time: '2026-07-01T00:00', end_time: '2026-07-15T23:59', status: 0, order_count: 0, revenue: 0 },
-];
-
 export default function MarketingPage() {
   const [loading, setLoading] = useState(true);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
