@@ -380,17 +380,24 @@ func (s *UserService) AdminLogin(ctx context.Context, username, password string)
 	}
 	phone := admin.Phone.String
 	token, _ := jwt.GenerateToken(s.jwtCfg.Secret, admin.ID, phone, 3, s.jwtCfg.Expire)
+	roleCode := admin.RoleCode.String
+	if roleCode == "" {
+		roleCode = "super_admin"
+	}
 	return map[string]interface{}{
 		"token": token,
 		"admin": map[string]interface{}{
-			"id":        admin.ID,
-			"username":  admin.Username,
-			"nickname":  admin.Nickname.String,
-			"real_name": admin.Nickname.String,
-			"role":      "admin",
-			"avatar":    admin.Avatar.String,
-			"email":     admin.Email.String,
-			"phone":     phone,
+			"id":          admin.ID,
+			"username":    admin.Username,
+			"nickname":    admin.Nickname.String,
+			"real_name":   admin.Nickname.String,
+			"role":        roleCode,
+			"role_code":   roleCode,
+			"city_name":   admin.CityName.String,
+			"avatar":      admin.Avatar.String,
+			"email":       admin.Email.String,
+			"phone":       phone,
+			"permissions": admin.Permissions,
 		},
 	}, nil
 }
@@ -440,18 +447,25 @@ func (s *UserService) UpdateAdminProfile(ctx context.Context, adminID int64, nic
 }
 
 func (s *UserService) formatAdminProfile(admin *model.Admin) map[string]interface{} {
+	roleCode := admin.RoleCode.String
+	if roleCode == "" {
+		roleCode = "super_admin"
+	}
 	return map[string]interface{}{
-		"id":         admin.ID,
-		"username":   admin.Username,
-		"nickname":   admin.Nickname.String,
-		"real_name":  admin.Nickname.String,
-		"role":       "admin",
-		"avatar":     admin.Avatar.String,
-		"email":      admin.Email.String,
-		"phone":      admin.Phone.String,
-		"status":     admin.Status,
-		"created_at": admin.CreatedAt,
-		"updated_at": admin.UpdatedAt,
+		"id":          admin.ID,
+		"username":    admin.Username,
+		"nickname":    admin.Nickname.String,
+		"real_name":   admin.Nickname.String,
+		"role":        roleCode,
+		"role_code":   roleCode,
+		"city_name":   admin.CityName.String,
+		"avatar":      admin.Avatar.String,
+		"email":       admin.Email.String,
+		"phone":       admin.Phone.String,
+		"permissions": admin.Permissions,
+		"status":      admin.Status,
+		"created_at":  admin.CreatedAt,
+		"updated_at":  admin.UpdatedAt,
 	}
 }
 

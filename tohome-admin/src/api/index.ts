@@ -17,3 +17,5 @@ export { settingsApi } from './settings';
 export { analyticsApi } from './analytics';
 export { serviceApi } from './services';
 export type { ServiceItem, ServiceCategory, ServiceSpec, ServiceListParams } from './services';
+export { mobileAdminApi } from './mobileAdmin';
+export type { MobilePermission } from './mobileAdmin';

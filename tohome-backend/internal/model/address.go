@@ -32,16 +32,16 @@ func (UserAddress) TableName() string {
 
 // Notification 通知消息
 type Notification struct {
-	ID        int64        `db:"id" json:"id"`
-	UserID    int64        `db:"user_id" json:"user_id"`
-	UserType  int          `db:"user_type" json:"user_type"`
-	Type      string       `db:"type" json:"type"`
-	Title     string       `db:"title" json:"title"`
-	Content   *string      `db:"content" json:"content"`
-	Data      JSON         `db:"data" json:"data"`
-	IsRead    int          `db:"is_read" json:"is_read"`
-	ReadAt    *time.Time   `db:"read_at" json:"read_at"`
-	CreatedAt time.Time    `db:"created_at" json:"created_at"`
+	ID        int64      `db:"id" json:"id"`
+	UserID    int64      `db:"user_id" json:"user_id"`
+	UserType  int        `db:"user_type" json:"user_type"`
+	Type      string     `db:"type" json:"type"`
+	Title     string     `db:"title" json:"title"`
+	Content   *string    `db:"content" json:"content"`
+	Data      JSON       `db:"data" json:"data"`
+	IsRead    int        `db:"is_read" json:"is_read"`
+	ReadAt    *time.Time `db:"read_at" json:"read_at"`
+	CreatedAt time.Time  `db:"created_at" json:"created_at"`
 }
 
 // TableName 表名
@@ -59,6 +59,9 @@ type Admin struct {
 	Email        sql.NullString `db:"email" json:"email"`
 	Phone        sql.NullString `db:"phone" json:"phone"`
 	RoleID       *int64         `db:"role_id" json:"role_id"`
+	RoleCode     sql.NullString `db:"role_code" json:"role_code"`
+	CityName     sql.NullString `db:"city_name" json:"city_name"`
+	Permissions  JSON           `db:"permissions" json:"permissions"`
 	Status       int            `db:"status" json:"status"`
 	LastLoginAt  *time.Time     `db:"last_login_at" json:"last_login_at"`
 	LastLoginIP  sql.NullString `db:"last_login_ip" json:"last_login_ip"`

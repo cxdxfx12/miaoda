@@ -258,6 +258,18 @@ func RegisterAdminRoutes(r *gin.Engine, h *handler.AdminHandler, grabH *handler.
 		admin.GET("/dashboard", h.GetDashboard)
 		admin.GET("/stats", h.GetStats)
 
+		mobileAdmin := admin.Group("/mobile")
+		{
+			mobileAdmin.GET("/me", h.AdminMobileMe)
+			mobileAdmin.GET("/overview", h.AdminMobileOverview)
+			mobileAdmin.GET("/orders", h.AdminMobileOrders)
+			mobileAdmin.GET("/talents", h.AdminMobileTalents)
+			mobileAdmin.GET("/users", h.AdminMobileUsers)
+			mobileAdmin.GET("/admins", h.AdminMobileListAdmins)
+			mobileAdmin.POST("/admins", h.AdminMobileCreateAdmin)
+			mobileAdmin.PUT("/admins/:id", h.AdminMobileUpdateAdmin)
+		}
+
 		// 达人管理
 		admin.GET("/talents", h.AdminListTalents)
 		admin.GET("/talents/:id", h.AdminGetTalentDetail)
