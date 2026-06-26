@@ -61,6 +61,7 @@ func main() {
 		{"/api/v1/orders/", fmt.Sprintf("http://%s:%d", cfg.Services.OrderHost, cfg.Services.Order)},
 		{"/api/v1/talents/", fmt.Sprintf("http://%s:%d", cfg.Services.TalentHost, cfg.Services.Talent)},
 		{"/api/v1/payments/", fmt.Sprintf("http://%s:%d", cfg.Services.PaymentHost, cfg.Services.Payment)},
+		{"/api/v1/map/", fmt.Sprintf("http://%s:%d", cfg.Services.UserHost, cfg.Services.User)},
 		{"/api/v1/banners", fmt.Sprintf("http://%s:%d", cfg.Services.UserHost, cfg.Services.User)},
 		{"/api/v1/config/support", fmt.Sprintf("http://%s:%d", cfg.Services.UserHost, cfg.Services.User)},
 		{"/api/v1/config/billing-rules", fmt.Sprintf("http://%s:%d", cfg.Services.UserHost, cfg.Services.User)},

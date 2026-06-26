@@ -56,25 +56,25 @@ type GeoPOI struct {
 
 // DirectionResult 路线规划结果
 type DirectionResult struct {
-	DistanceMeters float64      `json:"distance_meters"`
-	DurationSec    int          `json:"duration_sec"`
-	Polyline       string       `json:"polyline"` // 路线坐标
-	Steps          []RouteStep  `json:"steps"`
+	DistanceMeters float64     `json:"distance_meters"`
+	DurationSec    int         `json:"duration_sec"`
+	Polyline       string      `json:"polyline"` // 路线坐标
+	Steps          []RouteStep `json:"steps"`
 }
 
 // RouteStep 路线步骤
 type RouteStep struct {
-	Instruction    string   `json:"instruction"`
-	DistanceMeters float64  `json:"distance_meters"`
-	DurationSec    int      `json:"duration_sec"`
+	Instruction    string  `json:"instruction"`
+	DistanceMeters float64 `json:"distance_meters"`
+	DurationSec    int     `json:"duration_sec"`
 }
 
 // MapService 地图服务
 type MapService struct {
-	provider  MapProvider
+	provider   MapProvider
 	talentRepo *repository.TalentRepository
-	cache     *sync.Map
-	cacheTTL  time.Duration
+	cache      *sync.Map
+	cacheTTL   time.Duration
 }
 
 // NewMapService 创建地图服务
@@ -86,15 +86,42 @@ func NewMapService(cfg *config.Config, talentRepo *repository.TalentRepository) 
 	}
 
 	// 根据配置选择地图提供商
-	provider := cfg.ThirdParty.AMap.Key // 默认高德
-	if provider != "" {
-		ms.provider = NewAMapProvider(cfg.ThirdParty.AMap.Key, cfg.ThirdParty.AMap.Secret)
+	ctx := context.Background()
+	amapKey := firstNonEmpty(
+		getConfigValue(ctx, "map", "amap_key", ""),
+		getConfigValue(ctx, "map", "amapKey", ""),
+		cfg.ThirdParty.AMap.Key,
+	)
+	amapSecret := firstNonEmpty(
+		getConfigValue(ctx, "map", "amap_secret", ""),
+		getConfigValue(ctx, "map", "amapSecret", ""),
+		cfg.ThirdParty.AMap.Secret,
+	)
+	cacheTTL := firstNonEmpty(
+		getConfigValue(ctx, "map", "cache_ttl", ""),
+		getConfigValue(ctx, "map", "cacheTTL", ""),
+		"",
+	)
+	if ttl, err := time.ParseDuration(cacheTTL + "s"); err == nil && ttl > 0 {
+		ms.cacheTTL = ttl
+	}
+	if amapKey != "" {
+		ms.provider = NewAMapProvider(amapKey, amapSecret)
 	} else {
 		logger.Warn("未配置地图服务Key，使用空实现")
 		ms.provider = &NoopMapProvider{}
 	}
 
 	return ms
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if value != "" {
+			return value
+		}
+	}
+	return ""
 }
 
 // Geocode 地理编码

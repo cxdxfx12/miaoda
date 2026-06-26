@@ -4,6 +4,7 @@ package handler
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -576,13 +577,14 @@ func (h *AdminHandler) AdminGetReviewsOverview(c *gin.Context) {
 // AdminBatchUpdateConfig 批量更新配置（接受 {key: value} map）
 func (h *AdminHandler) AdminBatchUpdateConfig(c *gin.Context) {
 	group := c.Param("group")
-	var req map[string]string
+	var req map[string]interface{}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.ParamError(c, "参数格式错误")
 		return
 	}
 	for key, value := range req {
-		if err := h.userSvc.UpdateSystemConfig(c.Request.Context(), group, key, value); err != nil {
+		strValue := strings.TrimSpace(fmt.Sprint(value))
+		if err := h.userSvc.UpdateSystemConfig(c.Request.Context(), group, key, strValue); err != nil {
 			response.ServerError(c, fmt.Sprintf("更新 %s 失败: %v", key, err))
 			return
 		}
