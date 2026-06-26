@@ -122,7 +122,12 @@ export default function MobileAdminPage() {
   useEffect(() => {
     api.loadToken();
     setTokenReady(true);
-    loadAll();
+    const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : '';
+    if (token) {
+      loadAll();
+    } else {
+      setLoading(false);
+    }
   }, []);
 
   async function loadAll() {
