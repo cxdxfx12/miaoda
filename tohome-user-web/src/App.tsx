@@ -296,6 +296,16 @@ function normalizeServiceIcon(value?: string, fallback = '✨') {
   return icon;
 }
 
+function normalizeTalentTags(values: any[]) {
+  return values
+    .map((value: any) => {
+      const tag = typeof value === 'string' ? value : (value?.name || value?.label || '');
+      return String(tag || '').trim();
+    })
+    .filter((tag) => tag && !/^\d+$/.test(tag))
+    .slice(0, 3);
+}
+
 function renderServiceIcon(value?: string, size = 44) {
   const icon = normalizeServiceIcon(value);
   if (isImageIcon(icon)) {
@@ -380,8 +390,7 @@ interface TalentItem {
 /** 将 API 返回的达人数据转换为前端 TalentItem 格式 */
 function adaptApiTalent(raw: any): TalentItem {
   const skills = Array.isArray(raw.skills) ? raw.skills : [];
-  const tags = Array.isArray(raw.tags) ? raw.tags :
-    skills.length > 0 ? skills.slice(0, 3).map((s: any) => typeof s === 'string' ? s : (s?.name || String(s))) : [];
+  const tags = Array.isArray(raw.tags) ? normalizeTalentTags(raw.tags) : normalizeTalentTags(skills);
   return {
     id: Number(raw.id),
     name: raw.real_name || raw.name || '',
@@ -398,7 +407,7 @@ function adaptApiTalent(raw: any): TalentItem {
     serviceCity: raw.service_city || raw.city || '',
     currentLat: Number(raw.current_lat || raw.lat || 0),
     currentLng: Number(raw.current_lng || raw.lng || 0),
-    tags: tags.slice(0, 3),
+    tags,
     intro: raw.introduction || raw.intro || '',
   };
 }
