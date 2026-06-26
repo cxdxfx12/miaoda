@@ -9,26 +9,11 @@ interface Order { id: number; order_no: string; user_name: string; service_name:
 interface Talent { id: number; real_name: string; avatar: string; rating: number; work_status: number; current_lat?: number; current_lng?: number; }
 interface Stats { pending: number; available: number; dispatching: number; avg_response: number; }
 
-// --- Mock 数据 ---
-const MOCK_STATS: Stats = { pending: 12, available: 28, dispatching: 5, avg_response: 45 };
-const MOCK_PENDING_ORDERS: Order[] = [
-  { id: 1, order_no: 'ORD202606230001', user_name: '张先生', service_name: '中式推拿', service_address: { city: '杭州市', district: '西湖区', detail: '文三路478号' }, status: 1 },
-  { id: 2, order_no: 'ORD202606230002', user_name: '王女士', service_name: '精油SPA', service_address: { city: '杭州市', district: '拱墅区', detail: '莫干山路228号' }, status: 1 },
-  { id: 3, order_no: 'ORD202606230003', user_name: '刘先生', service_name: '足疗按摩', service_address: { city: '杭州市', district: '滨江区', detail: '江南大道1090号' }, status: 1 },
-  { id: 4, order_no: 'ORD202606230004', user_name: '赵女士', service_name: '泰式按摩', service_address: { city: '杭州市', district: '江干区', detail: '新塘路189号' }, status: 1 },
-];
-const MOCK_AVAILABLE_TECHS: Talent[] = [
-  { id: 1, real_name: '李达人', avatar: '李', rating: 4.9, work_status: 1, current_lat: 30.28, current_lng: 120.15 },
-  { id: 2, real_name: '陈达人', avatar: '陈', rating: 4.8, work_status: 1, current_lat: 30.31, current_lng: 120.12 },
-  { id: 3, real_name: '王达人', avatar: '王', rating: 4.7, work_status: 1, current_lat: 30.26, current_lng: 120.18 },
-  { id: 4, real_name: '林达人', avatar: '林', rating: 4.6, work_status: 1, current_lat: 30.30, current_lng: 120.14 },
-];
-
 export default function DispatchPage() {
   const [loading, setLoading] = useState(true);
-  const [pendingOrders, setPendingOrders] = useState<Order[]>(MOCK_PENDING_ORDERS);
-  const [availableTechs, setAvailableTechs] = useState<Talent[]>(MOCK_AVAILABLE_TECHS);
-  const [stats, setStats] = useState<Stats>(MOCK_STATS);
+  const [pendingOrders, setPendingOrders] = useState<Order[]>([]);
+  const [availableTechs, setAvailableTechs] = useState<Talent[]>([]);
+  const [stats, setStats] = useState<Stats>({ pending: 0, available: 0, dispatching: 0, avg_response: 0 });
   const [dispatching, setDispatching] = useState<number | null>(null);
 
   useEffect(() => { loadData(); }, []);
@@ -50,7 +35,11 @@ export default function DispatchPage() {
       const orders = (p as any)?.data?.list ?? [];
       setPendingOrders(Array.isArray(orders) ? orders : []);
       setAvailableTechs([]);
-    } catch { /* backend unavailable, using mock */ }
+    } catch {
+      setStats({ pending: 0, available: 0, dispatching: 0, avg_response: 0 });
+      setPendingOrders([]);
+      setAvailableTechs([]);
+    }
     finally { setLoading(false); }
   }
 

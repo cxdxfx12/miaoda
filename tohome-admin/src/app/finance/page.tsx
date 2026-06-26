@@ -13,35 +13,12 @@ interface TxnItem { id: number; payment_no: string; order_no: string; amount: nu
 type FilterType = 'all' | 'wechat' | 'alipay' | 'balance';
 const typeMap: Record<FilterType, string> = { all: '', wechat: '微信支付', alipay: '支付宝', balance: '余额支付' };
 
-// --- Mock 数据 ---
-const MOCK_OVERVIEW: FinOverview = { month_revenue: 482560, month_orders: 328, talent_income: 312800, platform_income: 169760 };
-const MOCK_TREND: TrendItem[] = [
-  { month: '01月', revenue: 320000, cost: 210000, profit: 110000 },
-  { month: '02月', revenue: 280000, cost: 185000, profit: 95000 },
-  { month: '03月', revenue: 365000, cost: 240000, profit: 125000 },
-  { month: '04月', revenue: 410000, cost: 265000, profit: 145000 },
-  { month: '05月', revenue: 450000, cost: 290000, profit: 160000 },
-  { month: '06月', revenue: 482560, cost: 312800, profit: 169760 },
-];
-const MOCK_TXNS: TxnItem[] = [
-  { id: 1, payment_no: 'PAY202606230001', order_no: 'ORD202606230001', amount: 298, pay_method: '微信支付', status: '成功', created_at: '2026-06-23 14:30' },
-  { id: 2, payment_no: 'PAY202606230002', order_no: 'ORD202606230002', amount: 398, pay_method: '支付宝', status: '成功', created_at: '2026-06-23 13:15' },
-  { id: 3, payment_no: 'PAY202606230003', order_no: 'ORD202606230003', amount: 198, pay_method: '微信支付', status: '成功', created_at: '2026-06-23 11:45' },
-  { id: 4, payment_no: 'PAY202606230004', order_no: 'ORD202606230004', amount: 598, pay_method: '支付宝', status: '处理中', created_at: '2026-06-23 10:20' },
-  { id: 5, payment_no: 'PAY202606220005', order_no: 'ORD202606220005', amount: 268, pay_method: '微信支付', status: '成功', created_at: '2026-06-22 19:00' },
-  { id: 6, payment_no: 'PAY202606220006', order_no: 'ORD202606220006', amount: 358, pay_method: '余额支付', status: '成功', created_at: '2026-06-22 16:30' },
-  { id: 7, payment_no: 'PAY202606220007', order_no: 'ORD202606220007', amount: 498, pay_method: '微信支付', status: '成功', created_at: '2026-06-22 14:10' },
-  { id: 8, payment_no: 'PAY202606210008', order_no: 'ORD202606210008', amount: 328, pay_method: '支付宝', status: '成功', created_at: '2026-06-21 20:45' },
-  { id: 9, payment_no: 'PAY202606210009', order_no: 'ORD202606210009', amount: 198, pay_method: '余额支付', status: '成功', created_at: '2026-06-21 17:30' },
-  { id: 10, payment_no: 'PAY202606200010', order_no: 'ORD202606200010', amount: 588, pay_method: '微信支付', status: '成功', created_at: '2026-06-20 12:00' },
-];
-
 export default function FinancePage() {
   const [loading, setLoading] = useState(true);
-  const [overview, setOverview] = useState<FinOverview>(MOCK_OVERVIEW);
-  const [trendData, setTrendData] = useState<TrendItem[]>(MOCK_TREND);
-  const [transactions, setTransactions] = useState<TxnItem[]>(MOCK_TXNS);
-  const [totalTxns, setTotalTxns] = useState(MOCK_TXNS.length);
+  const [overview, setOverview] = useState<FinOverview>({ month_revenue: 0, month_orders: 0, talent_income: 0, platform_income: 0 });
+  const [trendData, setTrendData] = useState<TrendItem[]>([]);
+  const [transactions, setTransactions] = useState<TxnItem[]>([]);
+  const [totalTxns, setTotalTxns] = useState(0);
   const [page, setPage] = useState(1);
   const [filter, setFilter] = useState<FilterType>('all');
 
@@ -55,18 +32,30 @@ export default function FinancePage() {
         financeApi.getTrend(6),
       ]);
       const ov = (o as any)?.data || {};
-      if (ov.month_revenue) setOverview(ov);
+      setOverview({
+        month_revenue: Number(ov.month_revenue || 0),
+        month_orders: Number(ov.month_orders || 0),
+        talent_income: Number(ov.talent_income || 0),
+        platform_income: Number(ov.platform_income || 0),
+      });
       const td = ((t as any)?.data) || [];
-      if (td.length) setTrendData(td);
-    } catch { /* backend unavailable, using mock */ } finally { setLoading(false); }
+      setTrendData(Array.isArray(td) ? td : []);
+    } catch {
+      setOverview({ month_revenue: 0, month_orders: 0, talent_income: 0, platform_income: 0 });
+      setTrendData([]);
+    } finally { setLoading(false); }
   }
 
   async function loadTransactions() {
     try {
       const res: any = await financeApi.getTransactions({ page, page_size: 10, type: typeMap[filter] });
       const list = res?.data?.list ?? [];
-      if (list.length) { setTransactions(list.slice(0, 10)); setTotalTxns(res?.data?.total || list.length); }
-    } catch { /* backend unavailable, using mock */ }
+      setTransactions(Array.isArray(list) ? list.slice(0, 10) : []);
+      setTotalTxns(res?.data?.total || 0);
+    } catch {
+      setTransactions([]);
+      setTotalTxns(0);
+    }
   }
 
   const formatAmount = (v: number) => `¥${(v || 0).toLocaleString()}`;

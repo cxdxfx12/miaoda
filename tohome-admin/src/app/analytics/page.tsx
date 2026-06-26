@@ -16,48 +16,13 @@ interface KpiData { month_revenue: number; month_orders: number; month_new_users
 
 const COLORS = ['#6B7FD7', '#FFB84D', '#34D399', '#F472B6', '#94A3B8'];
 
-// --- Mock 数据 ---
-const MOCK_REVENUE: RevenueItem[] = [
-  { month: '01月', revenue: 320000, cost: 210000, profit: 110000, orders: 245 },
-  { month: '02月', revenue: 280000, cost: 185000, profit: 95000, orders: 210 },
-  { month: '03月', revenue: 365000, cost: 240000, profit: 125000, orders: 312 },
-  { month: '04月', revenue: 410000, cost: 265000, profit: 145000, orders: 356 },
-  { month: '05月', revenue: 450000, cost: 290000, profit: 160000, orders: 400 },
-  { month: '06月', revenue: 482560, cost: 312800, profit: 169760, orders: 328 },
-];
-const MOCK_USER_GROWTH: UserItem[] = [
-  { day: '周一', new: 168, active: 1205 },
-  { day: '周二', new: 195, active: 1320 },
-  { day: '周三', new: 210, active: 1456 },
-  { day: '周四', new: 185, active: 1390 },
-  { day: '周五', new: 230, active: 1580 },
-  { day: '周六', new: 280, active: 1720 },
-  { day: '周日', new: 245, active: 1892 },
-];
-const MOCK_CITIES: CityItem[] = [
-  { city: '杭州市', orders: 1280, revenue: 192000 },
-  { city: '北京市', orders: 960, revenue: 148000 },
-  { city: '上海市', orders: 890, revenue: 135000 },
-  { city: '深圳市', orders: 720, revenue: 108000 },
-  { city: '成都市', orders: 580, revenue: 87000 },
-  { city: '广州市', orders: 490, revenue: 73500 },
-  { city: '南京市', orders: 420, revenue: 63000 },
-];
-const MOCK_KPI: KpiData = { month_revenue: 482560, month_orders: 328, month_new_users: 1892, city_count: 28 };
-
 export default function AnalyticsPage() {
   const [loading, setLoading] = useState(true);
-  const [revenueData, setRevenueData] = useState<RevenueItem[]>(MOCK_REVENUE);
-  const [userGrowth, setUserGrowth] = useState<UserItem[]>(MOCK_USER_GROWTH);
-  const [cityData, setCityData] = useState<CityItem[]>(MOCK_CITIES);
-  const [kpi, setKpi] = useState<KpiData>(MOCK_KPI);
-  const [serviceDist] = useState([
-    { name: '中式推拿', value: 32, color: '#6B7FD7' },
-    { name: '精油SPA', value: 25, color: '#FFB84D' },
-    { name: '足疗', value: 20, color: '#34D399' },
-    { name: '泰式按摩', value: 15, color: '#F472B6' },
-    { name: '其他', value: 8, color: '#94A3B8' },
-  ]);
+  const [revenueData, setRevenueData] = useState<RevenueItem[]>([]);
+  const [userGrowth, setUserGrowth] = useState<UserItem[]>([]);
+  const [cityData, setCityData] = useState<CityItem[]>([]);
+  const [kpi, setKpi] = useState<KpiData>({ month_revenue: 0, month_orders: 0, month_new_users: 0, city_count: 0 });
+  const [serviceDist] = useState<any[]>([]);
 
   useEffect(() => {
     async function load() {
@@ -69,11 +34,11 @@ export default function AnalyticsPage() {
           financeApi.getOverview(),
         ]);
         const revData = (revRes as any)?.data || [];
-        if (Array.isArray(revData) && revData.length) setRevenueData(revData);
+        setRevenueData(Array.isArray(revData) ? revData : []);
         const userData = (userRes as any)?.data || [];
-        if (Array.isArray(userData) && userData.length) setUserGrowth(userData);
+        setUserGrowth(Array.isArray(userData) ? userData : []);
         const cityDataArr = (cityRes as any)?.data || [];
-        if (Array.isArray(cityDataArr) && cityDataArr.length) setCityData(cityDataArr);
+        setCityData(Array.isArray(cityDataArr) ? cityDataArr : []);
         const fin = (finRes as any)?.data || {};
         setKpi({
           month_revenue: fin?.month_revenue || 0,
@@ -81,7 +46,12 @@ export default function AnalyticsPage() {
           month_new_users: 0,
           city_count: cityDataArr.length,
         });
-      } catch { /* backend unavailable, using mock */ } finally {
+      } catch {
+        setRevenueData([]);
+        setUserGrowth([]);
+        setCityData([]);
+        setKpi({ month_revenue: 0, month_orders: 0, month_new_users: 0, city_count: 0 });
+      } finally {
         setLoading(false);
       }
     }

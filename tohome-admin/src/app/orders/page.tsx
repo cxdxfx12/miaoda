@@ -28,25 +28,11 @@ const statusColor: Record<string, string> = {
   '已退款': 'bg-red-50 text-[#EF4444]',
 };
 
-// --- Mock 数据 ---
-const MOCK_ORDERS = [
-  { id: 1, order_no: 'ORD202606230001', user_name: '张先生', user_phone: '13812345678', talent_name: '李达人', service_name: '中式推拿', service_spec: 60, final_amount: 298, status: 4, created_at: '2026-06-23T14:30:00' },
-  { id: 2, order_no: 'ORD202606230002', user_name: '王女士', user_phone: '13987654321', talent_name: '陈达人', service_name: '精油SPA', service_spec: 90, final_amount: 398, status: 3, created_at: '2026-06-23T13:15:00' },
-  { id: 3, order_no: 'ORD202606230003', user_name: '刘先生', user_phone: '18611111111', talent_name: '', service_name: '足疗按摩', service_spec: 45, final_amount: 198, status: 1, created_at: '2026-06-23T11:45:00' },
-  { id: 4, order_no: 'ORD202606230004', user_name: '赵女士', user_phone: '13722222222', talent_name: '王达人', service_name: '泰式按摩', service_spec: 120, final_amount: 498, status: 4, created_at: '2026-06-23T10:20:00' },
-  { id: 5, order_no: 'ORD202606220005', user_name: '孙先生', user_phone: '15633333333', talent_name: '林达人', service_name: '中式推拿', service_spec: 60, final_amount: 268, status: 5, created_at: '2026-06-22T19:00:00' },
-  { id: 6, order_no: 'ORD202606220006', user_name: '杨女士', user_phone: '18544444444', talent_name: '周达人', service_name: '精油SPA', service_spec: 90, final_amount: 358, status: 3, created_at: '2026-06-22T16:30:00' },
-  { id: 7, order_no: 'ORD202606220007', user_name: '周先生', user_phone: '13255555555', talent_name: '', service_name: '足疗按摩', service_spec: 45, final_amount: 198, status: 0, created_at: '2026-06-22T14:10:00' },
-  { id: 8, order_no: 'ORD202606210008', user_name: '吴女士', user_phone: '18966666666', talent_name: '黄达人', service_name: '中式推拿', service_spec: 60, final_amount: 298, status: 4, created_at: '2026-06-21T20:45:00' },
-  { id: 9, order_no: 'ORD202606210009', user_name: '郑先生', user_phone: '15077777777', talent_name: '马达人', service_name: '泰式按摩', service_spec: 120, final_amount: 598, status: 6, created_at: '2026-06-21T17:30:00' },
-  { id: 10, order_no: 'ORD202606200010', user_name: '陈女士', user_phone: '13188888888', talent_name: '谢达人', service_name: '精油SPA', service_spec: 90, final_amount: 558, status: 4, created_at: '2026-06-20T12:00:00' },
-];
-
 export default function OrdersPage() {
   const [activeTab, setActiveTab] = useState('全部');
   const [keyword, setKeyword] = useState('');
-  const [orders, setOrders] = useState<any[]>(MOCK_ORDERS);
-  const [total, setTotal] = useState(MOCK_ORDERS.length);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const pageSize = 20;

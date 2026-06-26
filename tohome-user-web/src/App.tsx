@@ -464,12 +464,18 @@ function Stars({ value, size = 13 }: { value: number; size?: number }) {
 }
 
 function Avatar({ initials, src, size = 44 }: { initials: string; src?: string; size?: number }) {
-  if (src) return <img src={src} alt="" className="avatar" style={{ width: size, height: size }} />;
+  if (isImageSrc(src)) return <img src={src} alt="" className="avatar" style={{ width: size, height: size }} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />;
   return <div className="avatar" style={{ width: size, height: size, fontSize: size * 0.38 }}>{initials}</div>;
 }
 
 function isImageSrc(src?: string) {
-  return !!src && (/^https?:\/\//.test(src) || src.startsWith('/uploads/') || src.startsWith('data:image/') || src.startsWith('blob:'));
+  if (!src) return false;
+  if (src.includes('thirdwx.qlogo.cn') && src.includes('/default/')) return false;
+  return /^https?:\/\//.test(src) || src.startsWith('/uploads/') || src.startsWith('data:image/') || src.startsWith('blob:');
+}
+
+function safeAvatarSrc(src?: string) {
+  return isImageSrc(src) ? src : '/logo.png';
 }
 
 function TalentAvatar({ src, name, disabled = false }: { src?: string; name: string; disabled?: boolean }) {
@@ -796,20 +802,44 @@ const ORDER_STEPS = [
   { key: 'reviewed', label: '已评价', icon: '📝', desc: '订单结束' },
 ];
 
+function pageList(res: any): any[] {
+  const data = res?.data || res;
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.list)) return data.list;
+  if (Array.isArray(data?.items)) return data.items;
+  return [];
+}
+
+function serviceIconOf(order: any) {
+  const name = `${order?.service_name || order?.service?.name || ''}`;
+  if (order?.service_icon) return order.service_icon;
+  if (name.includes('游戏') || name.includes('电竞')) return '🎮';
+  if (name.includes('K歌') || name.includes('唱')) return '🎤';
+  if (name.includes('影')) return '🎬';
+  if (name.includes('台球')) return '🎱';
+  if (name.includes('按摩') || name.includes('推拿') || name.includes('SPA')) return '💆';
+  return '✨';
+}
+
 function OrderTrackerBar() {
   const nav = useNavigate();
   const { isLoggedIn } = useUserStore();
+  const { data } = useQuery({
+    queryKey: ['home-active-orders'],
+    queryFn: () => orderApi.list({ page: 1, page_size: 20 }),
+    enabled: isLoggedIn && !!getToken(),
+  });
 
-  // 找出当前进行中的订单（status 1-3），优先显示最新的
-  const activeOrder = isLoggedIn
-    ? [...MOCK_ORDER_DATA].filter(o => [1, 2, 3].includes(o.status)).sort((a, b) => b.id - a.id)[0] || null
-    : null;
+  const activeOrder = pageList(data)
+    .filter((o: any) => [1, 2, 3, 7, 8].includes(Number(o.status)))
+    .sort((a: any, b: any) => Number(b.id || 0) - Number(a.id || 0))[0] || null;
 
-  // 模拟：给进行中的订单分配一个进度步骤（实际应从后端获取）
-  const getProgressStep = (order: typeof MOCK_ORDER_DATA[0]) => {
-    if (order.status === 1) return 0;   // 待接单 → 显示"待接单"
-    if (order.status === 2) return 1;   // 已接单 → 显示"出发中"
-    if (order.status === 3) return 3;   // 服务中
+  const getProgressStep = (order: any) => {
+    if (Number(order.status) === 1) return 0;
+    if (Number(order.status) === 2) return 1;
+    if (Number(order.status) === 7) return 1;
+    if (Number(order.status) === 8) return 2;
+    if (Number(order.status) === 3) return 3;
     return -1;
   };
 
@@ -844,7 +874,7 @@ function OrderTrackerBar() {
             background: 'linear-gradient(135deg, rgba(255,255,255,0.3), rgba(255,255,255,0.1))',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: 20, boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-          }}>{activeOrder.service_icon}</div>
+          }}>{serviceIconOf(activeOrder)}</div>
           <div>
             <div style={{ fontWeight: 700, fontSize: 15, color: '#fff' }}>{activeOrder.service_name}</div>
             <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', marginTop: 2 }}>
@@ -2958,14 +2988,12 @@ function TalentFeedPage() {
 function OrderDetailPage() {
   const nav = useNavigate();
   const loc = useLocation();
-  const st = (loc.state as any) || {};
   const params = new URLSearchParams(loc.search);
   const id = Number(params.get('id'));
   const [paying, setPaying] = useState(false);
   const { data, isLoading, refetch } = useQuery({ queryKey: ['order', id], queryFn: () => orderApi.detail(id), enabled: !!id });
-  // 优先 API 数据，其次导航 state 传过来的 mock 订单，最后为空
   const apiOrder = (data as any)?.data;
-  const order = (apiOrder && Object.keys(apiOrder).length > 0) ? apiOrder : (st.mockOrder || {});
+  const order = (apiOrder && Object.keys(apiOrder).length > 0) ? apiOrder : null;
   const statusInfo: Record<number, { icon: string; text: string; color: string }> = {
     0: { icon: '⏳', text: '等待支付', color: '#FF6B9D' },
     1: { icon: '🔍', text: '正在为您匹配达人', color: '#FBBF24' },
@@ -2976,7 +3004,7 @@ function OrderDetailPage() {
     7: { icon: '🚗', text: '达人已出发', color: '#3B82F6' },
     8: { icon: '📍', text: '达人已到达', color: '#06B6D4' },
   };
-  const si = statusInfo[order.status] || statusInfo[0];
+  const si = statusInfo[order?.status] || statusInfo[0];
 
   const handlePay = async () => {
     if (!order?.id || paying) return;
@@ -3023,7 +3051,13 @@ function OrderDetailPage() {
         <span style={{ fontWeight: 700, fontSize: 16 }}>订单详情</span>
         <div style={{ width: 22 }} />
       </div>
-      {isLoading ? <LoadingView /> :
+      {isLoading ? <LoadingView /> : !order ? (
+        <div style={{ padding: '72px 20px', textAlign: 'center', color: '#999' }}>
+          <div style={{ fontSize: 42, marginBottom: 10 }}>📭</div>
+          <div style={{ fontWeight: 800, color: '#555' }}>订单不存在或已删除</div>
+          <button onClick={() => nav('/orders')} className="btn-primary" style={{ marginTop: 18, width: 160, height: 44, borderRadius: 14 }}>返回订单列表</button>
+        </div>
+      ) :
         <div style={{ padding: '16px 20px' }}>
           {/* 状态卡片 */}
           <div style={{
@@ -3087,14 +3121,6 @@ function OrderDetailPage() {
 /* ===================================================================
    个人中心 — 内嵌订单列表
    =================================================================== */
-const MOCK_ORDER_DATA = [
-  { id: 1001, service_name: '中式推拿60分钟', talent_name: '林姐', status: 2, order_no: 'TH20260620001', final_amount: 198, service_icon: '💆' },
-  { id: 1002, service_name: '电竞游戏2小时', talent_name: '阿杰', status: 4, order_no: 'TH20260618002', final_amount: 128, service_icon: '🎮' },
-  { id: 1003, service_name: '泰式SPA90分钟', talent_name: '曼曼', status: 1, order_no: 'TH20260622003', final_amount: 298, service_icon: '🧘' },
-  { id: 1004, service_name: '情窦初开', talent_name: '', status: 0, order_no: 'TH20260623004', final_amount: 168, service_icon: '💕' },
-  { id: 1005, service_name: 'K歌欢唱3小时', talent_name: '小西', status: 3, order_no: 'TH20260621005', final_amount: 398, service_icon: '🎤' },
-];
-
 const statusMap: Record<number, { label: string; color: string; bg: string }> = {
   0: { label: '待支付', color: '#FF6B9D', bg: '#FFE0EB' },
   1: { label: '待接单', color: '#F59E0B', bg: '#FEF3C7' },
@@ -3109,18 +3135,24 @@ function ProfileOrdersSection() {
   const [orderTab, setOrderTab] = useState(0);
   const orderTabs = ['全部', '待支付', '进行中', '已完成'];
   const statusFilter = [null, 0, [1, 2, 3], 4];
+  const { data, isLoading } = useQuery({
+    queryKey: ['profile-orders'],
+    queryFn: () => orderApi.list({ page: 1, page_size: 20 }),
+    enabled: !!getToken(),
+  });
 
+  const orders = pageList(data);
   const filtered = statusFilter[orderTab] === null
-    ? MOCK_ORDER_DATA
+    ? orders
     : Array.isArray(statusFilter[orderTab])
-      ? MOCK_ORDER_DATA.filter(o => (statusFilter[orderTab] as number[]).includes(o.status))
-      : MOCK_ORDER_DATA.filter(o => o.status === statusFilter[orderTab]);
+      ? orders.filter((o: any) => (statusFilter[orderTab] as number[]).includes(Number(o.status)))
+      : orders.filter((o: any) => Number(o.status) === statusFilter[orderTab]);
 
   return (
     <div className="card" style={{ marginTop: 14, borderRadius: 14, padding: '14px 0 0' }}>
       <div className="flex items-center justify-between" style={{ padding: '0 16px', marginBottom: 8 }}>
         <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-h)' }}>📋 我的订单</span>
-        <span onClick={() => nav('/order-detail?id=0')} style={{
+        <span onClick={() => nav('/orders')} style={{
           fontSize: 12, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: 2, cursor: 'pointer',
         }}>
           全部 <ArrowRight size={14} />
@@ -3142,13 +3174,15 @@ function ProfileOrdersSection() {
 
       {/* 订单列表 */}
       <div style={{ padding: '0 12px' }}>
-        {filtered.length === 0 ? (
+        {isLoading ? (
+          <div className="text-center" style={{ padding: '32px 0', fontSize: 12, color: 'var(--text-tertiary)' }}>订单加载中...</div>
+        ) : filtered.length === 0 ? (
           <div className="text-center" style={{ padding: '32px 0' }}>
             <div style={{ fontSize: 36, marginBottom: 6, opacity: 0.6 }}>📭</div>
             <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>暂无订单</div>
           </div>
         ) : (
-          filtered.map((o, i) => {
+          filtered.slice(0, 5).map((o: any, i: number) => {
             const si = statusMap[o.status] || statusMap[0];
             return (
               <div key={o.id} onClick={() => nav(`/order-detail?id=${o.id}`)} style={{
@@ -3161,11 +3195,11 @@ function ProfileOrdersSection() {
                   width: 42, height: 42, borderRadius: 10, flexShrink: 0,
                   background: '#F3F4F6', display: 'flex', alignItems: 'center',
                   justifyContent: 'center', fontSize: 20,
-                }}>{o.service_icon}</div>
+                }}>{serviceIconOf(o)}</div>
                 {/* 信息 */}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text-h)', marginBottom: 2 }}>
-                    {o.service_name}
+                    {o.service_name || '服务订单'}
                   </div>
                   <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
                     {o.talent_name ? `达人: ${o.talent_name}` : '待派单'}
@@ -3197,6 +3231,12 @@ function ProfilePage() {
   const logout = useUserStore(s => s.logout);
   const isLoggedIn = useUserStore(s => s.isLoggedIn);
   const nav = useNavigate();
+  const { data: profileOrdersData } = useQuery({
+    queryKey: ['profile-order-counts'],
+    queryFn: () => orderApi.list({ page: 1, page_size: 100 }),
+    enabled: isLoggedIn && !!getToken(),
+  });
+  const profileOrders = pageList(profileOrdersData);
 
   // 会员等级配置
   const memberLevels = [
@@ -3210,11 +3250,11 @@ function ProfilePage() {
 
   // 订单快捷入口
   const orderShortcuts = [
-    { key: 'pay', icon: '💳', label: '待支付', count: MOCK_ORDER_DATA.filter(o => o.status === 0).length, color: '#FF6B9D', bg: '#FFE0EB' },
-    { key: 'accept', icon: '⏳', label: '待接单', count: MOCK_ORDER_DATA.filter(o => o.status === 1).length, color: '#F59E0B', bg: '#FEF3C7' },
-    { key: 'service', icon: '🔧', label: '服务中', count: MOCK_ORDER_DATA.filter(o => o.status === 2 || o.status === 3).length, color: '#3B82F6', bg: '#DBEAFE' },
-    { key: 'done', icon: '✅', label: '已完成', count: MOCK_ORDER_DATA.filter(o => o.status === 4).length, color: '#34D399', bg: '#D1FAE5' },
-    { key: 'all', icon: '📋', label: '全部', count: MOCK_ORDER_DATA.length, color: '#7C5CFC', bg: '#EDE9FE' },
+    { key: 'pay', icon: '💳', label: '待支付', count: profileOrders.filter((o: any) => Number(o.status) === 0).length, color: '#FF6B9D', bg: '#FFE0EB' },
+    { key: 'accept', icon: '⏳', label: '待接单', count: profileOrders.filter((o: any) => Number(o.status) === 1).length, color: '#F59E0B', bg: '#FEF3C7' },
+    { key: 'service', icon: '🔧', label: '服务中', count: profileOrders.filter((o: any) => [2, 3, 7, 8].includes(Number(o.status))).length, color: '#3B82F6', bg: '#DBEAFE' },
+    { key: 'done', icon: '✅', label: '已完成', count: profileOrders.filter((o: any) => Number(o.status) === 4).length, color: '#34D399', bg: '#D1FAE5' },
+    { key: 'all', icon: '📋', label: '全部', count: profileOrders.length, color: '#7C5CFC', bg: '#EDE9FE' },
   ];
 
   // 常用工具
@@ -3222,7 +3262,7 @@ function ProfilePage() {
     { icon: Heart, label: '我的收藏', desc: '收藏的服务和达人', color: '#FF6B9D', bg: '#FFF0F5', path: '/favorites' },
     { icon: Star, label: '我的评价', desc: '已发表的评价记录', color: '#F59E0B', bg: '#FFFBEB', path: '/reviews' },
     { icon: MapPin, label: '地址管理', desc: '收货/服务地址', color: '#34D399', bg: '#ECFDF5', path: '/address' },
-    { icon: Ticket, label: '优惠券', desc: `${Math.floor(Math.random() * 5) + 1}张可用`, color: '#7C5CFC', bg: '#F5F3FF', path: '/coupons' },
+    { icon: Ticket, label: '优惠券', desc: '查看可用优惠', color: '#7C5CFC', bg: '#F5F3FF', path: '/coupons' },
     { icon: Gift, label: '邀请好友', desc: '邀请新人得奖励', color: '#EF4444', bg: '#FEF2F2', path: '/invite' },
     { icon: Headphones, label: '客服中心', desc: '在线客服咨询', color: '#06B6D4', bg: '#ECFEFF', path: '/support' },
     { icon: Settings, label: '设置', desc: '账号与隐私设置', color: '#6B7280', bg: '#F9FAFB', path: '/settings' },
@@ -3362,7 +3402,7 @@ function ProfilePage() {
             }}>
               {/* 头像 */}
               <div style={{ position: 'relative' }}>
-                <img src={userInfo?.avatar || '/logo.png'} alt="喵搭"
+                <img src={safeAvatarSrc(userInfo?.avatar)} alt="喵搭"
                   style={{
                     width: 68, height: 68, borderRadius: 22, objectFit: 'contain',
                     border: '3px solid rgba(255,255,255,0.35)', boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
@@ -3414,7 +3454,7 @@ function ProfilePage() {
                 { icon: '💰', label: '余额', value: `¥${(Number((userInfo as any)?.balance || 0)).toFixed(0)}`, tip: '查看资产', path: '/coupons' },
                 { icon: '⭐', label: '积分', value: String(userInfo?.member_points || 0), tip: `抵¥${((userInfo?.member_points || 0) / 100).toFixed(0)}`, path: '/invite' },
                 { icon: '🎫', label: '优惠券', value: '去查看', tip: '立即使用 >', path: '/coupons' },
-                { icon: '📋', label: '全部订单', value: `${MOCK_ORDER_DATA.length}`, tip: '查看详情 >', path: '/orders' },
+                { icon: '📋', label: '全部订单', value: `${profileOrders.length}`, tip: '查看详情 >', path: '/orders' },
               ].map((item, i) => (
                 <div key={i} onClick={() => nav(item.path)}
                   style={{ textAlign: 'center', cursor: 'pointer', transition: 'transform 0.2s' }}
@@ -3727,7 +3767,7 @@ function ProfileEditPage() {
         {/* 头像 */}
         <div style={{ background: '#fff', borderRadius: 18, padding: '24px', textAlign: 'center', marginBottom: 14, boxShadow: '0 2px 12px rgba(0,0,0,0.03)' }}>
           <div style={{ position: 'relative', display: 'inline-block' }}>
-            <img src={userInfo?.avatar} alt="" style={{ width: 80, height: 80, borderRadius: 24, objectFit: 'cover', border: '3px solid #EDE9FE' }} />
+            <img src={safeAvatarSrc(userInfo?.avatar)} alt="" style={{ width: 80, height: 80, borderRadius: 24, objectFit: 'cover', border: '3px solid #EDE9FE' }} />
             <div style={{
               position: 'absolute', bottom: -4, right: -4, width: 28, height: 28, borderRadius: 10,
               background: 'linear-gradient(135deg, #7C5CFC, #A78BFA)', color: '#fff',
@@ -4719,17 +4759,20 @@ function OrdersPage() {
   const initialTab = parseInt(searchParams.get('tab') || '0', 10);
   const [activeTab, setActiveTab] = useState(initialTab);
   const tabs = ['全部', '待支付', '待接单', '进行中', '已完成'];
-
-  const tabFilter = (status: number | null | number[]) => {
-    if (status === null) return MOCK_ORDER_DATA;
-    if (Array.isArray(status)) return MOCK_ORDER_DATA.filter(o => status.includes(o.status));
-    return MOCK_ORDER_DATA.filter(o => o.status === status);
-  };
-
   const filters: (number | null | number[])[] = [null, 0, 1, [2, 3], 4];
-  const filtered = tabFilter(filters[activeTab]);
-
   const nav = useNavigate();
+  const { data, isLoading } = useQuery({
+    queryKey: ['orders-page'],
+    queryFn: () => orderApi.list({ page: 1, page_size: 100 }),
+    enabled: !!getToken(),
+  });
+  const orders = pageList(data);
+  const tabFilter = (status: number | null | number[]) => {
+    if (status === null) return orders;
+    if (Array.isArray(status)) return orders.filter((o: any) => status.includes(Number(o.status)));
+    return orders.filter((o: any) => Number(o.status) === status);
+  };
+  const filtered = tabFilter(filters[activeTab]);
 
   return (
     <div className="page" style={{ background: '#F5F0E8', minHeight: '100vh' }}>
@@ -4766,7 +4809,9 @@ function OrdersPage() {
         </div>
 
         {/* 订单卡片列表 */}
-        {filtered.length === 0 ? (
+        {isLoading ? (
+          <div style={{ textAlign: 'center', padding: '60px 0', color: '#999', fontWeight: 600 }}>订单加载中...</div>
+        ) : filtered.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 0' }}>
             <div style={{ fontSize: 52, marginBottom: 12 }}>📭</div>
             <div style={{ fontSize: 15, color: '#999', fontWeight: 600 }}>暂无订单</div>
@@ -4779,8 +4824,8 @@ function OrdersPage() {
             }}>去下单</button>
           </div>
         ) : (
-          filtered.map((o, i) => {
-            const si = statusMap[o.status] || statusMap[0];
+          filtered.map((o: any) => {
+            const si = statusMap[Number(o.status)] || statusMap[0];
             return (
               <div key={o.id} onClick={() => nav(`/order-detail?id=${o.id}`)} style={{
                 background: '#fff', borderRadius: 18, padding: '16px 18px', marginBottom: 12,
@@ -4796,10 +4841,10 @@ function OrdersPage() {
                     width: 50, height: 50, borderRadius: 14, flexShrink: 0,
                     background: 'linear-gradient(135deg, #F8F6F3, #EDE8DF)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24,
-                  }}>{o.service_icon}</div>
+                  }}>{serviceIconOf(o)}</div>
                   {/* 中间信息 */}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 700, fontSize: 15, color: '#1a1a2e', marginBottom: 3 }}>{o.service_name}</div>
+                    <div style={{ fontWeight: 700, fontSize: 15, color: '#1a1a2e', marginBottom: 3 }}>{o.service_name || '服务订单'}</div>
                     <div style={{ fontSize: 12.5, color: '#999' }}>达人: {o.talent_name || '待派单'}</div>
                   </div>
                   {/* 右侧价格+状态 */}

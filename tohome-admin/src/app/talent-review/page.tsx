@@ -83,18 +83,9 @@ const statusMap: Record<string, { label: string; color: string }> = {
   rejected: { label: '已驳回', color: 'bg-[#FFF1F0] text-[#FF4D4F]' },
 };
 
-// --- Mock 数据 ---
-const MOCK_REVIEW_DATA: ReviewItem[] = [
-  { id: 1, name: '王强', phone: '138****5678', idCard: '3301**********1234', gender: '男', age: 28, skills: ['中式推拿', '精油SPA'], city: '杭州市', district: '西湖区', certificates: ['健康证', '按摩师资质'], status: 'pending', applyTime: '2026-06-22 14:30', avatar: '王', introduction: '5年按摩经验，曾在五星级酒店SPA中心工作，擅长中式推拿和精油SPA。', rating: 4.8, experience: '1200单' },
-  { id: 2, name: '李小美', phone: '139****2345', idCard: '3301**********5678', gender: '女', age: 25, skills: ['日式按摩', '足疗'], city: '杭州市', district: '拱墅区', certificates: ['健康证'], status: 'pending', applyTime: '2026-06-21 16:00', avatar: '李', introduction: '持有高级按摩师证书，对日式按摩和足疗有深入研究。', rating: 4.5, experience: '800单' },
-  { id: 3, name: '赵磊', phone: '186****7890', idCard: '3301**********9012', gender: '男', age: 32, skills: ['泰式按摩', '中式推拿'], city: '杭州市', district: '滨江区', certificates: ['健康证', '推拿师证'], status: 'pending', applyTime: '2026-06-20 09:15', avatar: '赵', introduction: '10年推拿经验，泰式按摩专家，曾在泰国进修。', rating: 4.9, experience: '2500单' },
-  { id: 4, name: '陈芳', phone: '156****3456', idCard: '4201**********3456', gender: '女', age: 30, skills: ['精油SPA', '面部护理'], city: '杭州市', district: '江干区', certificates: ['健康证', 'SPA护理资质'], status: 'pending', applyTime: '2026-06-18 11:20', avatar: '陈', introduction: '持有国际SPA护理认证，擅长精油搭配和面部护理。', rating: 4.6, experience: '1500单' },
-  { id: 5, name: '周明', phone: '131****7890', idCard: '5101**********7890', gender: '男', age: 35, skills: ['中式推拿', '刮痧', '拔罐'], city: '杭州市', district: '上城区', certificates: ['健康证', '中医推拿师证'], status: 'pending', applyTime: '2026-06-17 15:45', avatar: '周', introduction: '中医世家出身，擅长传统推拿、刮痧和拔罐等中医疗法。', rating: 4.7, experience: '3000单' },
-];
-
 export default function TalentReviewPage() {
   const [activeTab, setActiveTab] = useState<'pending' | 'approved' | 'rejected'>('pending');
-  const [data, setData] = useState<ReviewItem[]>(MOCK_REVIEW_DATA);
+  const [data, setData] = useState<ReviewItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
