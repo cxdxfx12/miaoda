@@ -329,8 +329,11 @@ func RegisterAdminRoutes(r *gin.Engine, h *handler.AdminHandler, grabH *handler.
 			settingsAdmin.GET("/wecom", h.AdminGetConfigSetting("wecom"))
 			settingsAdmin.POST("/wecom", h.AdminUpdateConfigSetting("wecom"))
 			settingsAdmin.POST("/wecom/test", h.AdminTestWeComNotification)
-			settingsAdmin.GET("/backups", h.AdminGetServiceStatus)
+			settingsAdmin.GET("/backups", h.AdminListBackups)
 			settingsAdmin.POST("/backups", h.AdminBackup)
+			settingsAdmin.GET("/backups/:filename/download", h.AdminDownloadBackup)
+			settingsAdmin.POST("/backups/:filename/restore", h.AdminRestoreBackup)
+			settingsAdmin.DELETE("/backups/:filename", h.AdminDeleteBackup)
 			settingsAdmin.GET("/server-status", h.AdminGetServiceStatus)
 		}
 

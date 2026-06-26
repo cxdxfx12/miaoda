@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { AdminLayout } from '@/components/layout/AdminLayout';
-import { Save, Bell, Shield, Globe, Database, Server, MessageSquare, Loader2, Headphones, Percent, Car, Send, FileText } from 'lucide-react';
+import { Save, Bell, Shield, Globe, Database, Server, MessageSquare, Loader2, Headphones, Percent, Car, Send, FileText, Download, RotateCcw, Trash2, RefreshCw, HardDrive } from 'lucide-react';
 import { settingsApi } from '@/api';
 
 const defaultSupportKnowledge = `[
@@ -54,6 +54,20 @@ const sections = [
 
 interface ConfigItem { key: string; value: string; remark: string; }
 interface ServiceInfo { name: string; status: string; cpu: number; memory: number; host: string; }
+interface BackupInfo {
+  id: string;
+  filename: string;
+  created_at: string;
+  size: number;
+  size_text: string;
+  db_name: string;
+  format: string;
+  scope: string;
+  table_count: number;
+  total_rows: number;
+  tables: { name: string; rows: number }[];
+  description: string;
+}
 
 export default function SettingsPage() {
   const [active, setActive] = useState('basic');
@@ -63,10 +77,15 @@ export default function SettingsPage() {
   const [serverStatus, setServerStatus] = useState<ServiceInfo[]>([]);
   const [serverLoading, setServerLoading] = useState(false);
   const [testingWeCom, setTestingWeCom] = useState(false);
+  const [backups, setBackups] = useState<BackupInfo[]>([]);
+  const [backupLoading, setBackupLoading] = useState(false);
+  const [backuping, setBackuping] = useState(false);
+  const [restoring, setRestoring] = useState('');
+  const [deletingBackup, setDeletingBackup] = useState('');
 
   useEffect(() => {
     if (active === 'server') { loadServerStatus(); return; }
-    if (active === 'database') return; // backups use separate endpoint
+    if (active === 'database') { loadBackups(); return; }
     loadConfig(active);
   }, [active]);
 
@@ -192,10 +211,69 @@ export default function SettingsPage() {
   }
 
   async function handleBackup() {
+    setBackuping(true);
     try {
       await settingsApi.createBackup();
-      alert('备份已完成');
-    } catch { alert('备份失败（后端未连接）'); }
+      await loadBackups();
+      alert('备份已完成，文件已加入备份列表');
+    } catch (e: any) { alert(e?.message || '备份失败（请检查数据库备份工具）'); }
+    finally { setBackuping(false); }
+  }
+
+  async function loadBackups() {
+    setBackupLoading(true);
+    try {
+      const res: any = await settingsApi.getBackups();
+      const data = res?.data || res || {};
+      setBackups(data.list || []);
+    } catch {
+      setBackups([]);
+    } finally {
+      setBackupLoading(false);
+    }
+  }
+
+  async function downloadBackup(filename: string) {
+    try {
+      const blob: any = await settingsApi.downloadBackup(filename);
+      const url = window.URL.createObjectURL(blob instanceof Blob ? blob : new Blob([blob]));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (e: any) {
+      alert(e?.message || '下载失败');
+    }
+  }
+
+  async function restoreBackup(filename: string) {
+    if (!confirm(`确定要恢复备份 ${filename} 吗？\n\n恢复会覆盖当前数据库。系统会先自动创建一份“恢复前自动备份”，但恢复期间请不要操作订单和配置。`)) return;
+    setRestoring(filename);
+    try {
+      await settingsApi.restoreBackup(filename);
+      await loadBackups();
+      alert('恢复已完成，建议刷新后台并检查关键数据');
+    } catch (e: any) {
+      alert(e?.message || '恢复失败');
+    } finally {
+      setRestoring('');
+    }
+  }
+
+  async function deleteBackup(filename: string) {
+    if (!confirm(`确定删除备份文件 ${filename} 吗？删除后不可恢复。`)) return;
+    setDeletingBackup(filename);
+    try {
+      await settingsApi.deleteBackup(filename);
+      await loadBackups();
+    } catch (e: any) {
+      alert(e?.message || '删除失败');
+    } finally {
+      setDeletingBackup('');
+    }
   }
 
   async function testWeCom() {
@@ -212,6 +290,13 @@ export default function SettingsPage() {
 
   const updateField = (key: string, value: string) => {
     setConfigData(prev => ({ ...prev, [key]: value }));
+  };
+
+  const formatBackupTime = (value: string) => {
+    if (!value) return '--';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleString('zh-CN', { hour12: false });
   };
 
   const renderField = (label: string, key: string, type = 'text') => (
@@ -426,15 +511,92 @@ export default function SettingsPage() {
       </div>
     </div>,
     database: <div className="space-y-6">
-      <h2 className="text-lg font-semibold text-[#1F2937]">数据备份</h2>
-      <div className="flex items-center gap-4 rounded-lg border border-[#EEF1F6] p-6">
-        <Database className="h-10 w-10 text-[#6B7FD7]" />
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <div className="font-medium text-[#1F2937]">手动备份数据库</div>
-          <div className="mt-1 text-xs text-gray-500">备份当前数据库状态，包括所有表结构和数据</div>
+          <h2 className="text-lg font-semibold text-[#1F2937]">数据备份与恢复</h2>
+          <p className="mt-1 text-xs text-gray-400">备份 PostgreSQL public schema 的表结构和数据，支持下载 SQL 文件和从已有备份恢复。</p>
         </div>
-        <button onClick={handleBackup} className="ml-auto rounded-lg bg-gradient-to-r from-[#6B7FD7] to-[#8B9AE3] px-4 py-2 text-sm font-medium text-white shadow-soft">立即备份</button>
+        <button
+          onClick={loadBackups}
+          disabled={backupLoading}
+          className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-[#EEF1F6] bg-white px-4 py-2 text-sm font-medium text-gray-600 hover:bg-[#F8FAFC] disabled:opacity-60"
+        >
+          <RefreshCw className={`h-4 w-4 ${backupLoading ? 'animate-spin' : ''}`} />刷新列表
+        </button>
       </div>
+      <div className="flex flex-col gap-4 rounded-2xl border border-[#EEF1F6] bg-gradient-to-br from-[#F8FAFF] to-white p-6 md:flex-row md:items-center">
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EEF2FF]">
+          <Database className="h-7 w-7 text-[#6B7FD7]" />
+        </div>
+        <div className="flex-1">
+          <div className="font-medium text-[#1F2937]">手动备份数据库</div>
+          <div className="mt-1 text-xs leading-5 text-gray-500">生成可下载的 SQL 备份文件，同时记录备份时间、文件大小、数据库名、表数量、总行数和每张表的数据量。</div>
+        </div>
+        <button
+          onClick={handleBackup}
+          disabled={backuping}
+          className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-[#6B7FD7] to-[#8B9AE3] px-4 py-2 text-sm font-medium text-white shadow-soft disabled:opacity-60"
+        >
+          {backuping ? <Loader2 className="h-4 w-4 animate-spin" /> : <HardDrive className="h-4 w-4" />}
+          {backuping ? '备份中...' : '立即备份'}
+        </button>
+      </div>
+
+      <div className="rounded-xl border border-[#FDE68A] bg-[#FFFBEB] p-4 text-xs leading-6 text-[#92400E]">
+        恢复会覆盖当前数据库。点击恢复时系统会先自动创建一份“恢复前自动备份”，但仍建议在低峰期操作，恢复期间不要新增订单、修改配置或审核达人。
+      </div>
+
+      {backupLoading ? (
+        <div className="flex items-center justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-[#6B7FD7]" /></div>
+      ) : backups.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-[#DDE3EE] py-12 text-center text-sm text-gray-400">
+          暂无备份文件，点击“立即备份”后会在这里显示可下载文件。
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {backups.map((backup) => (
+            <div key={backup.filename} className="rounded-2xl border border-[#EEF1F6] bg-white p-5 shadow-sm">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="truncate text-sm font-semibold text-[#1F2937]">{backup.filename}</div>
+                    <span className="rounded-full bg-[#EEF2FF] px-2.5 py-1 text-[11px] font-medium text-[#6B7FD7]">{backup.description || '手动备份'}</span>
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 gap-3 text-xs text-gray-500 md:grid-cols-4">
+                    <div><span className="text-gray-400">备份时间</span><div className="mt-1 font-medium text-[#374151]">{formatBackupTime(backup.created_at)}</div></div>
+                    <div><span className="text-gray-400">文件大小</span><div className="mt-1 font-medium text-[#374151]">{backup.size_text || '--'}</div></div>
+                    <div><span className="text-gray-400">数据库</span><div className="mt-1 font-medium text-[#374151]">{backup.db_name || '--'}</div></div>
+                    <div><span className="text-gray-400">数据范围</span><div className="mt-1 font-medium text-[#374151]">{backup.table_count || 0} 张表 / {backup.total_rows || 0} 行</div></div>
+                  </div>
+                  <div className="mt-3 text-xs text-gray-400">{backup.scope || 'public schema 全量结构和数据'} · {backup.format || 'PostgreSQL SQL'}</div>
+                  <details className="mt-3">
+                    <summary className="cursor-pointer text-xs font-medium text-[#6B7FD7]">查看备份包含的数据表</summary>
+                    <div className="mt-3 grid max-h-52 grid-cols-1 gap-2 overflow-auto rounded-lg bg-[#F8FAFC] p-3 text-xs md:grid-cols-2">
+                      {(backup.tables || []).map((table) => (
+                        <div key={table.name} className="flex items-center justify-between rounded-md bg-white px-3 py-2">
+                          <span className="font-medium text-[#374151]">{table.name}</span>
+                          <span className="text-gray-400">{table.rows} 行</span>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                </div>
+                <div className="flex flex-wrap gap-2 lg:justify-end">
+                  <button onClick={() => downloadBackup(backup.filename)} className="inline-flex items-center gap-1.5 rounded-lg border border-[#DDE3EE] px-3 py-2 text-xs font-medium text-gray-600 hover:bg-[#F8FAFC]">
+                    <Download className="h-3.5 w-3.5" />下载
+                  </button>
+                  <button onClick={() => restoreBackup(backup.filename)} disabled={!!restoring} className="inline-flex items-center gap-1.5 rounded-lg border border-[#F59E0B]/30 bg-[#FFFBEB] px-3 py-2 text-xs font-medium text-[#B45309] hover:bg-[#FEF3C7] disabled:opacity-60">
+                    {restoring === backup.filename ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}恢复
+                  </button>
+                  <button onClick={() => deleteBackup(backup.filename)} disabled={!!deletingBackup} className="inline-flex items-center gap-1.5 rounded-lg border border-[#FCA5A5]/50 bg-[#FEF2F2] px-3 py-2 text-xs font-medium text-[#DC2626] hover:bg-[#FEE2E2] disabled:opacity-60">
+                    {deletingBackup === backup.filename ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}删除
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>,
     server: <div className="space-y-6">
       <h2 className="text-lg font-semibold text-[#1F2937]">服务监控</h2>

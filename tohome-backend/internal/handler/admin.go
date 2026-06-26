@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -502,16 +501,6 @@ func (h *AdminHandler) AdminGetServiceStatus(c *gin.Context) {
 		{"name": "派单服务", "status": "running", "cpu": 18, "memory": 28, "host": "localhost:8085"},
 	}
 	response.Success(c, services)
-}
-
-// AdminBackup 数据库备份
-func (h *AdminHandler) AdminBackup(c *gin.Context) {
-	now := time.Now().Format("2006-01-02 15:04:05")
-	response.Success(c, gin.H{
-		"message": "备份已完成",
-		"time":    gin.H{"now": now},
-		"size":    "128 MB",
-	})
 }
 
 // AdminRevenueAnalytics 营收分析

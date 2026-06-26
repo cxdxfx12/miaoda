@@ -58,6 +58,15 @@ export const settingsApi = {
   createBackup: () =>
     api.post('/api/v1/admin/settings/backups'),
 
+  downloadBackup: (filename: string) =>
+    api.get(`/api/v1/admin/settings/backups/${encodeURIComponent(filename)}/download`, { responseType: 'blob' }),
+
+  restoreBackup: (filename: string) =>
+    api.post(`/api/v1/admin/settings/backups/${encodeURIComponent(filename)}/restore`),
+
+  deleteBackup: (filename: string) =>
+    api.delete(`/api/v1/admin/settings/backups/${encodeURIComponent(filename)}`),
+
   getServerStatus: () =>
     api.get('/api/v1/admin/settings/server-status'),
 };

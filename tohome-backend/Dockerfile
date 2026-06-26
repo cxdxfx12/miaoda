@@ -24,7 +24,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
 # 运行阶段
 FROM alpine:3.19
 
-RUN apk add --no-cache ca-certificates tzdata curl \
+RUN apk add --no-cache ca-certificates tzdata curl postgresql-client \
     && update-ca-certificates
 
 # 设置时区
