@@ -2188,18 +2188,18 @@ function TalentDetailDrawer({ talent, services, onClose, onBook }: {
       {/* 抽屉主体 */}
       <div style={{
         position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
-        maxWidth: 430, width: '100%', maxHeight: '85vh',
+        maxWidth: 430, width: '100%', maxHeight: '96vh',
         background: '#fff', borderRadius: '26px 26px 0 0',
         zIndex: 29, display: 'flex', flexDirection: 'column',
         animation: 'slideUp 0.35s cubic-bezier(0.16,1,0.3,1)',
       }}>
         {/* 顶部头部区域 — 艺术照大图 */}
         <div style={{
-          height: 320, background: '#111827', position: 'relative', overflow: 'hidden', borderRadius: '26px 26px 0 0',
+          height: 'clamp(430px, 58vh, 620px)', background: '#111827', position: 'relative', overflow: 'hidden', borderRadius: '26px 26px 0 0',
         }}>
-          {heroImage && <img src={heroImage} alt={talent.name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
+          {heroImage && <img src={heroImage} alt={talent.name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', background: '#111827' }} />}
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.20) 44%, rgba(0,0,0,0.72) 100%)' }} />
-          <FloatingSkillTags tags={talent.tags} max={4} bottom={108} />
+          <FloatingSkillTags tags={talent.tags} max={4} bottom={118} />
 
           <div style={{ position: 'absolute', inset: 0, zIndex: 1, padding: '18px 20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
             {/* 关闭按钮 */}
@@ -2897,18 +2897,18 @@ function TalentFeedPage() {
             }} />
             <div style={{
               position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
-              maxWidth: 430, width: '100%', maxHeight: '82vh',
+              maxWidth: 430, width: '100%', maxHeight: '96vh',
               background: '#fff', borderRadius: '24px 24px 0 0',
               zIndex: 29, display: 'flex', flexDirection: 'column',
               animation: 'slideUp 0.35s cubic-bezier(0.16,1,0.3,1)',
             }}>
               {/* 头部大图 */}
               <div style={{
-                height: 320, position: 'relative', flexShrink: 0, overflow: 'hidden',
+                height: 'clamp(430px, 58vh, 620px)', position: 'relative', flexShrink: 0, overflow: 'hidden',
                 background: `linear-gradient(160deg, ${getTalentCardStyle(detailId).bg}22, ${getTalentCardStyle(detailId).bgl})`,
                 borderRadius: '24px 24px 0 0',
               }}>
-                {heroImage && <img src={heroImage} alt={talent.name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
+                {heroImage && <img src={heroImage} alt={talent.name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', background: '#111827' }} />}
                 <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0.02) 0%, rgba(0,0,0,0.18) 48%, rgba(0,0,0,0.68) 100%)' }} />
                 <FloatingSkillTags tags={talent.tags} max={4} bottom={72} />
                 <div style={{ position: 'absolute', left: 16, right: 56, bottom: 14, color: '#fff' }}>
