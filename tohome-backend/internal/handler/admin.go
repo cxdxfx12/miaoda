@@ -475,17 +475,32 @@ func (h *AdminHandler) AdminGetConfig(c *gin.Context) {
 // AdminUpdateConfig 更新配置
 func (h *AdminHandler) AdminUpdateConfig(c *gin.Context) {
 	group := c.Param("group")
-	var req struct {
-		Key   string `json:"key" binding:"required"`
-		Value string `json:"value" binding:"required"`
-	}
+	var req map[string]interface{}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.ParamError(c, "参数错误")
 		return
 	}
-	if err := h.userSvc.UpdateSystemConfig(c.Request.Context(), group, req.Key, req.Value); err != nil {
-		response.ServerError(c, err.Error())
+	if key, ok := req["key"].(string); ok && key != "" {
+		value := fmt.Sprintf("%v", req["value"])
+		if err := h.userSvc.UpdateSystemConfig(c.Request.Context(), group, key, value); err != nil {
+			response.ServerError(c, err.Error())
+			return
+		}
+		response.Success(c, gin.H{"message": "保存成功"})
 		return
+	}
+	if len(req) == 0 {
+		response.ParamError(c, "参数错误")
+		return
+	}
+	for key, value := range req {
+		if strings.TrimSpace(key) == "" {
+			continue
+		}
+		if err := h.userSvc.UpdateSystemConfig(c.Request.Context(), group, key, fmt.Sprintf("%v", value)); err != nil {
+			response.ServerError(c, err.Error())
+			return
+		}
 	}
 	response.Success(c, gin.H{"message": "保存成功"})
 }
@@ -569,6 +584,15 @@ func (h *AdminHandler) AdminBatchUpdateConfig(c *gin.Context) {
 	var req map[string]interface{}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.ParamError(c, "参数格式错误")
+		return
+	}
+	if key, ok := req["key"].(string); ok && key != "" {
+		strValue := strings.TrimSpace(fmt.Sprint(req["value"]))
+		if err := h.userSvc.UpdateSystemConfig(c.Request.Context(), group, key, strValue); err != nil {
+			response.ServerError(c, fmt.Sprintf("更新 %s 失败: %v", key, err))
+			return
+		}
+		response.Success(c, gin.H{"message": "保存成功"})
 		return
 	}
 	for key, value := range req {

@@ -32,9 +32,8 @@ export default function WechatConfigPage() {
 
   useEffect(() => {
     configApi.getWechatConfig().then((res: any) => {
-      if (res?.data && Array.isArray(res.data)) {
-        const map: Record<string, string> = {};
-        res.data.forEach((item: any) => { map[item.key] = item.value; });
+      if (res?.data) {
+        const map: Record<string, string> = res.data;
         setConfig({
           enabled: map.enabled === 'true',
           appId: map.app_id || '',
