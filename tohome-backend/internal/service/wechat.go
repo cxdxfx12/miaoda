@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -25,6 +26,22 @@ type WechatService struct {
 	userRepo *repository.UserRepository
 	jwtCfg   *config.JWTConfig
 	isDev    bool
+}
+
+func (s *WechatService) refreshConfig(ctx context.Context) {
+	if s == nil || s.cfg == nil {
+		return
+	}
+	s.cfg.AppID = firstNonEmpty(getConfigValue(ctx, "wechat", "app_id", ""), getConfigValue(ctx, "wechat", "appId", ""), s.cfg.AppID)
+	s.cfg.AppSecret = firstNonEmpty(getConfigValue(ctx, "wechat", "app_secret", ""), getConfigValue(ctx, "wechat", "appSecret", ""), s.cfg.AppSecret)
+	s.cfg.Token = firstNonEmpty(getConfigValue(ctx, "wechat", "token", ""), s.cfg.Token)
+	s.cfg.EncodingAESKey = firstNonEmpty(getConfigValue(ctx, "wechat", "encoding_aes_key", ""), getConfigValue(ctx, "wechat", "encodingAesKey", ""), s.cfg.EncodingAESKey)
+	s.cfg.RedirectURI = firstNonEmpty(getConfigValue(ctx, "wechat", "redirect_uri", ""), getConfigValue(ctx, "wechat", "redirectUri", ""), s.cfg.RedirectURI)
+	if enabled := firstNonEmpty(getConfigValue(ctx, "wechat", "enabled", ""), ""); enabled != "" {
+		if parsed, err := strconv.ParseBool(enabled); err == nil {
+			s.cfg.Enabled = parsed
+		}
+	}
 }
 
 // NewWechatService 创建微信服务
@@ -65,6 +82,7 @@ type WechatUserInfo struct {
 
 // GetAuthURL 获取微信OAuth授权URL
 func (s *WechatService) GetAuthURL(state string) string {
+	s.refreshConfig(context.Background())
 	redirectURI := url.QueryEscape(s.cfg.RedirectURI)
 	return fmt.Sprintf(
 		"https://open.weixin.qq.com/connect/oauth2/authorize?appid=%s&redirect_uri=%s&response_type=code&scope=snsapi_userinfo&state=%s#wechat_redirect",
@@ -74,6 +92,7 @@ func (s *WechatService) GetAuthURL(state string) string {
 
 // GetPublicConfig 获取公开的微信配置（不暴露secret）
 func (s *WechatService) GetPublicConfig() map[string]interface{} {
+	s.refreshConfig(context.Background())
 	return map[string]interface{}{
 		"app_id":       s.cfg.AppID,
 		"enabled":      s.cfg.Enabled,
@@ -83,6 +102,7 @@ func (s *WechatService) GetPublicConfig() map[string]interface{} {
 
 // LoginByCode 通过微信授权code登录
 func (s *WechatService) LoginByCode(ctx context.Context, code, ip string) (*LoginResponse, error) {
+	s.refreshConfig(ctx)
 	if s.isDev && (strings.HasPrefix(code, "dev_") || !s.cfg.Enabled || s.cfg.AppID == "") {
 		userInfo := &WechatUserInfo{
 			OpenID:     "dev_openid_" + code,

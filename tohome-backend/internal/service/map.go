@@ -124,8 +124,36 @@ func firstNonEmpty(values ...string) string {
 	return ""
 }
 
+func (s *MapService) refreshConfig(ctx context.Context) {
+	provider := firstNonEmpty(getConfigValue(ctx, "map", "provider", ""), "amap")
+	amapKey := firstNonEmpty(
+		getConfigValue(ctx, "map", "amap_key", ""),
+		getConfigValue(ctx, "map", "amapKey", ""),
+	)
+	amapSecret := firstNonEmpty(
+		getConfigValue(ctx, "map", "amap_secret", ""),
+		getConfigValue(ctx, "map", "amapSecret", ""),
+	)
+	cacheTTL := firstNonEmpty(
+		getConfigValue(ctx, "map", "cache_ttl", ""),
+		getConfigValue(ctx, "map", "cacheTTL", ""),
+	)
+	if ttl, err := time.ParseDuration(cacheTTL + "s"); err == nil && ttl > 0 {
+		s.cacheTTL = ttl
+	}
+	if provider == "amap" && amapKey != "" {
+		s.provider = NewAMapProvider(amapKey, amapSecret)
+		return
+	}
+	// 当前后端已完整接入高德地图；腾讯/百度配置先保存在后台，未接入时降级为直线距离，避免业务中断。
+	if s.provider == nil || provider != "amap" {
+		s.provider = &NoopMapProvider{}
+	}
+}
+
 // Geocode 地理编码
 func (s *MapService) Geocode(ctx context.Context, address string) (*GeoPoint, error) {
+	s.refreshConfig(ctx)
 	// 检查缓存
 	cacheKey := "geocode:" + address
 	if cached, ok := s.cache.Load(cacheKey); ok {
@@ -145,6 +173,7 @@ func (s *MapService) Geocode(ctx context.Context, address string) (*GeoPoint, er
 
 // ReverseGeocode 逆地理编码
 func (s *MapService) ReverseGeocode(ctx context.Context, lat, lng float64) (string, error) {
+	s.refreshConfig(ctx)
 	cacheKey := fmt.Sprintf("reverse:%f,%f", lat, lng)
 	if cached, ok := s.cache.Load(cacheKey); ok {
 		if entry, ok := cached.(cacheEntry); ok && time.Since(entry.timestamp) < s.cacheTTL {
@@ -165,6 +194,7 @@ func (s *MapService) ReverseGeocode(ctx context.Context, lat, lng float64) (stri
 
 // Distance 计算距离
 func (s *MapService) Distance(ctx context.Context, from, to *GeoPoint, mode string) (*DistanceResult, error) {
+	s.refreshConfig(ctx)
 	if mode == "" {
 		mode = "driving"
 	}
@@ -173,6 +203,7 @@ func (s *MapService) Distance(ctx context.Context, from, to *GeoPoint, mode stri
 
 // SearchNearby 周边搜索
 func (s *MapService) SearchNearby(ctx context.Context, keyword string, center *GeoPoint, radius int) ([]GeoPOI, error) {
+	s.refreshConfig(ctx)
 	if radius <= 0 {
 		radius = 5000
 	}
@@ -186,6 +217,7 @@ func (s *MapService) Search(ctx context.Context, keyword string, center *GeoPoin
 
 // Direction 路线规划
 func (s *MapService) Direction(ctx context.Context, from, to *GeoPoint, mode string) (*DirectionResult, error) {
+	s.refreshConfig(ctx)
 	if mode == "" {
 		mode = "driving"
 	}

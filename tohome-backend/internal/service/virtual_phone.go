@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"net/url"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -36,8 +37,51 @@ func NewVirtualPhoneService(db *sqlx.DB, redis *redis.Client, cfg *config.Config
 	return &VirtualPhoneService{db: db, redis: redis, cfg: cfg}
 }
 
+func (s *VirtualPhoneService) refreshConfig(ctx context.Context) {
+	if s == nil || s.cfg == nil {
+		return
+	}
+	vp := &s.cfg.ThirdParty.VirtualPhone
+	vp.Provider = firstNonEmpty(getConfigValue(ctx, "virtual_phone", "provider", ""), vp.Provider)
+	vp.Aliyun.AccessKeyID = firstNonEmpty(getConfigValue(ctx, "virtual_phone", "aliyunAccessKey", ""), getConfigValue(ctx, "virtual_phone", "aliyun_access_key", ""), vp.Aliyun.AccessKeyID)
+	vp.Aliyun.AccessKeySecret = firstNonEmpty(getConfigValue(ctx, "virtual_phone", "aliyunAccessSecret", ""), getConfigValue(ctx, "virtual_phone", "aliyun_access_secret", ""), vp.Aliyun.AccessKeySecret)
+	vp.Aliyun.PoolKey = firstNonEmpty(getConfigValue(ctx, "virtual_phone", "aliyunPoolKey", ""), getConfigValue(ctx, "virtual_phone", "aliyun_pool_key", ""), vp.Aliyun.PoolKey)
+	vp.Aliyun.CityCode = firstNonEmpty(getConfigValue(ctx, "virtual_phone", "aliyunCityCode", ""), getConfigValue(ctx, "virtual_phone", "aliyun_city_code", ""), vp.Aliyun.CityCode)
+	vp.Tencent.SecretID = firstNonEmpty(getConfigValue(ctx, "virtual_phone", "tencentSecretId", ""), getConfigValue(ctx, "virtual_phone", "tencent_secret_id", ""), vp.Tencent.SecretID)
+	vp.Tencent.SecretKey = firstNonEmpty(getConfigValue(ctx, "virtual_phone", "tencentSecretKey", ""), getConfigValue(ctx, "virtual_phone", "tencent_secret_key", ""), vp.Tencent.SecretKey)
+	vp.Tencent.AppID = firstNonEmpty(getConfigValue(ctx, "virtual_phone", "tencentAppId", ""), getConfigValue(ctx, "virtual_phone", "tencent_app_id", ""), vp.Tencent.AppID)
+	vp.Tencent.PoolID = firstNonEmpty(getConfigValue(ctx, "virtual_phone", "tencentPoolId", ""), getConfigValue(ctx, "virtual_phone", "tencent_pool_id", ""), vp.Tencent.PoolID)
+	vp.Cloopen.AccountSid = firstNonEmpty(getConfigValue(ctx, "virtual_phone", "cloopenAccountSid", ""), getConfigValue(ctx, "virtual_phone", "cloopen_account_sid", ""), vp.Cloopen.AccountSid)
+	vp.Cloopen.AuthToken = firstNonEmpty(getConfigValue(ctx, "virtual_phone", "cloopenAuthToken", ""), getConfigValue(ctx, "virtual_phone", "cloopen_auth_token", ""), vp.Cloopen.AuthToken)
+	vp.Cloopen.AppID = firstNonEmpty(getConfigValue(ctx, "virtual_phone", "cloopenAppId", ""), getConfigValue(ctx, "virtual_phone", "cloopen_app_id", ""), vp.Cloopen.AppID)
+	vp.Huawei.AppKey = firstNonEmpty(getConfigValue(ctx, "virtual_phone", "huaweiAppKey", ""), getConfigValue(ctx, "virtual_phone", "huawei_app_key", ""), vp.Huawei.AppKey)
+	vp.Huawei.AppSecret = firstNonEmpty(getConfigValue(ctx, "virtual_phone", "huaweiAppSecret", ""), getConfigValue(ctx, "virtual_phone", "huawei_app_secret", ""), vp.Huawei.AppSecret)
+	vp.Huawei.DomainName = firstNonEmpty(getConfigValue(ctx, "virtual_phone", "huaweiDomainName", ""), getConfigValue(ctx, "virtual_phone", "huawei_domain_name", ""), vp.Huawei.DomainName)
+	vp.Custom.ProviderName = firstNonEmpty(getConfigValue(ctx, "virtual_phone", "customProviderName", ""), getConfigValue(ctx, "virtual_phone", "custom_provider_name", ""), vp.Custom.ProviderName)
+	vp.Custom.APIEndpoint = firstNonEmpty(getConfigValue(ctx, "virtual_phone", "customApiEndpoint", ""), getConfigValue(ctx, "virtual_phone", "custom_api_endpoint", ""), vp.Custom.APIEndpoint)
+	vp.Custom.AppKey = firstNonEmpty(getConfigValue(ctx, "virtual_phone", "customAppKey", ""), getConfigValue(ctx, "virtual_phone", "custom_app_key", ""), vp.Custom.AppKey)
+	vp.Custom.AppSecret = firstNonEmpty(getConfigValue(ctx, "virtual_phone", "customAppSecret", ""), getConfigValue(ctx, "virtual_phone", "custom_app_secret", ""), vp.Custom.AppSecret)
+	if bindTTL := firstNonEmpty(getConfigValue(ctx, "virtual_phone", "bindTTL", ""), getConfigValue(ctx, "virtual_phone", "bind_ttl", ""), ""); bindTTL != "" {
+		if value, err := strconv.Atoi(bindTTL); err == nil {
+			vp.BindExpire = value
+		}
+	}
+	if maxDaily := firstNonEmpty(getConfigValue(ctx, "virtual_phone", "maxBindsPerDay", ""), getConfigValue(ctx, "virtual_phone", "max_binds_per_day", ""), ""); maxDaily != "" {
+		if value, err := strconv.Atoi(maxDaily); err == nil {
+			vp.MaxBindDaily = value
+		}
+	}
+	if recording := firstNonEmpty(getConfigValue(ctx, "virtual_phone", "recordingEnabled", ""), getConfigValue(ctx, "virtual_phone", "recording_enabled", ""), ""); recording != "" {
+		if value, err := strconv.ParseBool(recording); err == nil {
+			vp.RecordingEnabled = value
+		}
+	}
+	vp.PreCallPrompt = firstNonEmpty(getConfigValue(ctx, "virtual_phone", "noticeContent", ""), getConfigValue(ctx, "virtual_phone", "pre_call_prompt", ""), vp.PreCallPrompt)
+}
+
 // BindVirtualPhone 绑定虚拟号码（多服务商调度）
 func (s *VirtualPhoneService) BindVirtualPhone(ctx context.Context, orderID int64, userPhone, talentPhone string) (*model.VirtualPhone, error) {
+	s.refreshConfig(ctx)
 	vpCfg := s.cfg.ThirdParty.VirtualPhone
 	bindExpire := vpCfg.BindExpire
 	if bindExpire <= 0 {
@@ -123,6 +167,7 @@ func (s *VirtualPhoneService) BindVirtualPhone(ctx context.Context, orderID int6
 
 // UnbindVirtualPhone 解绑虚拟号码（多服务商调度）
 func (s *VirtualPhoneService) UnbindVirtualPhone(ctx context.Context, orderID int64) error {
+	s.refreshConfig(ctx)
 	// 从Redis获取绑定信息
 	cacheKey := fmt.Sprintf("vphone:order:%d", orderID)
 	data, err := s.redis.Get(ctx, cacheKey).Result()

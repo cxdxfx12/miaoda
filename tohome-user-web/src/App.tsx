@@ -254,27 +254,63 @@ const MOCK_SERVICES: ServiceItem[] = [
   { id: 404, name: '经典观影', category: 'cinema', price: 128, icon: '🎞️', desc: '经典影片重温，专业解说陪伴，解读电影背后的故事与美学', tags: ['文艺','影评'], duration: '2小时', rating: 4.7, orderCount: 289 },
 ];
 
-const DEFAULT_USER_LOCATION = { lat: 39.9042, lng: 116.4074 };
+const DEFAULT_USER_LOCATION = { lat: 30.2741, lng: 120.1551, city: '杭州', district: '西湖区', address: '杭州默认定位' };
 const NEARBY_TALENT_QUERY = { ...DEFAULT_USER_LOCATION, radius: 5000, limit: 100 };
+
+function parseAddressCity(address: string) {
+  const cityMatch = address.match(/([\u4e00-\u9fa5]{2,12}市)/);
+  const districtMatch = address.match(/([\u4e00-\u9fa5]{2,12}(区|县|市))/g);
+  const city = cityMatch?.[1]?.replace(/市$/, '') || DEFAULT_USER_LOCATION.city;
+  const district = districtMatch?.find(item => item !== cityMatch?.[1]) || '';
+  return { city, district: district || '当前定位', address };
+}
 
 function useNearbyTalentQuery() {
   const [location, setLocation] = useState(DEFAULT_USER_LOCATION);
+  const [status, setStatus] = useState<'locating' | 'success' | 'fallback' | 'denied' | 'unsupported'>('locating');
 
   useEffect(() => {
-    if (!navigator.geolocation) return;
+    let cancelled = false;
+    if (!window.isSecureContext && window.location.hostname !== 'localhost') {
+      setStatus('fallback');
+      return;
+    }
+    if (!navigator.geolocation) {
+      setStatus('unsupported');
+      return;
+    }
     navigator.geolocation.getCurrentPosition(
-      pos => {
-        setLocation({
+      async pos => {
+        const next = {
           lat: Number(pos.coords.latitude.toFixed(6)),
           lng: Number(pos.coords.longitude.toFixed(6)),
-        });
+          city: DEFAULT_USER_LOCATION.city,
+          district: '当前定位',
+          address: '已获取当前位置',
+        };
+        try {
+          const res: any = getToken()
+            ? await api.get('/map/reverse-geocode', { params: { lat: next.lat, lng: next.lng } })
+            : null;
+          const address = res?.data?.address || res?.address || '';
+          if (address) Object.assign(next, parseAddressCity(address));
+        } catch {
+          // 未登录或地图接口未配置时，仅使用经纬度筛选附近达人
+        }
+        if (!cancelled) {
+          setLocation(next);
+          setStatus('success');
+        }
       },
-      () => {},
-      { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 },
+      err => {
+        if (!cancelled) setStatus(err.code === err.PERMISSION_DENIED ? 'denied' : 'fallback');
+      },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 },
     );
+    return () => { cancelled = true; };
   }, []);
 
-  return { ...location, radius: 5000, limit: 100 };
+  return { ...location, radius: 5000, limit: 100, status };
 }
 
 function getServicesByCategory(cat: string | null): ServiceItem[] {
@@ -909,6 +945,13 @@ function OrderTrackerBar() {
 function HomePage() {
   const nav = useNavigate();
   const nearbyQuery = useNearbyTalentQuery();
+  const locationHint = nearbyQuery.status === 'success'
+    ? `${nearbyQuery.district || '当前定位'} · 当前定位`
+    : nearbyQuery.status === 'denied'
+      ? '未授权定位 · 使用默认城市'
+      : nearbyQuery.status === 'locating'
+        ? '正在获取定位...'
+        : '定位不可用 · 使用默认城市';
   const { data: cats, isLoading: catsLoading } = useQuery({ queryKey: ['categories'], queryFn: () => serviceApi.listCategories() });
   const { data: svcs, isLoading: svcsLoading } = useQuery({ queryKey: ['services'], queryFn: () => serviceApi.listServices() });
   const { data: talents, isLoading: talentsLoading } = useQuery({ queryKey: ['talents-nearby', nearbyQuery.lat, nearbyQuery.lng], queryFn: () => talentApi.nearby(nearbyQuery) });
@@ -954,10 +997,10 @@ function HomePage() {
             <div>
               <div className="flex items-center gap-1" style={{ cursor: 'pointer' }}>
                 <MapPin size={15} color="rgba(255,255,255,0.9)" />
-                <span style={{ color: '#fff', fontWeight: 700, fontSize: 15, letterSpacing: 0.5 }}>北京</span>
+                <span style={{ color: '#fff', fontWeight: 700, fontSize: 15, letterSpacing: 0.5 }}>{nearbyQuery.city || DEFAULT_USER_LOCATION.city}</span>
                 <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginLeft: 1 }}>▾</span>
               </div>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', marginTop: 1 }}>朝阳区 · 当前定位</div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', marginTop: 1 }}>{locationHint}</div>
             </div>
           </div>
           <div className="flex items-center gap-3">

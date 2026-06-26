@@ -107,6 +107,23 @@ func (s *PaymentService) RegisterChannel(name string, ch PaymentChannel) {
 	s.channels[name] = ch
 }
 
+func (s *PaymentService) refreshConfig(ctx context.Context) {
+	if s == nil || s.cfg == nil {
+		return
+	}
+	s.cfg.WeChat.AppID = firstNonEmpty(getConfigValue(ctx, "payment", "wechatAppId", ""), getConfigValue(ctx, "payment", "wechat_app_id", ""), s.cfg.WeChat.AppID)
+	s.cfg.WeChat.MchID = firstNonEmpty(getConfigValue(ctx, "payment", "wechatMchId", ""), getConfigValue(ctx, "payment", "wechat_mch_id", ""), s.cfg.WeChat.MchID)
+	s.cfg.WeChat.APIKey = firstNonEmpty(getConfigValue(ctx, "payment", "wechatApiKey", ""), getConfigValue(ctx, "payment", "wechat_api_key", ""), s.cfg.WeChat.APIKey)
+	s.cfg.WeChat.APIV3Key = firstNonEmpty(getConfigValue(ctx, "payment", "wechatApiV3Key", ""), getConfigValue(ctx, "payment", "wechat_api_v3_key", ""), s.cfg.WeChat.APIV3Key)
+	s.cfg.WeChat.NotifyURL = firstNonEmpty(getConfigValue(ctx, "payment", "wechatNotifyUrl", ""), getConfigValue(ctx, "payment", "wechat_notify_url", ""), s.cfg.WeChat.NotifyURL)
+	s.cfg.Alipay.AppID = firstNonEmpty(getConfigValue(ctx, "payment", "alipayAppId", ""), getConfigValue(ctx, "payment", "alipay_app_id", ""), s.cfg.Alipay.AppID)
+	s.cfg.Alipay.PrivateKey = firstNonEmpty(getConfigValue(ctx, "payment", "alipayPrivateKey", ""), getConfigValue(ctx, "payment", "alipay_private_key", ""), s.cfg.Alipay.PrivateKey)
+	s.cfg.Alipay.AlipayPublicKey = firstNonEmpty(getConfigValue(ctx, "payment", "alipayPublicKey", ""), getConfigValue(ctx, "payment", "alipay_public_key", ""), s.cfg.Alipay.AlipayPublicKey)
+	s.cfg.Alipay.GatewayURL = firstNonEmpty(getConfigValue(ctx, "payment", "alipayGateway", ""), getConfigValue(ctx, "payment", "alipay_gateway", ""), getConfigValue(ctx, "payment", "alipay_gateway_url", ""), s.cfg.Alipay.GatewayURL)
+	s.RegisterChannel("wechat", NewWechatChannel(&s.cfg.WeChat))
+	s.RegisterChannel("alipay", NewAlipayChannel(&s.cfg.Alipay))
+}
+
 // getChannel 获取支付渠道
 func (s *PaymentService) getChannel(payMethod int) PaymentChannel {
 	switch payMethod {
@@ -141,6 +158,7 @@ type CreatePaymentResponse struct {
 
 // CreatePayment 创建支付
 func (s *PaymentService) CreatePayment(ctx context.Context, userID int64, req *CreatePaymentRequest) (*CreatePaymentResponse, error) {
+	s.refreshConfig(ctx)
 	// 查询订单
 	var order model.Order
 	if err := s.db.GetContext(ctx, &order, `SELECT * FROM orders WHERE id = $1`, req.OrderID); err != nil {
@@ -278,6 +296,7 @@ func (s *PaymentService) GetPaymentByNo(ctx context.Context, paymentNo string) (
 
 // HandleWechatCallback 处理微信支付回调
 func (s *PaymentService) HandleWechatCallback(ctx context.Context, body []byte) error {
+	s.refreshConfig(ctx)
 	ch := s.channels["wechat"]
 	if ch == nil {
 		return errors.New("微信支付渠道未配置")
@@ -299,6 +318,7 @@ func (s *PaymentService) HandleWechatCallback(ctx context.Context, body []byte) 
 
 // HandleAlipayCallback 处理支付宝回调
 func (s *PaymentService) HandleAlipayCallback(ctx context.Context, params map[string]string) error {
+	s.refreshConfig(ctx)
 	ch := s.channels["alipay"]
 	if ch == nil {
 		return errors.New("支付宝支付渠道未配置")
@@ -361,6 +381,7 @@ func (s *PaymentService) handlePaymentSuccess(ctx context.Context, paymentNo, tr
 
 // Refund 退款
 func (s *PaymentService) Refund(ctx context.Context, paymentID int64, amount float64, reason string, userID int64) (*RefundResult, error) {
+	s.refreshConfig(ctx)
 	// 查询支付记录
 	var payment model.Payment
 	if err := s.db.GetContext(ctx, &payment, `SELECT * FROM payments WHERE id = $1`, paymentID); err != nil {
