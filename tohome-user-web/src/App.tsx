@@ -62,7 +62,49 @@ type SiteConfig = {
   support_email?: string;
   support_work_time?: string;
   support_notice?: string;
+  support_knowledge_base?: string;
 };
+
+type SupportKnowledgeItem = {
+  question: string;
+  keywords?: string[] | string;
+  answer: string;
+};
+
+const DEFAULT_SUPPORT_KNOWLEDGE: SupportKnowledgeItem[] = [
+  {
+    question: '如何下单？',
+    keywords: ['下单', '预约', '怎么约', '怎么下单', '流程'],
+    answer: '您可以在首页或服务页选择服务项目，再选择合适的达人，确认服务时间和地址后提交订单并完成支付。支付成功后，达人会在订单页接单并与您确认服务安排。',
+  },
+  {
+    question: '退款政策',
+    keywords: ['退款', '退钱', '取消订单', '多久到账', '退款多久到账'],
+    answer: '如需退款，请进入订单详情页提交退款申请。达人未出发前通常可按规则退还服务费；达人出发后，车费可能不退，服务费按订单状态和平台规则处理。审核通过后一般 1-3 个工作日原路退回。',
+  },
+  {
+    question: '优惠券使用',
+    keywords: ['优惠券', '券', '红包', '抵扣', '新人券'],
+    answer: '优惠券会在下单结算页自动展示。满足使用门槛的优惠券可直接勾选抵扣，一个订单通常只能使用一张优惠券，具体以结算页展示为准。',
+  },
+  {
+    question: '投诉建议',
+    keywords: ['投诉', '建议', '不满意', '举报', '服务不好'],
+    answer: '如果您对服务不满意，可以在订单详情页提交投诉或联系在线客服。请尽量提供订单号、问题描述和相关截图，我们会尽快核实处理。',
+  },
+  {
+    question: '达人是否真实？',
+    keywords: ['真人', '认证', '达人真实', '安全吗', '安全'],
+    answer: '平台达人会经过基础资料审核和认证流程。您可以在达人详情页查看头像、评分、服务记录等信息。服务过程中如遇异常，请立即联系平台客服。',
+  },
+  {
+    question: '如何联系客服？',
+    keywords: ['客服', '电话', '联系', '人工', '转人工'],
+    answer: '您可以在当前页面继续留言，也可以拨打页面上方展示的客服热线。遇到订单紧急问题时，建议优先拨打客服电话处理。',
+  },
+];
+
+const DEFAULT_SUPPORT_KNOWLEDGE_TEXT = JSON.stringify(DEFAULT_SUPPORT_KNOWLEDGE, null, 2);
 
 const DEFAULT_SITE_CONFIG: SiteConfig = {
   app_name: '喵搭',
@@ -88,7 +130,58 @@ const DEFAULT_SITE_CONFIG: SiteConfig = {
   support_email: 'support@miaoda.com',
   support_work_time: '09:00 - 22:00',
   support_notice: '紧急订单问题建议直接拨打客服热线，普通咨询可在线留言。',
+  support_knowledge_base: DEFAULT_SUPPORT_KNOWLEDGE_TEXT,
 };
+
+function normalizeSupportText(text: string) {
+  return text.toLowerCase().replace(/[\s,，。.!！?？、；;:："'“”‘’（）()【】[\]{}]/g, '');
+}
+
+function parseSupportKnowledge(value?: string): SupportKnowledgeItem[] {
+  if (!value?.trim()) return DEFAULT_SUPPORT_KNOWLEDGE;
+  try {
+    const parsed = JSON.parse(value);
+    if (!Array.isArray(parsed)) return DEFAULT_SUPPORT_KNOWLEDGE;
+    return parsed
+      .map((item: any) => ({
+        question: String(item.question || '').trim(),
+        keywords: Array.isArray(item.keywords) ? item.keywords.map((k: any) => String(k).trim()).filter(Boolean) : String(item.keywords || '').split(/[,，]/).map(k => k.trim()).filter(Boolean),
+        answer: String(item.answer || '').trim(),
+      }))
+      .filter(item => item.question && item.answer);
+  } catch {
+    return DEFAULT_SUPPORT_KNOWLEDGE;
+  }
+}
+
+function findSupportAnswer(input: string, config: SiteConfig) {
+  const query = normalizeSupportText(input);
+  if (!query) return '';
+  const knowledge = parseSupportKnowledge(config.support_knowledge_base);
+  let bestScore = 0;
+  let bestAnswer = '';
+  let bestQuestion = '';
+  knowledge.forEach((item) => {
+    const question = normalizeSupportText(item.question);
+    const keywords = Array.isArray(item.keywords) ? item.keywords : String(item.keywords || '').split(/[,，]/);
+    let score = 0;
+    if (question && (query.includes(question) || question.includes(query))) score += 5;
+    keywords.forEach((keyword) => {
+      const key = normalizeSupportText(String(keyword || ''));
+      if (!key) return;
+      if (query.includes(key) || key.includes(query)) score += key.length >= 2 ? 3 : 1;
+    });
+    if (score > bestScore) {
+      bestScore = score;
+      bestAnswer = item.answer;
+      bestQuestion = item.question;
+    }
+  });
+  if (bestScore > 0) {
+    return `已为您匹配到「${bestQuestion}」：\n${bestAnswer}`;
+  }
+  return '';
+}
 
 async function fetchSiteConfig(): Promise<SiteConfig> {
   try {
@@ -4009,8 +4102,9 @@ function SupportPage() {
     setMessages(prev => [...prev, { from: 'me', text: content, time: timeStr }]);
     setMsg('');
     setTimeout(() => {
-      setMessages(prev => [...prev, { from: 'cs', text: siteConfig.support_auto_reply || DEFAULT_SITE_CONFIG.support_auto_reply!, time: new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'}) }]);
-    }, 1500);
+      const answer = findSupportAnswer(content, siteConfig) || siteConfig.support_auto_reply || DEFAULT_SITE_CONFIG.support_auto_reply!;
+      setMessages(prev => [...prev, { from: 'cs', text: answer, time: new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'}) }]);
+    }, 700);
   };
   const quickQuestions = (siteConfig.support_quick || DEFAULT_SITE_CONFIG.support_quick || '').split(',').map(s => s.trim()).filter(Boolean);
 
