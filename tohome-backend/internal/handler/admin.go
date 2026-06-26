@@ -226,6 +226,20 @@ func (h *AdminHandler) AdminUpdateTalent(c *gin.Context) {
 	response.Success(c, talent)
 }
 
+// AdminDeleteTalent 管理员删除达人
+func (h *AdminHandler) AdminDeleteTalent(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil || id <= 0 {
+		response.ParamError(c, "无效的达人ID")
+		return
+	}
+	if err := h.talentSvc.AdminDelete(c.Request.Context(), id); err != nil {
+		response.Fail(c, response.CodeBusinessError, err.Error())
+		return
+	}
+	response.Success(c, gin.H{"message": "删除成功"})
+}
+
 // AdminUploadFile 管理员上传文件
 func (h *AdminHandler) AdminUploadFile(c *gin.Context) {
 	file, header, err := c.Request.FormFile("file")

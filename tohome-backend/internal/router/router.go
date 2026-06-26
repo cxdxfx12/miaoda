@@ -274,6 +274,7 @@ func RegisterAdminRoutes(r *gin.Engine, h *handler.AdminHandler, grabH *handler.
 		admin.GET("/talents/:id", h.AdminGetTalentDetail)
 		admin.POST("/talents", h.AdminCreateTalent)
 		admin.PUT("/talents/:id", h.AdminUpdateTalent)
+		admin.DELETE("/talents/:id", h.AdminDeleteTalent)
 		admin.POST("/talents/:id/review", h.AdminReviewTalent)
 		admin.POST("/talents/batch-review", h.AdminBatchReviewTalents)
 

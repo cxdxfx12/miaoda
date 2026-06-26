@@ -318,9 +318,15 @@ export default function TechniciansPage() {
   };
 
   // 删除
-  const deleteTalent = (id: number) => {
-    setTalents(prev => prev.filter((t: any) => t.id !== id));
-    setDeleteConfirm(null);
+  const deleteTalent = async (id: number) => {
+    try {
+      await talentApi.delete(id);
+      setTalents(prev => prev.filter((t: any) => t.id !== id));
+      setTotal(prev => Math.max(0, prev - 1));
+      setDeleteConfirm(null);
+    } catch (err: any) {
+      alert('删除失败: ' + (err?.message || '请稍后重试'));
+    }
   };
 
   // 分配

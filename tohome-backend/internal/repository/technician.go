@@ -90,6 +90,27 @@ func (r *TalentRepository) Update(ctx context.Context, talent *model.Talent) err
 	return err
 }
 
+// Delete 软删除达人
+func (r *TalentRepository) Delete(ctx context.Context, id int64) error {
+	now := time.Now()
+	result, err := r.db.ExecContext(ctx,
+		`UPDATE technicians SET deleted_at = $1, updated_at = $1, work_status = $2 WHERE id = $3 AND deleted_at IS NULL`,
+		now, model.WorkStatusOffline, id)
+	if err != nil {
+		return err
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return errors.New("达人不存在或已删除")
+	}
+	key := fmt.Sprintf("talent:status:%d", id)
+	_ = r.redis.Del(ctx, key).Err()
+	return nil
+}
+
 // UpdateWorkStatus 更新工作状态
 func (r *TalentRepository) UpdateWorkStatus(ctx context.Context, id int64, status int) error {
 	_, err := r.db.ExecContext(ctx,

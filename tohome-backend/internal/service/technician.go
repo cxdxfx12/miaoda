@@ -431,6 +431,21 @@ func (s *TalentService) AdminUpdate(ctx context.Context, id int64, req *AdminCre
 	return talent, nil
 }
 
+// AdminDelete 管理员删除达人
+func (s *TalentService) AdminDelete(ctx context.Context, id int64) error {
+	if id <= 0 {
+		return errors.New("无效的达人ID")
+	}
+	if _, err := s.talentRepo.GetByID(ctx, id); err != nil {
+		return ErrTalentNotFound
+	}
+	if err := s.talentRepo.Delete(ctx, id); err != nil {
+		return err
+	}
+	logger.Info("管理员删除达人成功: id=%d", id)
+	return nil
+}
+
 // Review 审核达人
 func (s *TalentService) Review(ctx context.Context, id int64, status int, reason string) error {
 	talent, err := s.talentRepo.GetByID(ctx, id)

@@ -41,6 +41,9 @@ export const talentApi = {
   update: (id: number, data: Partial<CreateTalentParams>) =>
     api.put(`/api/v1/admin/talents/${id}`, data),
 
+  delete: (id: number) =>
+    api.delete(`/api/v1/admin/talents/${id}`),
+
   review: (id: number, status: number | string, reason?: string) =>
     api.post(`/api/v1/admin/talents/${id}/review`, { status: Number(status), reason }),
 

@@ -301,10 +301,25 @@ function normalizeServiceIcon(value?: string, fallback = '✨') {
   return icon;
 }
 
+const TALENT_SKILL_LABELS: Record<number, string> = {
+  1: '中式按摩',
+  2: '泰式SPA',
+  3: '扶阳SPA',
+  4: '足疗保健',
+  5: '精油推背',
+  6: '经络疏通',
+  7: '台球陪练',
+  8: '观影陪伴',
+  9: 'K歌微醺',
+  10: '电竞游戏',
+};
+
 function normalizeTalentTags(values: any[]) {
   return values
     .map((value: any) => {
-      const tag = typeof value === 'string' ? value : (value?.name || value?.label || '');
+      if (typeof value === 'number') return TALENT_SKILL_LABELS[value] || '';
+      if (typeof value === 'string' && /^\d+$/.test(value)) return TALENT_SKILL_LABELS[Number(value)] || '';
+      const tag = typeof value === 'string' ? value : (value?.name || value?.label || TALENT_SKILL_LABELS[Number(value?.id)] || '');
       return String(tag || '').trim();
     })
     .filter((tag) => tag && !/^\d+$/.test(tag))
@@ -370,7 +385,7 @@ function adaptApiService(raw: any): ServiceItem {
   };
 }
 
-/* ---- Mock 达人数据 ---- */
+/* ---- 达人数据 ---- */
 interface TalentItem {
   id: number;
   name: string;
