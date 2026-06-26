@@ -290,24 +290,32 @@ function isImageIcon(value?: string) {
   return !!value && (/^https?:\/\//.test(value) || value.startsWith('/uploads/'));
 }
 
+function normalizeServiceIcon(value?: string, fallback = '✨') {
+  const icon = String(value || '').trim();
+  if (!icon || /^\d+$/.test(icon)) return fallback;
+  return icon;
+}
+
 function renderServiceIcon(value?: string, size = 44) {
-  if (isImageIcon(value)) {
+  const icon = normalizeServiceIcon(value);
+  if (isImageIcon(icon)) {
     return (
       <img
-        src={value}
+        src={icon}
         alt="服务图标"
         style={{ width: size, height: size, borderRadius: Math.max(10, Math.round(size / 4)), objectFit: 'cover' }}
       />
     );
   }
-  return <span style={{ fontSize: size }}>{value || '✨'}</span>;
+  return <span style={{ fontSize: size }}>{icon}</span>;
 }
 
 function renderServiceImageFill(value?: string, fallbackSize = 58) {
-  if (isImageIcon(value)) {
+  const icon = normalizeServiceIcon(value);
+  if (isImageIcon(icon)) {
     return (
       <img
-        src={value}
+        src={icon}
         alt="服务图标"
         style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
       />
@@ -332,13 +340,14 @@ function adaptApiService(raw: any): ServiceItem {
   };
   const category = categoryMap[Number(raw.category_id)] || categoryNameMap[raw.category?.name] || 'leisure';
   const mock = MOCK_SERVICES.find(s => s.id === Number(raw.id)) || MOCK_SERVICES.find(s => s.category === category);
+  const icon = normalizeServiceIcon(raw.cover_image || raw.category?.icon, mock?.icon || '✨');
   return {
     id: Number(raw.id),
     name: raw.name || mock?.name || '',
     category,
     price: Number(raw.base_price ?? raw.price ?? mock?.price ?? 0),
     originalPrice: Number(raw.original_price ?? raw.originalPrice ?? mock?.originalPrice ?? 0) || undefined,
-    icon: raw.cover_image || raw.category?.icon || mock?.icon || '✨',
+    icon,
     desc: raw.description || raw.desc || mock?.desc || '',
     tags: Array.isArray(raw.tags) ? raw.tags : (mock?.tags || []),
     duration: raw.duration || mock?.duration || '1小时',
