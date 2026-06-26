@@ -134,6 +134,10 @@ func (s *MapService) refreshConfig(ctx context.Context) {
 		getConfigValue(ctx, "map", "amap_secret", ""),
 		getConfigValue(ctx, "map", "amapSecret", ""),
 	)
+	tencentKey := firstNonEmpty(
+		getConfigValue(ctx, "map", "tencent_key", ""),
+		getConfigValue(ctx, "map", "tencentKey", ""),
+	)
 	cacheTTL := firstNonEmpty(
 		getConfigValue(ctx, "map", "cache_ttl", ""),
 		getConfigValue(ctx, "map", "cacheTTL", ""),
@@ -145,7 +149,11 @@ func (s *MapService) refreshConfig(ctx context.Context) {
 		s.provider = NewAMapProvider(amapKey, amapSecret)
 		return
 	}
-	// 当前后端已完整接入高德地图；腾讯/百度配置先保存在后台，未接入时降级为直线距离，避免业务中断。
+	if provider == "tencent" && tencentKey != "" {
+		s.provider = NewTencentMapProvider(tencentKey)
+		return
+	}
+	// 百度配置先保存在后台，未接入时降级为直线距离，避免业务中断。
 	if s.provider == nil || provider != "amap" {
 		s.provider = &NoopMapProvider{}
 	}
@@ -507,6 +515,150 @@ func (p *AMapProvider) Direction(ctx context.Context, from, to *GeoPoint, mode s
 	}
 
 	return dirResult, nil
+}
+
+// --- 腾讯地图实现 ---
+
+type TencentMapProvider struct {
+	key    string
+	client *http.Client
+}
+
+func NewTencentMapProvider(key string) *TencentMapProvider {
+	return &TencentMapProvider{key: key, client: &http.Client{Timeout: 10 * time.Second}}
+}
+
+func (p *TencentMapProvider) Geocode(ctx context.Context, address string) (*GeoPoint, error) {
+	u := fmt.Sprintf("https://apis.map.qq.com/ws/geocoder/v1/?address=%s&key=%s", url.QueryEscape(address), p.key)
+	resp, err := p.client.Get(u)
+	if err != nil {
+		return nil, fmt.Errorf("腾讯地图地理编码请求失败: %w", err)
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	var result struct {
+		Status  int    `json:"status"`
+		Message string `json:"message"`
+		Result  struct {
+			Location struct {
+				Lat float64 `json:"lat"`
+				Lng float64 `json:"lng"`
+			} `json:"location"`
+		} `json:"result"`
+	}
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, err
+	}
+	if result.Status != 0 {
+		return nil, fmt.Errorf("腾讯地图地理编码失败: %s", result.Message)
+	}
+	return &GeoPoint{Lat: result.Result.Location.Lat, Lng: result.Result.Location.Lng}, nil
+}
+
+func (p *TencentMapProvider) ReverseGeocode(ctx context.Context, lat, lng float64) (string, error) {
+	u := fmt.Sprintf("https://apis.map.qq.com/ws/geocoder/v1/?location=%f,%f&key=%s", lat, lng, p.key)
+	resp, err := p.client.Get(u)
+	if err != nil {
+		return "", fmt.Errorf("腾讯地图逆地理编码请求失败: %w", err)
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	var result struct {
+		Status  int    `json:"status"`
+		Message string `json:"message"`
+		Result  struct {
+			Address            string `json:"address"`
+			FormattedAddresses struct {
+				Recommend string `json:"recommend"`
+			} `json:"formatted_addresses"`
+		} `json:"result"`
+	}
+	if err := json.Unmarshal(body, &result); err != nil {
+		return "", err
+	}
+	if result.Status != 0 {
+		return "", fmt.Errorf("腾讯地图逆地理编码失败: %s", result.Message)
+	}
+	if result.Result.FormattedAddresses.Recommend != "" {
+		return result.Result.FormattedAddresses.Recommend, nil
+	}
+	return result.Result.Address, nil
+}
+
+func (p *TencentMapProvider) Distance(ctx context.Context, from, to *GeoPoint, mode string) (*DistanceResult, error) {
+	apiMode := "driving"
+	if mode == "walking" {
+		apiMode = "walking"
+	}
+	u := fmt.Sprintf("https://apis.map.qq.com/ws/distance/v1/matrix/?mode=%s&from=%f,%f&to=%f,%f&key=%s", apiMode, from.Lat, from.Lng, to.Lat, to.Lng, p.key)
+	resp, err := p.client.Get(u)
+	if err != nil {
+		return nil, fmt.Errorf("腾讯地图距离计算请求失败: %w", err)
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	var result struct {
+		Status  int    `json:"status"`
+		Message string `json:"message"`
+		Result  struct {
+			Rows []struct {
+				Elements []struct {
+					Distance float64 `json:"distance"`
+					Duration float64 `json:"duration"`
+				} `json:"elements"`
+			} `json:"rows"`
+		} `json:"result"`
+	}
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, err
+	}
+	if result.Status != 0 || len(result.Result.Rows) == 0 || len(result.Result.Rows[0].Elements) == 0 {
+		return nil, fmt.Errorf("腾讯地图距离计算失败: %s", result.Message)
+	}
+	item := result.Result.Rows[0].Elements[0]
+	return &DistanceResult{DistanceMeters: item.Distance, DurationSec: int(item.Duration), Mode: mode}, nil
+}
+
+func (p *TencentMapProvider) Search(ctx context.Context, keyword string, center *GeoPoint, radius int) ([]GeoPOI, error) {
+	u := fmt.Sprintf("https://apis.map.qq.com/ws/place/v1/search?keyword=%s&boundary=nearby(%f,%f,%d)&key=%s", url.QueryEscape(keyword), center.Lat, center.Lng, radius, p.key)
+	resp, err := p.client.Get(u)
+	if err != nil {
+		return nil, fmt.Errorf("腾讯地图周边搜索请求失败: %w", err)
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	var result struct {
+		Status  int    `json:"status"`
+		Message string `json:"message"`
+		Data    []struct {
+			Title    string `json:"title"`
+			Address  string `json:"address"`
+			Category string `json:"category"`
+			Location struct {
+				Lat float64 `json:"lat"`
+				Lng float64 `json:"lng"`
+			} `json:"location"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, err
+	}
+	if result.Status != 0 {
+		return nil, fmt.Errorf("腾讯地图周边搜索失败: %s", result.Message)
+	}
+	pois := make([]GeoPOI, 0, len(result.Data))
+	for _, item := range result.Data {
+		pois = append(pois, GeoPOI{Name: item.Title, Address: item.Address, Type: item.Category, Location: GeoPoint{Lat: item.Location.Lat, Lng: item.Location.Lng}, Distance: QuickDistance(center.Lat, center.Lng, item.Location.Lat, item.Location.Lng)})
+	}
+	return pois, nil
+}
+
+func (p *TencentMapProvider) Direction(ctx context.Context, from, to *GeoPoint, mode string) (*DirectionResult, error) {
+	dist, err := p.Distance(ctx, from, to, mode)
+	if err != nil {
+		return nil, err
+	}
+	return &DirectionResult{DistanceMeters: dist.DistanceMeters, DurationSec: dist.DurationSec}, nil
 }
 
 // --- 空实现（未配置Key时使用） ---
