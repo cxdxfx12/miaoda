@@ -123,20 +123,13 @@ export default function TechniciansPage() {
       if (statusFilter) params.status = statusFilter;
       const res: any = await talentApi.list(params);
       const list = res?.data?.list || [];
-      if (Array.isArray(list) && list.length > 0) {
-        setTalents(list);
-        setTotal(res?.data?.total || list.length);
-        setIsMock(false);
-      } else {
-        // 后端无数据，使用 mock
-        setTalents(MOCK_TALENTS);
-        setTotal(MOCK_TALENTS.length);
-        setIsMock(true);
-      }
+      setTalents(Array.isArray(list) ? list : []);
+      setTotal(res?.data?.total || (Array.isArray(list) ? list.length : 0));
+      setIsMock(false);
     } catch {
-      setTalents(MOCK_TALENTS);
-      setTotal(MOCK_TALENTS.length);
-      setIsMock(true);
+      setTalents([]);
+      setTotal(0);
+      setIsMock(false);
     } finally {
       setLoading(false);
     }
@@ -328,9 +321,7 @@ export default function TechniciansPage() {
         auto_approve: false,
       };
 
-      if (!isMock) {
-        await talentApi.update(editing.id, params);
-      }
+      await talentApi.update(editing.id, params);
 
       // 更新本地列表
       const idx = talents.findIndex((t: any) => t.id === editing.id);
@@ -344,10 +335,6 @@ export default function TechniciansPage() {
           age_range: getAgeRange(editForm.birthday),
         };
         setTalents(updated);
-        if (isMock) {
-          const mi = MOCK_TALENTS.findIndex((t: any) => t.id === editing.id);
-          if (mi !== -1) Object.assign(MOCK_TALENTS[mi], updated[idx]);
-        }
       }
       setEditModal(false);
       setEditing(null);
@@ -366,19 +353,11 @@ export default function TechniciansPage() {
     const updated = [...talents];
     updated[idx] = { ...updated[idx], work_status: next };
     setTalents(updated);
-    if (isMock) {
-      const mi = MOCK_TALENTS.findIndex((x: any) => x.id === t.id);
-      if (mi !== -1) MOCK_TALENTS[mi].work_status = next;
-    }
   };
 
   // 删除
   const deleteTalent = (id: number) => {
     setTalents(prev => prev.filter((t: any) => t.id !== id));
-    if (isMock) {
-      const mi = MOCK_TALENTS.findIndex((t: any) => t.id === id);
-      if (mi !== -1) MOCK_TALENTS.splice(mi, 1);
-    }
     setDeleteConfirm(null);
   };
 
@@ -403,22 +382,16 @@ export default function TechniciansPage() {
     setAssignSaving(true);
     setAssignError('');
     try {
-      if (!isMock) {
-        await talentApi.update(assignTalent.id, {
-          skills: assignSkillIds,
-          certificates: [],
-          auto_approve: false,
-        } as any);
-      }
+      await talentApi.update(assignTalent.id, {
+        skills: assignSkillIds,
+        certificates: [],
+        auto_approve: false,
+      } as any);
 
       const updatedSkills = JSON.stringify(assignSkillIds);
       setTalents(prev => prev.map((t: any) => (
         t.id === assignTalent.id ? { ...t, skills: updatedSkills } : t
       )));
-      if (isMock) {
-        const mi = MOCK_TALENTS.findIndex((t: any) => t.id === assignTalent.id);
-        if (mi !== -1) MOCK_TALENTS[mi].skills = updatedSkills;
-      }
       setAssignModal(false);
       setAssignTalent(null);
       setAssignSkillIds([]);

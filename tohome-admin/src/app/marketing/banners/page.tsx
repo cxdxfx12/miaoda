@@ -38,13 +38,9 @@ export default function BannersPage() {
     try {
       const res: any = await marketingApi.getBanners();
       const data = res?.data || res;
-      if (Array.isArray(data) && data.length > 0) {
-        setBanners(data);
-      } else {
-        setBanners(MOCK_BANNERS);
-      }
+      setBanners(Array.isArray(data) ? data : []);
     } catch {
-      setBanners(MOCK_BANNERS);
+      setBanners([]);
     } finally {
       setLoading(false);
     }

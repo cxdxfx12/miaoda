@@ -120,21 +120,17 @@ export default function ServicesPage() {
       setCategories(catList);
 
       const svcList = Array.isArray(svcRes?.data?.list) ? svcRes.data.list : (Array.isArray(svcRes?.data) ? svcRes.data : (Array.isArray(svcRes) ? svcRes : []));
-      if (Array.isArray(svcList) && svcList.length > 0) {
-        const mapped = svcList.map((s: ServiceItem) => {
-          const cat = catList.find((c: ServiceCategory) => c.id === s.category_id);
-          return {
+      const mapped = Array.isArray(svcList) ? svcList.map((s: ServiceItem) => {
+        const cat = catList.find((c: ServiceCategory) => c.id === s.category_id);
+        return {
           ...s,
           category_name: cat?.name || CATEGORY_MAP[s.category_id]?.name || '未知',
           category_icon: cat?.icon || CATEGORY_MAP[s.category_id]?.icon || '📦',
         };
-        });
-        setServices(mapped);
-      } else {
-        setServices(MOCK_SERVICES);
-      }
+      }) : [];
+      setServices(mapped);
     } catch {
-      setServices(MOCK_SERVICES);
+      setServices([]);
     } finally {
       setLoading(false);
     }
@@ -158,30 +154,8 @@ export default function ServicesPage() {
       setShowForm(false);
       setEditing(null);
       await loadInitialData();
-    } catch {
-      // 后端不可用 → 本地更新 mock
-      const updated = [...services];
-      if (editing.id) {
-        const idx = updated.findIndex(s => s.id === editing.id);
-        if (idx >= 0) updated[idx] = {
-          ...updated[idx],
-          ...editing,
-          category_name: CATEGORY_MAP[editing.category_id || 0]?.name || '未知',
-          category_icon: CATEGORY_MAP[editing.category_id || 0]?.icon || '📦',
-        } as ServiceItem;
-      } else {
-        updated.push({
-          ...editing,
-          id: Date.now(),
-          order_count: 0,
-          view_count: 0,
-          category_name: CATEGORY_MAP[editing.category_id || 0]?.name || '未知',
-          category_icon: CATEGORY_MAP[editing.category_id || 0]?.icon || '📦',
-        } as ServiceItem);
-      }
-      setServices(updated);
-      setShowForm(false);
-      setEditing(null);
+    } catch (e: any) {
+      alert(e?.message || '保存失败，请检查后端服务');
     } finally {
       setSaving(false);
     }
@@ -193,7 +167,7 @@ export default function ServicesPage() {
       await serviceApi.deleteService(id);
       await loadServices();
     } catch {
-      setServices(prev => prev.filter(s => s.id !== id));
+      alert('删除失败，请稍后重试');
     }
   }
 

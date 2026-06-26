@@ -39,9 +39,9 @@ const MOCK_ACTIVITIES: Activity[] = [
 
 export default function MarketingPage() {
   const [loading, setLoading] = useState(true);
-  const [coupons, setCoupons] = useState<Coupon[]>(MOCK_COUPONS);
-  const [activities, setActivities] = useState<Activity[]>(MOCK_ACTIVITIES);
-  const [overview, setOverview] = useState(MOCK_OVERVIEW);
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [overview, setOverview] = useState({ coupon_total: 0, coupon_used: 0, activity_active: 0 });
 
   useEffect(() => { loadData(); }, []);
 
@@ -54,10 +54,14 @@ export default function MarketingPage() {
       ]);
       setOverview({ coupon_total: 0, coupon_used: 0, activity_active: 0, ...((ov as any)?.data || {}) });
       const cList = (co as any)?.data?.list ?? (co as any)?.data ?? [];
-      if (cList.length) setCoupons(cList);
+      setCoupons(Array.isArray(cList) ? cList : []);
       const aList = (ac as any)?.data?.list ?? (ac as any)?.data ?? [];
-      if (aList.length) setActivities(aList);
-    } catch { /* backend unavailable, using mock */ }
+      setActivities(Array.isArray(aList) ? aList : []);
+    } catch {
+      setOverview({ coupon_total: 0, coupon_used: 0, activity_active: 0 });
+      setCoupons([]);
+      setActivities([]);
+    }
     finally { setLoading(false); }
   }
 

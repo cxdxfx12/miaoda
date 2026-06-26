@@ -3730,34 +3730,32 @@ function SubPageNav({ title, onBack, right }: { title: string; onBack?: () => vo
 /* ===================================================================
    个人信息编辑页 /profile/edit
    =================================================================== */
-const MOCK_FAVORITES = [
-  { id: 1, type: 'service', name: '中式按摩', icon: '💆‍♂️', price: 168, category: '按摩服务', rating: 4.8 },
-  { id: 2, type: 'talent', name: '林悦儿', avatar: 'https://randomuser.me/api/portraits/women/1.jpg', rating: 4.9, orderCount: 1256, tags: ['专业','温柔'] },
-  { id: 3, type: 'service', name: '泰式SPA', icon: '🧘', price: 238, category: '按摩服务', rating: 4.9 },
-  { id: 4, type: 'talent', name: '陈思琪', avatar: 'https://randomuser.me/api/portraits/women/4.jpg', rating: 4.9, orderCount: 1534, tags: ['资深','专家'] },
-  { id: 5, type: 'service', name: '电竞游戏', icon: '🎮', price: 88, category: '娱乐陪伴', rating: 4.7 },
-  { id: 6, type: 'service', name: 'K歌微醺', icon: '🎤', price: 168, category: '娱乐陪伴', rating: 4.9 },
-];
-const MOCK_REVIEWS = [
-  { id: 1, service: '中式推拿60分钟', talent: '林姐', rating: 5, content: '手法非常专业，力度适中，体验很好！下次还会再来。', date: '2025-06-18', reply: '感谢您的认可，期待再次为您服务~' },
-  { id: 2, service: '电竞陪玩2小时', talent: '阿杰', rating: 4, content: '技术不错，就是沟通稍微少了点。整体还是满意的。', date: '2025-06-10', reply: '' },
-  { id: 3, service: '泰式SPA90分钟', talent: '曼曼', rating: 5, content: '环境很好，技师很专业，精油味道也很舒服，非常放松的一次体验！', date: '2025-05-28', reply: '' },
-  { id: 4, service: '观影陪伴', talent: '小雨', rating: 5, content: '小姐姐很健谈，电影选得也不错，下次还想约！', date: '2025-05-15', reply: '谢谢亲的好评呀～' },
-];
-
 function ProfileEditPage() {
   const userInfo = useUserStore(s => s.userInfo);
   const setUserInfo = useUserStore(s => s.setUserInfo);
   const [nick, setNick] = useState(userInfo?.nickname || '');
   const [gender, setGender] = useState(userInfo?.gender === 2 ? '女' : '男');
-  const [bio, setBio] = useState('这个人很懒，什么都没写~');
-  const [birthday, setBirthday] = useState('1995-06-15');
+  const [bio, setBio] = useState('');
+  const [birthday, setBirthday] = useState((userInfo as any)?.birthday || '');
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  const handleSave = () => {
-    setUserInfo({ ...(userInfo as any), nickname: nick });
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const payload = {
+        ...(userInfo as any),
+        nickname: nick,
+        gender: gender === '女' ? 2 : 1,
+        birthday: birthday || null,
+      };
+      await api.put('/user/info', payload);
+      setUserInfo(payload);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -3835,7 +3833,7 @@ function ProfileEditPage() {
           marginTop: 6, letterSpacing: 1,
           boxShadow: saved ? '0 6px 20px rgba(34,197,94,0.35)' : '0 6px 20px rgba(124,92,252,0.35)',
           transition: 'all 0.25s',
-        }}>{saved ? '✔ 已保存' : '保存修改'}</button>
+        }}>{saving ? '保存中...' : saved ? '✔ 已保存' : '保存修改'}</button>
       </div>
     </div>
   );
@@ -3846,7 +3844,8 @@ function ProfileEditPage() {
    =================================================================== */
 function FavoritesPage() {
   const [tab, setTab] = useState<'all' | 'service' | 'talent'>('all');
-  const filtered = tab === 'all' ? MOCK_FAVORITES : MOCK_FAVORITES.filter(f => f.type === tab);
+  const favorites: any[] = [];
+  const filtered = tab === 'all' ? favorites : favorites.filter(f => f.type === tab);
   return (
     <div className="page" style={{ background: '#F5F0E8', minHeight: '100vh' }}>
       <SubPageNav title="我的收藏" />
@@ -3913,11 +3912,17 @@ function FavoritesPage() {
    我的评价页 /reviews
    =================================================================== */
 function ReviewsPage() {
+  const reviews: any[] = [];
   return (
     <div className="page" style={{ background: '#F5F0E8', minHeight: '100vh' }}>
-      <SubPageNav title="我的评价" right={<span style={{ fontSize: 13, color: '#7C5CFC', fontWeight: 600 }}>共{MOCK_REVIEWS.length}条</span>} />
+      <SubPageNav title="我的评价" right={<span style={{ fontSize: 13, color: '#7C5CFC', fontWeight: 600 }}>共{reviews.length}条</span>} />
       <div style={{ padding: '16px' }}>
-        {MOCK_REVIEWS.map(r => (
+        {reviews.length === 0 ? (
+          <div style={{ textAlign: 'center', paddingTop: 80 }}>
+            <div style={{ fontSize: 48, opacity: 0.5 }}>⭐</div>
+            <div style={{ color: '#999', marginTop: 12, fontSize: 14 }}>暂无真实评价记录</div>
+          </div>
+        ) : reviews.map(r => (
           <div key={r.id} style={{ background: '#fff', borderRadius: 16, padding: '18px', marginBottom: 12, boxShadow: '0 2px 10px rgba(0,0,0,0.04)' }}>
             {/* 服务信息 + 评分 */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
@@ -4177,13 +4182,7 @@ function AddressPage() {
    =================================================================== */
 function CouponsPage() {
   const [ctab, setCtab] = useState<'available' | 'used' | 'expired'>('available');
-  const coupons = [
-    { id: 1, title: '新人专享券', amount: 20, minSpend: 100, expire: '2025-07-31', status: 'available' as const, color: '#FF6B9D' },
-    { id: 2, title: '满减优惠券', amount: 30, minSpend: 200, expire: '2025-08-15', status: 'available' as const, color: '#F59E0B' },
-    { id: 3, title: '服务通用券', amount: 50, minSpend: 300, expire: '2025-09-01', status: 'available' as const, color: '#7C5CFC' },
-    { id: 4, title: '限时特惠券', amount: 15, minSpend: 80, expire: '2025-06-01', status: 'expired' as const, color: '#9CA3AF' },
-    { id: 5, title: '首单立减', amount: 10, minSpend: 50, expire: '2025-05-20', status: 'used' as const, color: '#9CA3AF' },
-  ];
+  const coupons: any[] = [];
   const shown = coupons.filter(c => c.status === ctab);
 
   return (
@@ -4243,7 +4242,7 @@ function CouponsPage() {
                   }}>{c.status === 'used' ? '已使用' : '已过期'}</div>
                 )}
                 {c.status === 'available' && (
-                  <div onClick={() => alert('立即使用优惠券')} style={{
+                  <div onClick={() => window.location.href = '/services'} style={{
                     position: 'absolute', bottom: 14, right: 14,
                     padding: '6px 18px', borderRadius: 10, fontSize: 12, fontWeight: 700,
                     color: '#fff', background: `linear-gradient(135deg, ${c.color}, ${c.color}cc)`, cursor: 'pointer',
@@ -4263,6 +4262,7 @@ function CouponsPage() {
    =================================================================== */
 function InvitePage() {
   const [copied, setCopied] = useState(false);
+  const inviteCode = '';
   return (
     <div className="page" style={{ background: 'linear-gradient(180deg, #7C5CFC 0%, #A78BFA 30%, #F5F0E8 30%)', minHeight: '100vh' }}>
       <SubPageNav title="邀请好友" />
@@ -4287,19 +4287,19 @@ function InvitePage() {
             background: 'linear-gradient(160deg, #F5F3FF, #EDE9FE)', borderRadius: 18, padding: '20px', marginBottom: 18, position: 'relative', zIndex: 1,
           }}>
             <div style={{ fontSize: 12, color: '#7C5CFC', fontWeight: 700, marginBottom: 8 }}>我的专属邀请码</div>
-            <div style={{ fontSize: 36, fontWeight: 900, color: '#1a1a2e', letterSpacing: 6, fontFamily: 'monospace' }}>MDDA2025</div>
-            <div style={{ fontSize: 11, color: '#bbb', marginTop: 6 }}>复制邀请码分享给好友即可</div>
+            <div style={{ fontSize: 20, fontWeight: 900, color: '#1a1a2e', letterSpacing: 1 }}>{inviteCode || '邀请功能暂未开通'}</div>
+            <div style={{ fontSize: 11, color: '#bbb', marginTop: 6 }}>开通邀请接口后将显示专属邀请码</div>
           </div>
 
           {/* 按钮 */}
           <div style={{ display: 'flex', gap: 10, position: 'relative', zIndex: 1 }}>
-            <button onClick={() => { navigator.clipboard.writeText('MDDA2025'); setCopied(true); setTimeout(()=>setCopied(false),2000); }}
+            <button disabled={!inviteCode} onClick={() => { navigator.clipboard.writeText(inviteCode); setCopied(true); setTimeout(()=>setCopied(false),2000); }}
               style={{ flex: 1, height: 48, border: 'none', borderRadius: 14, cursor: 'pointer',
                 fontWeight: 800, fontSize: 15, letterSpacing: 0.5,
                 background: copied ? 'linear-gradient(135deg,#34D399,#22C55E)' : 'linear-gradient(135deg,#7C5CFC,#A78BFA)',
                 color: '#fff', boxShadow: '0 4px 16px rgba(124,92,252,0.3)',
               }}>{copied ? '✓ 已复制' : '复制邀请码'}</button>
-            <button onClick={() => alert('分享到微信（演示）')}
+            <button disabled={!inviteCode} onClick={() => navigator.share?.({ title: '喵搭邀请', text: `我的邀请码：${inviteCode}`, url: window.location.origin })}
               style={{ flex: 1, height: 48, border: 'none', borderRadius: 14, cursor: 'pointer',
                 fontWeight: 800, fontSize: 15, letterSpacing: 0.5,
                 background: '#07C160', color: '#fff', boxShadow: '0 4px 16px rgba(7,193,96,0.3)',
@@ -4327,7 +4327,7 @@ function InvitePage() {
         <div style={{ background: '#fff', borderRadius: 18, padding: '18px', marginTop: 14, boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
           <div style={{ fontWeight: 800, fontSize: 16, color: '#1a1a2e', marginBottom: 14 }}>📊 邀请统计</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
-            {[{l:'累计邀请', v:'12位', c:'#7C5CFC'}, {l:'待生效', v:'3位', c:'#F59E0B'}, {l:'累计奖励', v:'¥120', c:'#34D399'}].map(s => (
+            {[{l:'累计邀请', v:'0位', c:'#7C5CFC'}, {l:'待生效', v:'0位', c:'#F59E0B'}, {l:'累计奖励', v:'¥0', c:'#34D399'}].map(s => (
               <div key={s.l} style={{ textAlign: 'center', padding: '14px 8px', borderRadius: 14, background: `${s.c}08` }}>
                 <div style={{ fontSize: 22, fontWeight: 900, color: s.c }}>{s.v}</div>
                 <div style={{ fontSize: 11, color: '#999', marginTop: 4 }}>{s.l}</div>
@@ -4651,17 +4651,24 @@ function SecurityPage() {
    消息通知页 /notifications
    =================================================================== */
 function NotificationsPage() {
-  const notifications = [
-    { id: 1, type: 'order', title: '订单状态更新', content: '您的订单「中式推拿60分钟」已被达人接单，预计今日15:00开始服务', time: '10分钟前', read: false, icon: '📦', color: '#7C5CFC' },
-    { id: 2, type: 'system', title: '系统通知', content: '喵搭APP已更新至v1.2.0版本，新增达人视频介绍功能，快来体验吧！', time: '2小时前', read: false, icon: '📢', color: '#3B82F6' },
-    { id: 3, type: 'promo', title: '优惠活动', content: '周末狂欢！本周末全场服务8折优惠，更有满减活动等你来参与~', time: '昨天', read: true, icon: '🎉', color: '#F59E0B' },
-    { id: 4, type: 'order', title: '交易完成', content: '您的订单「电竞游戏2小时」已完成，快去评价一下吧！', time: '3天前', read: true, icon: '✅', color: '#34D399' },
-    { id: 5, type: 'system', title: '积分到账', content: '恭喜您获得128积分奖励（来源：完成评价），当前积分1408分', time: '5天前', read: true, icon: '⭐', color: '#FF6B9D' },
-  ];
+  const { data, refetch } = useQuery({
+    queryKey: ['notifications'],
+    queryFn: () => api.get('/notification/list', { params: { page: 1, page_size: 50 } }),
+    enabled: !!getToken(),
+  });
+  const notifications = pageList(data).map((n: any) => ({
+    id: n.id,
+    title: n.title || '系统通知',
+    content: n.content || n.message || '',
+    time: n.created_at ? new Date(n.created_at).toLocaleString() : '',
+    read: Number(n.is_read) === 1,
+    icon: n.type === 'order' ? '📦' : n.type === 'promo' ? '🎉' : '📢',
+    color: n.type === 'order' ? '#7C5CFC' : n.type === 'promo' ? '#F59E0B' : '#3B82F6',
+  }));
 
   return (
     <div className="page" style={{ background: '#F5F0E8', minHeight: '100vh' }}>
-      <SubPageNav title="消息通知" right={<span style={{ fontSize: 12, color: '#7C5CFC', fontWeight: 600, cursor: 'pointer' }}>全部已读</span>} />
+      <SubPageNav title="消息通知" right={<span onClick={async () => { await api.put('/notification/read-all', {}); refetch(); }} style={{ fontSize: 12, color: '#7C5CFC', fontWeight: 600, cursor: 'pointer' }}>全部已读</span>} />
       <div style={{ padding: '16px' }}>
         {/* 分类Tab */}
         <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
@@ -4671,7 +4678,12 @@ function NotificationsPage() {
         </div>
 
         {/* 通知列表 */}
-        {notifications.map(n => (
+        {notifications.length === 0 ? (
+          <div style={{ textAlign: 'center', paddingTop: 80 }}>
+            <div style={{ fontSize: 48, opacity: 0.5 }}>🔔</div>
+            <div style={{ color: '#999', marginTop: 12, fontSize: 14 }}>暂无消息通知</div>
+          </div>
+        ) : notifications.map(n => (
           <div key={n.id} style={{
             background: '#fff', borderRadius: 16, padding: '16px 18px', marginBottom: 10,
             boxShadow: n.read ? '0 1px 4px rgba(0,0,0,0.03)' : '0 3px 12px rgba(124,92,252,0.1)',

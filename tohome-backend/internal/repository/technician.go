@@ -19,6 +19,11 @@ type TalentRepository struct {
 	redis *redis.Client
 }
 
+const talentSelectColumns = `id, created_at, updated_at, deleted_at, user_id, real_name, id_card, gender, birthday,
+	avatar, phone, COALESCE(emergency_contact, '') AS emergency_contact, COALESCE(emergency_phone, '') AS emergency_phone,
+	skills, certificates, life_photos, art_photos, service_city, service_districts, rating, service_count,
+	positive_rate, balance, total_income, status, work_status, current_lat, current_lng, location_updated_at, introduction`
+
 // NewTalentRepository 创建达人仓储
 func NewTalentRepository(db *sqlx.DB, redis *redis.Client) *TalentRepository {
 	return &TalentRepository{db: db, redis: redis}
@@ -27,7 +32,7 @@ func NewTalentRepository(db *sqlx.DB, redis *redis.Client) *TalentRepository {
 // GetByID 根据ID获取达人
 func (r *TalentRepository) GetByID(ctx context.Context, id int64) (*model.Talent, error) {
 	var talent model.Talent
-	err := r.db.GetContext(ctx, &talent, `SELECT * FROM technicians WHERE id = $1 AND deleted_at IS NULL`, id)
+	err := r.db.GetContext(ctx, &talent, `SELECT `+talentSelectColumns+` FROM technicians WHERE id = $1 AND deleted_at IS NULL`, id)
 	if err != nil {
 		return nil, err
 	}
@@ -37,7 +42,7 @@ func (r *TalentRepository) GetByID(ctx context.Context, id int64) (*model.Talent
 // GetByUserID 根据用户ID获取达人
 func (r *TalentRepository) GetByUserID(ctx context.Context, userID int64) (*model.Talent, error) {
 	var talent model.Talent
-	err := r.db.GetContext(ctx, &talent, `SELECT * FROM technicians WHERE user_id = $1 AND deleted_at IS NULL`, userID)
+	err := r.db.GetContext(ctx, &talent, `SELECT `+talentSelectColumns+` FROM technicians WHERE user_id = $1 AND deleted_at IS NULL`, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +52,7 @@ func (r *TalentRepository) GetByUserID(ctx context.Context, userID int64) (*mode
 // GetByPhone 根据手机号获取达人
 func (r *TalentRepository) GetByPhone(ctx context.Context, phone string) (*model.Talent, error) {
 	var talent model.Talent
-	err := r.db.GetContext(ctx, &talent, `SELECT * FROM technicians WHERE phone = $1 AND deleted_at IS NULL`, phone)
+	err := r.db.GetContext(ctx, &talent, `SELECT `+talentSelectColumns+` FROM technicians WHERE phone = $1 AND deleted_at IS NULL`, phone)
 	if err != nil {
 		return nil, err
 	}
@@ -57,13 +62,13 @@ func (r *TalentRepository) GetByPhone(ctx context.Context, phone string) (*model
 // Create 创建达人
 func (r *TalentRepository) Create(ctx context.Context, talent *model.Talent) error {
 	query := `
-		INSERT INTO technicians (user_id, real_name, id_card, gender, birthday, avatar, phone, skills, certificates, life_photos, art_photos, service_city, service_districts, introduction, status, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $16)
+		INSERT INTO technicians (user_id, real_name, id_card, gender, birthday, avatar, phone, emergency_contact, emergency_phone, skills, certificates, life_photos, art_photos, service_city, service_districts, introduction, status, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $18)
 		RETURNING id, created_at, updated_at`
 	now := time.Now()
 	err := r.db.QueryRowxContext(ctx, query,
 		talent.UserID, talent.RealName, talent.IDCard, talent.Gender, talent.Birthday, talent.Avatar, talent.Phone,
-		talent.Skills, talent.Certificates, talent.LifePhotos, talent.ArtPhotos, talent.ServiceCity, talent.ServiceDistricts, talent.Introduction,
+		talent.EmergencyContact, talent.EmergencyPhone, talent.Skills, talent.Certificates, talent.LifePhotos, talent.ArtPhotos, talent.ServiceCity, talent.ServiceDistricts, talent.Introduction,
 		model.TalentStatusPending, now,
 	).Scan(&talent.ID, &talent.CreatedAt, &talent.UpdatedAt)
 	return err
@@ -175,7 +180,7 @@ func (r *TalentRepository) List(ctx context.Context, status *int, page, pageSize
 
 	args = append(args, pageSize, (page-1)*pageSize)
 	listQuery := fmt.Sprintf(`
-		SELECT * FROM technicians WHERE %s
+		SELECT `+talentSelectColumns+` FROM technicians WHERE %s
 		ORDER BY created_at DESC
 		LIMIT $%d OFFSET $%d`, where, len(args)-1, len(args))
 	err := r.db.SelectContext(ctx, &talents, listQuery, args...)

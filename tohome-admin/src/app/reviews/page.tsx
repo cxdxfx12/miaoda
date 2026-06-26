@@ -25,8 +25,8 @@ const MOCK_REVIEWS: Review[] = [
 
 export default function ReviewsPage() {
   const [loading, setLoading] = useState(true);
-  const [reviews, setReviews] = useState<Review[]>(MOCK_REVIEWS);
-  const [stats, setStats] = useState<ReviewStats>(MOCK_STATS);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [stats, setStats] = useState<ReviewStats>({ total_reviews: 0, reply_rate: '0%', avg_rating: '0', pending_reply: 0 });
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(MOCK_REVIEWS.length);
   const [replying, setReplying] = useState<number | null>(null);
@@ -39,8 +39,15 @@ export default function ReviewsPage() {
     try {
       const res: any = await reviewApi.getOverview();
       const d = res?.data || {};
-      if (d.total_reviews) setStats(d);
-    } catch { /* backend unavailable, using mock */ }
+      setStats({
+        total_reviews: Number(d.total_reviews || 0),
+        reply_rate: String(d.reply_rate || '0%'),
+        avg_rating: String(d.avg_rating || '0'),
+        pending_reply: Number(d.pending_reply || 0),
+      });
+    } catch {
+      setStats({ total_reviews: 0, reply_rate: '0%', avg_rating: '0', pending_reply: 0 });
+    }
   }
 
   async function loadReviews() {
@@ -48,8 +55,12 @@ export default function ReviewsPage() {
     try {
       const res: any = await reviewApi.list({ page, page_size: 10 });
       const list = res?.data?.list ?? [];
-      if (list.length) { setReviews(list); setTotal(res?.data?.total || list.length); }
-    } catch { /* backend unavailable, using mock */ }
+      setReviews(Array.isArray(list) ? list : []);
+      setTotal(res?.data?.total || 0);
+    } catch {
+      setReviews([]);
+      setTotal(0);
+    }
     finally { setLoading(false); }
   }
 
