@@ -18,8 +18,8 @@ interface UserState {
   userInfo: UserInfo | null;
   isLoggedIn: boolean;
   loading: boolean;
-  login: (phone: string, code: string) => Promise<void>;
-  wechatLogin: (code: string, state?: string) => Promise<void>;
+  login: (phone: string, code: string, inviteCode?: string) => Promise<void>;
+  wechatLogin: (code: string, state?: string, inviteCode?: string) => Promise<void>;
   logout: () => Promise<void>;
   setUserInfo: (info: UserInfo) => void;
 }
@@ -32,10 +32,10 @@ export const useUserStore = create<UserState>()(
       isLoggedIn: false,
       loading: false,
 
-      login: async (phone, code) => {
+      login: async (phone, code, inviteCode) => {
         set({ loading: true });
         try {
-          const res: any = await authApi.login(phone, code);
+          const res: any = await authApi.login(phone, code, inviteCode);
           setToken(res.data.token);
           set({
             token: res.data.token,
@@ -50,10 +50,10 @@ export const useUserStore = create<UserState>()(
         }
       },
 
-      wechatLogin: async (code, state) => {
+      wechatLogin: async (code, state, inviteCode) => {
         set({ loading: true });
         try {
-          const res: any = await authApi.wechatLogin(code, state);
+          const res: any = await authApi.wechatLogin(code, state, inviteCode);
           setToken(res.data.token);
           set({
             token: res.data.token,

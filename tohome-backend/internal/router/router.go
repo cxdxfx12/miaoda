@@ -21,6 +21,7 @@ func RegisterUserRoutes(r *gin.Engine, h *handler.UserHandler, talH *handler.Tal
 		public.POST("/refresh", h.RefreshToken)
 		public.POST("/tech/login", h.TalentLogin)
 		public.POST("/tech/logout", h.TechLogout)
+		public.GET("/invite/validate", h.ValidateInviteCode)
 	}
 
 	// 达人入驻图片上传：允许未登录先上传图片，提交申请时再校验登录
@@ -34,6 +35,7 @@ func RegisterUserRoutes(r *gin.Engine, h *handler.UserHandler, talH *handler.Tal
 		user.PUT("/info", h.UpdateUserInfo)
 		user.PUT("/password", h.UpdatePassword)
 		user.POST("/logout", h.Logout)
+		user.GET("/invite", h.GetInviteInfo)
 
 		// 地址管理
 		user.GET("/addresses", h.ListAddresses)
@@ -309,6 +311,7 @@ func RegisterAdminRoutes(r *gin.Engine, h *handler.AdminHandler, grabH *handler.
 		admin.GET("/marketing/coupons", h.AdminListCoupons)
 		admin.POST("/marketing/coupons", h.AdminCreateCoupon)
 		admin.POST("/marketing/coupons/:id/send", h.AdminSendCoupon)
+		admin.GET("/marketing/invites", h.AdminListInvites)
 
 		// 轮播图管理
 		admin.GET("/marketing/banners", h.AdminListBanners)

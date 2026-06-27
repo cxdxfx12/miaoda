@@ -26,6 +26,9 @@ export const marketingApi = {
   getCoupons: (params?: CouponListParams) =>
     api.get('/api/v1/admin/marketing/coupons', { params }),
 
+  getInvites: (params?: { page?: number; page_size?: number; status?: number; keyword?: string }) =>
+    api.get('/api/v1/admin/marketing/invites', { params }),
+
   getActivities: () =>
     api.get('/api/v1/admin/marketing/activities'),
 

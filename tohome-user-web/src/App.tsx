@@ -8,6 +8,7 @@ import { talentApi } from './api/talent';
 import { orderApi } from './api/order';
 import { paymentApi } from './api/payment';
 import { authApi } from './api/auth';
+import { inviteApi } from './api/invite';
 import { addressApi } from './api/address';
 import { api, getToken } from './api/client';
 import './index.css';
@@ -575,6 +576,7 @@ function LoginPage() {
   const loc = useLocation();
   const wechatLogin = useUserStore(s => s.wechatLogin);
   const loading = useUserStore(s => s.loading);
+  const pendingInviteCode = localStorage.getItem('miaoda_invite_code') || '';
 
   const finishLogin = (fallback?: string) => {
     const params = new URLSearchParams(loc.search);
@@ -587,7 +589,10 @@ function LoginPage() {
     const state = params.get('state') || undefined;
     if (!code) return;
     setError('');
-    wechatLogin(code, state).then(() => finishLogin(state)).catch((err: any) => {
+    wechatLogin(code, state, pendingInviteCode).then(() => {
+      localStorage.removeItem('miaoda_invite_code');
+      finishLogin(state);
+    }).catch((err: any) => {
       setError(err?.message || '微信授权失败，请重新登录');
     });
   }, [loc.search]);
@@ -604,7 +609,8 @@ function LoginPage() {
         window.location.href = `https://open.weixin.qq.com/connect/oauth2/authorize?appid=${cfg.app_id}&redirect_uri=${redirectUri}&response_type=code&scope=snsapi_userinfo&state=${state}#wechat_redirect`;
         return;
       }
-      await wechatLogin(`dev_${Date.now()}`);
+      await wechatLogin(`dev_${Date.now()}`, undefined, pendingInviteCode);
+      localStorage.removeItem('miaoda_invite_code');
       finishLogin();
     } catch (err: any) {
       setError(err?.response?.data?.message || err?.message || '微信登录失败');
@@ -4313,7 +4319,28 @@ function CouponsPage() {
    =================================================================== */
 function InvitePage() {
   const [copied, setCopied] = useState(false);
-  const inviteCode = '';
+  const nav = useNavigate();
+  const [params] = useSearchParams();
+  const isLoggedIn = useUserStore(s => s.isLoggedIn);
+  const incomingCode = (params.get('code') || '').trim().toUpperCase();
+  useEffect(() => {
+    if (incomingCode) {
+      localStorage.setItem('miaoda_invite_code', incomingCode);
+      inviteApi.validate(incomingCode).catch(() => {});
+    }
+  }, [incomingCode]);
+  const { data, isLoading } = useQuery({ queryKey: ['my-invite-info'], queryFn: () => inviteApi.getMine(), enabled: isLoggedIn });
+  const info: any = (data as any)?.data || {};
+  const inviteCode = info.invite_code || '';
+  const inviteUrl = info.invite_url || `${window.location.origin}/invite?code=${inviteCode}`;
+  const stats = info.stats || {};
+  const records = Array.isArray(info.records) ? info.records : [];
+  const rules = Array.isArray(info.reward_rules) && info.reward_rules.length > 0 ? info.reward_rules : [
+    '好友通过你的邀请链接首次登录后绑定邀请关系',
+    '好友完成首单后，你获得10元奖励券和1000积分',
+    '好友完成首单后，好友获得20元新人券',
+    '如有作弊行为，平台有权取消奖励资格',
+  ];
   return (
     <div className="page" style={{ background: 'linear-gradient(180deg, #7C5CFC 0%, #A78BFA 30%, #F5F0E8 30%)', minHeight: '100vh' }}>
       <SubPageNav title="邀请好友" />
@@ -4330,46 +4357,52 @@ function InvitePage() {
           <div style={{ fontSize: 56, marginBottom: 12, position: 'relative', zIndex: 1 }}>🎁</div>
           <div style={{ fontWeight: 900, fontSize: 22, color: '#1a1a2e', marginBottom: 6, position: 'relative', zIndex: 1 }}>邀请好友 各得奖励</div>
           <div style={{ fontSize: 13, color: '#999', marginBottom: 28, position: 'relative', zIndex: 1, lineHeight: 1.6 }}>
-            每邀请一位新用户注册<br />你获得 <b style={{ color: '#FF6B9D' }}>¥10</b> 红包 · 好友获得 <b style={{ color: '#7C5CFC' }}>¥20</b> 新人券
+            每邀请一位新用户完成首单<br />你获得 <b style={{ color: '#FF6B9D' }}>¥10券 + 1000积分</b> · 好友获得 <b style={{ color: '#7C5CFC' }}>¥20</b> 新人券
           </div>
+
+          {incomingCode && !isLoggedIn && (
+            <div style={{ background: '#F5F3FF', color: '#6D5DF6', borderRadius: 14, padding: '12px', marginBottom: 14, fontSize: 13, fontWeight: 700 }}>
+              已识别邀请码 {incomingCode}，登录后自动绑定邀请关系
+            </div>
+          )}
 
           {/* 邀请码卡片 */}
           <div style={{
             background: 'linear-gradient(160deg, #F5F3FF, #EDE9FE)', borderRadius: 18, padding: '20px', marginBottom: 18, position: 'relative', zIndex: 1,
           }}>
             <div style={{ fontSize: 12, color: '#7C5CFC', fontWeight: 700, marginBottom: 8 }}>我的专属邀请码</div>
-            <div style={{ fontSize: 20, fontWeight: 900, color: '#1a1a2e', letterSpacing: 1 }}>{inviteCode || '邀请功能暂未开通'}</div>
-            <div style={{ fontSize: 11, color: '#bbb', marginTop: 6 }}>开通邀请接口后将显示专属邀请码</div>
+            <div style={{ fontSize: 20, fontWeight: 900, color: '#1a1a2e', letterSpacing: 1 }}>{isLoading ? '加载中...' : (inviteCode || '登录后生成邀请码')}</div>
+            <div style={{ fontSize: 11, color: '#bbb', marginTop: 6 }}>{inviteCode ? inviteUrl : '登录后即可复制邀请链接'}</div>
           </div>
 
           {/* 按钮 */}
           <div style={{ display: 'flex', gap: 10, position: 'relative', zIndex: 1 }}>
-            <button disabled={!inviteCode} onClick={() => { navigator.clipboard.writeText(inviteCode); setCopied(true); setTimeout(()=>setCopied(false),2000); }}
+            <button disabled={!inviteCode} onClick={() => { navigator.clipboard.writeText(inviteUrl); setCopied(true); setTimeout(()=>setCopied(false),2000); }}
               style={{ flex: 1, height: 48, border: 'none', borderRadius: 14, cursor: 'pointer',
                 fontWeight: 800, fontSize: 15, letterSpacing: 0.5,
                 background: copied ? 'linear-gradient(135deg,#34D399,#22C55E)' : 'linear-gradient(135deg,#7C5CFC,#A78BFA)',
                 color: '#fff', boxShadow: '0 4px 16px rgba(124,92,252,0.3)',
-              }}>{copied ? '✓ 已复制' : '复制邀请码'}</button>
-            <button disabled={!inviteCode} onClick={() => navigator.share?.({ title: '喵搭邀请', text: `我的邀请码：${inviteCode}`, url: window.location.origin })}
+              }}>{copied ? '✓ 已复制' : '复制链接'}</button>
+            <button disabled={!inviteCode} onClick={() => navigator.share?.({ title: '喵搭邀请', text: `我的邀请码：${inviteCode}`, url: inviteUrl })}
               style={{ flex: 1, height: 48, border: 'none', borderRadius: 14, cursor: 'pointer',
                 fontWeight: 800, fontSize: 15, letterSpacing: 0.5,
                 background: '#07C160', color: '#fff', boxShadow: '0 4px 16px rgba(7,193,96,0.3)',
               }}>分享给微信好友</button>
           </div>
+          {!isLoggedIn && (
+            <button onClick={() => nav(`/login?redirect=${encodeURIComponent('/invite' + (incomingCode ? `?code=${incomingCode}` : ''))}`)} style={{ marginTop: 12, width: '100%', height: 44, borderRadius: 14, border: 'none', background: '#111827', color: '#fff', fontWeight: 800 }}>
+              登录后参与邀请
+            </button>
+          )}
         </div>
 
         {/* 规则说明 */}
         <div style={{ background: '#fff', borderRadius: 18, padding: '20px 18px', marginTop: 14, boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
           <div style={{ fontWeight: 800, fontSize: 16, color: '#1a1a2e', marginBottom: 14 }}>📋 活动规则</div>
-          {[
-            { num: '1', text: '被邀请人通过你的邀请码注册即视为有效邀请' },
-            { num: '2', text: '邀请奖励将在被邀请人完成首次订单后发放' },
-            { num: '3', text: '邀请人数不限，上不封顶，多多益善！' },
-            { num: '4', text: '如有作弊行为，平台有权取消奖励资格' },
-          ].map(r => (
-            <div key={r.num} style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
-              <span style={{ width: 22, height: 22, borderRadius: 7, background: '#7C5CFC', color: '#fff', fontSize: 12, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{r.num}</span>
-              <span style={{ fontSize: 13, color: '#555', lineHeight: 1.7 }}>{r.text}</span>
+          {rules.map((text: string, index: number) => (
+            <div key={index} style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+              <span style={{ width: 22, height: 22, borderRadius: 7, background: '#7C5CFC', color: '#fff', fontSize: 12, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{index + 1}</span>
+              <span style={{ fontSize: 13, color: '#555', lineHeight: 1.7 }}>{text}</span>
             </div>
           ))}
         </div>
@@ -4378,10 +4411,23 @@ function InvitePage() {
         <div style={{ background: '#fff', borderRadius: 18, padding: '18px', marginTop: 14, boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
           <div style={{ fontWeight: 800, fontSize: 16, color: '#1a1a2e', marginBottom: 14 }}>📊 邀请统计</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
-            {[{l:'累计邀请', v:'0位', c:'#7C5CFC'}, {l:'待生效', v:'0位', c:'#F59E0B'}, {l:'累计奖励', v:'¥0', c:'#34D399'}].map(s => (
+            {[{l:'累计邀请', v:`${stats.total || 0}位`, c:'#7C5CFC'}, {l:'待生效', v:`${stats.pending || 0}位`, c:'#F59E0B'}, {l:'累计奖励', v:`¥${Number(stats.reward_amount || 0).toFixed(0)}`, c:'#34D399'}].map(s => (
               <div key={s.l} style={{ textAlign: 'center', padding: '14px 8px', borderRadius: 14, background: `${s.c}08` }}>
                 <div style={{ fontSize: 22, fontWeight: 900, color: s.c }}>{s.v}</div>
                 <div style={{ fontSize: 11, color: '#999', marginTop: 4 }}>{s.l}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ marginTop: 14 }}>
+            {records.length === 0 ? (
+              <div style={{ textAlign: 'center', color: '#AAA', fontSize: 13, padding: '14px 0' }}>{isLoggedIn ? '暂无邀请记录' : '登录后查看邀请记录'}</div>
+            ) : records.slice(0, 8).map((r: any) => (
+              <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderTop: '1px solid #F3F4F6' }}>
+                <div>
+                  <div style={{ fontWeight: 800, color: '#333', fontSize: 13 }}>{r.nickname || r.phone || '微信用户'}</div>
+                  <div style={{ fontSize: 11, color: '#AAA' }}>{String(r.registered_at || '').slice(0, 10)}</div>
+                </div>
+                <span style={{ fontSize: 12, color: r.status === 2 ? '#10B981' : '#F59E0B', fontWeight: 800 }}>{r.status_text}</span>
               </div>
             ))}
           </div>

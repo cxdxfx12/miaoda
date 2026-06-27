@@ -444,6 +444,20 @@ func (h *AdminHandler) AdminListCoupons(c *gin.Context) {
 	response.Success(c, coupons)
 }
 
+// AdminListInvites 邀请记录
+func (h *AdminHandler) AdminListInvites(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "20"))
+	status, _ := strconv.Atoi(c.DefaultQuery("status", "-1"))
+	keyword := c.Query("keyword")
+	result, err := service.AdminListInvites(c.Request.Context(), page, pageSize, status, keyword)
+	if err != nil {
+		response.Fail(c, response.CodeBusinessError, err.Error())
+		return
+	}
+	response.Success(c, result)
+}
+
 // AdminCreateCoupon 创建优惠券
 func (h *AdminHandler) AdminCreateCoupon(c *gin.Context) {
 	var req map[string]interface{}

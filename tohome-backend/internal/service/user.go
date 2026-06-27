@@ -55,8 +55,9 @@ func (s *UserService) SetTalentRepo(repo *repository.TalentRepository) {
 
 // LoginRequest 登录请求
 type LoginRequest struct {
-	Phone string `json:"phone" binding:"required,len=11"`
-	Code  string `json:"code" binding:"required,len=6"`
+	Phone      string `json:"phone" binding:"required,len=11"`
+	Code       string `json:"code" binding:"required,len=6"`
+	InviteCode string `json:"invite_code"`
 }
 
 // LoginResponse 登录响应
@@ -81,6 +82,7 @@ func (s *UserService) Login(ctx context.Context, req *LoginRequest, ip string) (
 
 	// 查找用户
 	user, err := s.userRepo.GetByPhone(ctx, req.Phone)
+	isNewUser := false
 	if err != nil {
 		// 用户不存在则自动注册
 		user = &model.User{
@@ -93,6 +95,11 @@ func (s *UserService) Login(ctx context.Context, req *LoginRequest, ip string) (
 			logger.Error("创建用户失败: %v", err)
 			return nil, fmt.Errorf("创建用户失败: %w", err)
 		}
+		isNewUser = true
+	}
+	_, _ = EnsureInviteCode(ctx, user.ID)
+	if isNewUser {
+		_ = BindInviteOnRegister(ctx, user.ID, req.InviteCode)
 	}
 
 	if user.Status != model.UserStatusNormal {

@@ -29,15 +29,16 @@ func (h *WechatHandler) GetWechatConfig(c *gin.Context) {
 // WechatLogin 微信OAuth登录（用code换取JWT）
 func (h *WechatHandler) WechatLogin(c *gin.Context) {
 	var req struct {
-		Code  string `json:"code" binding:"required"`
-		State string `json:"state"`
+		Code       string `json:"code" binding:"required"`
+		State      string `json:"state"`
+		InviteCode string `json:"invite_code"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.ParamError(c, "参数错误: code不能为空")
 		return
 	}
 
-	result, err := h.wechatSvc.LoginByCode(c.Request.Context(), req.Code, c.ClientIP())
+	result, err := h.wechatSvc.LoginByCode(c.Request.Context(), req.Code, c.ClientIP(), req.InviteCode)
 	if err != nil {
 		response.Fail(c, response.CodeBusinessError, err.Error())
 		return

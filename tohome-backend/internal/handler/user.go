@@ -4,6 +4,7 @@ package handler
 import (
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -15,6 +16,36 @@ import (
 // UserHandler 用户处理器
 type UserHandler struct {
 	userService *service.UserService
+}
+
+// GetInviteInfo 获取我的邀请信息
+func (h *UserHandler) GetInviteInfo(c *gin.Context) {
+	uid := c.GetInt64("user_id")
+	origin := c.GetHeader("Origin")
+	if origin == "" {
+		scheme := "https"
+		if strings.EqualFold(c.GetHeader("X-Forwarded-Proto"), "http") {
+			scheme = "http"
+		}
+		origin = scheme + "://" + c.Request.Host
+	}
+	info, err := service.GetInviteInfo(c.Request.Context(), uid, origin)
+	if err != nil {
+		response.Fail(c, response.CodeBusinessError, err.Error())
+		return
+	}
+	response.Success(c, info)
+}
+
+// ValidateInviteCode 校验邀请码
+func (h *UserHandler) ValidateInviteCode(c *gin.Context) {
+	code := strings.TrimSpace(c.Query("code"))
+	if code == "" {
+		response.ParamError(c, "邀请码不能为空")
+		return
+	}
+	// 当前校验通过获取邀请页时完成，公开接口只做基础格式确认，避免泄露用户信息
+	response.Success(c, gin.H{"code": strings.ToUpper(code), "valid": len(code) >= 4})
 }
 
 // NewUserHandler 创建用户处理器

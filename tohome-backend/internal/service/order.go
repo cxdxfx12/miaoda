@@ -337,6 +337,13 @@ func (s *OrderService) UpdateOrderStatus(ctx context.Context, id int64, techID i
 	if event := eventMap[status]; event != "" {
 		go sendWeComOrderEvent(context.Background(), event, id, nil)
 	}
+	if status == model.OrderStatusCompleted {
+		go func(userID, orderID int64) {
+			if err := ProcessInviteReward(context.Background(), userID, orderID); err != nil {
+				logger.Error("处理邀请奖励失败: user_id=%d order_id=%d err=%v", userID, orderID, err)
+			}
+		}(order.UserID, id)
+	}
 
 	return nil
 }

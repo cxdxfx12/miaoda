@@ -101,7 +101,7 @@ func (s *WechatService) GetPublicConfig() map[string]interface{} {
 }
 
 // LoginByCode 通过微信授权code登录
-func (s *WechatService) LoginByCode(ctx context.Context, code, ip string) (*LoginResponse, error) {
+func (s *WechatService) LoginByCode(ctx context.Context, code, ip string, inviteCode ...string) (*LoginResponse, error) {
 	s.refreshConfig(ctx)
 	if s.isDev && (strings.HasPrefix(code, "dev_") || !s.cfg.Enabled || s.cfg.AppID == "") {
 		userInfo := &WechatUserInfo{
@@ -111,7 +111,7 @@ func (s *WechatService) LoginByCode(ctx context.Context, code, ip string) (*Logi
 			HeadImgURL: "https://thirdwx.qlogo.cn/mmopen/vi_32/default/132",
 			UnionID:    "dev_unionid_" + code,
 		}
-		return s.loginByWechatUserInfo(ctx, userInfo, ip)
+		return s.loginByWechatUserInfo(ctx, userInfo, ip, inviteCode...)
 	}
 
 	// 1. 用code换取access_token和openid
@@ -126,13 +126,17 @@ func (s *WechatService) LoginByCode(ctx context.Context, code, ip string) (*Logi
 		return nil, fmt.Errorf("获取微信用户信息失败: %w", err)
 	}
 
-	return s.loginByWechatUserInfo(ctx, userInfo, ip)
+	return s.loginByWechatUserInfo(ctx, userInfo, ip, inviteCode...)
 }
 
-func (s *WechatService) loginByWechatUserInfo(ctx context.Context, userInfo *WechatUserInfo, ip string) (*LoginResponse, error) {
+func (s *WechatService) loginByWechatUserInfo(ctx context.Context, userInfo *WechatUserInfo, ip string, inviteCode ...string) (*LoginResponse, error) {
 	user, isNew, err := s.findOrCreateUser(ctx, userInfo)
 	if err != nil {
 		return nil, fmt.Errorf("处理用户失败: %w", err)
+	}
+	_, _ = EnsureInviteCode(ctx, user.ID)
+	if isNew && len(inviteCode) > 0 {
+		_ = BindInviteOnRegister(ctx, user.ID, inviteCode[0])
 	}
 
 	if user.Status != model.UserStatusNormal {
