@@ -1,11 +1,4 @@
-node_modules
 .next
+node_modules
 .git
-.env*.local
-README.md
-Dockerfile
-.dockerignore
-coverage
-.vscode
-.idea
-*.log
+*.md
