@@ -168,7 +168,7 @@ export const CurrentOrderScreen: React.FC<{ navigation: any }> = ({ navigation }
               { l: '预约时间', v: (order.appointment_time || '').replace('T', ' ').substring(0, 16), highlight: false },
               { l: '服务费用', v: formatPrice(order.final_amount), highlight: true },
             ].map((r, i) => (
-              <View key={i} style={[styles.dRow, !highlight && i < 3 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.divider }]}>
+              <View key={i} style={[styles.dRow, !r.highlight && i < 3 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.divider }]}>
                 <Text style={styles.dLbl}>{r.l}</Text>
                 <Text style={[styles.dVal, r.highlight && styles.dValHi]}>{r.v}</Text>
               </View>

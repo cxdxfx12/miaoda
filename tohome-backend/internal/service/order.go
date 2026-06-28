@@ -494,8 +494,13 @@ func (s *OrderService) UpdateOrderFlowStatus(ctx context.Context, orderID, talen
 		timeCol = "start_time"
 	case 4:
 		timeCol = "completed_at"
+	default:
+		return fmt.Errorf("不支持的目标状态")
 	}
-
+	allowedCols := map[string]bool{"departed_at": true, "arrived_at": true, "start_time": true, "completed_at": true}
+	if !allowedCols[timeCol] {
+		return fmt.Errorf("非法的列名")
+	}
 	_, err := db.ExecContext(ctx, fmt.Sprintf(`UPDATE orders SET status = $1, %s = $2 WHERE id = $3`, timeCol), targetStatus, now, orderID)
 	return err
 }

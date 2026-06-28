@@ -40,7 +40,7 @@ function OrderDetailDrawer({ orderId, open, onClose }: { orderId: string | null;
     if (open && orderId) {
       setLoading(true);
       fetch(`/api/v1/admin/orders/${orderId}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        headers: { Authorization: `Bearer ${localStorage.getItem('admin_token')}` },
       })
         .then(r => r.json())
         .then(data => {

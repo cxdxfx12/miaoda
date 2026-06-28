@@ -3352,14 +3352,14 @@ function OrderDetailPageV2() {
                 overflow: 'hidden',
               }}>
                 <img
-                  src={order.technician_avatar || order.talent_avatar || '/logo.png'}
+                  src={(typeof order.technician_avatar === 'object' ? '' : order.technician_avatar) || order.talent_avatar || '/logo.png'}
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   onError={(e: any) => { e.target.style.display = 'none'; }}
                 />
               </div>
               <div>
                 <div style={{ fontSize: 14, fontWeight: 700, color: '#1F2937' }}>
-                  {order.technician_name || order.talent_name || ''}
+                  {typeof order.technician_name === 'object' ? (order.technician_name?.String || '') : (order.technician_name || order.talent_name || '')}
                 </div>
                 <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>喵搭认证达人</div>
               </div>
