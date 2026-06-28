@@ -1024,6 +1024,8 @@ function OrderTrackerBar() {
    =================================================================== */
 function HomePage() {
   const nav = useNavigate();
+  const userInfo = useUserStore(s => s.userInfo);
+  const isTalent = userInfo?.user_type === 2;
   const nearbyQuery = useNearbyTalentQuery();
   const locationHint = nearbyQuery.status === 'success'
     ? `${nearbyQuery.district || '当前定位'} · 当前定位`
@@ -1189,10 +1191,12 @@ function HomePage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
             {[
               { icon: '🎁', label: '新人有礼', desc: '首单立减', color: '#E11D48', bg: 'linear-gradient(135deg, #FFF1F2, #FFE4E6)', path: '/invite' },
-              { icon: '🛡️', label: '达人入驻', desc: '成为达人', color: '#7C5CFC', bg: 'linear-gradient(135deg, #F5F3FF, #EDE9FE)', path: '/talent-apply' },
+              isTalent
+                ? { icon: '💼', label: '达人工作台', desc: '接单赚钱', color: '#7C5CFC', bg: 'linear-gradient(135deg, #F5F3FF, #EDE9FE)', path: '/talent-workbench' }
+                : { icon: '🛡️', label: '达人入驻', desc: '成为达人', color: '#7C5CFC', bg: 'linear-gradient(135deg, #F5F3FF, #EDE9FE)', path: '/talent-apply' },
               { icon: '🔥', label: '热门排行', desc: '大家都在看', color: '#D97706', bg: 'linear-gradient(135deg, #FFFBEB, #FEF3C7)', path: '/services?sort=hot' },
               { icon: '⚡', label: '限时优惠', desc: '低至5折', color: '#059669', bg: 'linear-gradient(135deg, #ECFDF5, #D1FAE5)', path: '/coupons' },
-            ].map((item, i) => (
+            ].filter(Boolean).map((item, i) => (
               <div key={i} onClick={() => nav(item.path)}
                 className="home-quick-card"
                 style={{
@@ -4721,6 +4725,7 @@ function SecurityPage() {
   const maskedPhone = /^1[3-9]\d{9}$/.test(phone) ? `${phone.slice(0,3)}****${phone.slice(7)}` : '未绑定';
   const realName = String((userInfo as any)?.real_name || '');
   const isVerified = !!realName;
+  const isTalent = userInfo?.user_type === 2;
   const score = (phone ? 45 : 0) + (isVerified ? 35 : 0);
   return (
     <div className="page" style={{ background: '#F5F0E8', minHeight: '100vh' }}>
@@ -4760,7 +4765,7 @@ function SecurityPage() {
             </div>
             <button onClick={() => {
               if (sec.action === '去完善') window.location.href = '/profile-edit';
-              if (sec.action === '去认证') window.location.href = '/talent-apply';
+              if (sec.action === '去认证') window.location.href = isTalent ? '/talent-workbench' : '/talent-apply';
             }} disabled={sec.action === '未开通'} style={{
               padding: '6px 16px', border: `1.5px solid ${sec.color}`, borderRadius: 10, cursor: 'pointer',
               fontSize: 12.5, fontWeight: 700, color: sec.color, background: 'transparent', opacity: sec.action === '未开通' ? 0.6 : 1,
@@ -5537,6 +5542,171 @@ function TalentApplyPage() {
 }
 
 /* ===================================================================
+   达人工作台页 /talent-workbench
+   =================================================================== */
+function TalentWorkbenchPage() {
+  const nav = useNavigate();
+  const [profile, setProfile] = useState<any>(null);
+  const [dashboard, setDashboard] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [workStatus, setWorkStatus] = useState(0);
+  const [toastMsg, setToastMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+
+  useEffect(() => {
+    if (!getToken()) {
+      nav('/login?redirect=/talent-workbench', { replace: true });
+      return;
+    }
+    (async () => {
+      try {
+        const [pRes, dRes] = await Promise.all([
+          talentApi.profile(),
+          talentApi.dashboard(),
+        ]);
+        const pData = pRes.data as any;
+        const dData = dRes.data as any;
+        setProfile(pData);
+        setDashboard(dData);
+        setWorkStatus(pData?.work_status ?? 0);
+      } catch (e: any) {
+        if (e?.response?.status === 403 || e?.code === 1003) {
+          setToastMsg({ text: '您还不是认证达人，请先申请入驻', type: 'error' });
+          setTimeout(() => nav('/talent-apply'), 1500);
+        }
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [nav]);
+
+  const toggleWorkStatus = async () => {
+    const next = workStatus === 1 ? 0 : 1;
+    try {
+      await talentApi.updateWorkStatus(next);
+      setWorkStatus(next);
+      setToastMsg({ text: next === 1 ? '已切换为接单中' : '已切换为休息中', type: 'success' });
+    } catch {
+      setToastMsg({ text: '状态切换失败，请重试', type: 'error' });
+    }
+  };
+
+  if (!getToken()) {
+    return (
+      <div className="page" style={{ background: '#F5F0E8', minHeight: '100vh' }}>
+        <SubPageNav title="达人工作台" />
+        <div style={{ textAlign: 'center', padding: '80px 24px' }}>
+          <div style={{ fontSize: 44, marginBottom: 12 }}>🔐</div>
+          <div style={{ fontWeight: 900, fontSize: 18, color: '#1a1a2e' }}>请先登录</div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="page" style={{ background: '#F5F0E8', minHeight: '100vh' }}>
+      <SubPageNav title="达人工作台" />
+      <div style={{ padding: '16px' }}>
+        {/* 达人资料卡 */}
+        <div style={{
+          background: 'linear-gradient(135deg, #7C5CFC, #A78BFA)',
+          borderRadius: 20, padding: '24px 20px', color: '#fff', marginBottom: 14,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <img
+              src={profile?.avatar || '/logo.png'}
+              alt="avatar"
+              style={{ width: 64, height: 64, borderRadius: '50%', border: '3px solid rgba(255,255,255,0.3)', objectFit: 'cover' }}
+              onError={(e: any) => { e.target.src = '/logo.png'; }}
+            />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 18, fontWeight: 800 }}>{profile?.real_name || profile?.nickname || '达人'}</div>
+              <div style={{ fontSize: 12, opacity: 0.85, marginTop: 4 }}>
+                {profile?.service_city || '未知城市'} · {profile?.service_districts?.join('、') || ''}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
+                <span style={{ fontSize: 12, fontWeight: 700, background: 'rgba(255,255,255,0.2)', padding: '2px 10px', borderRadius: 10 }}>
+                  ⭐ {profile?.rating || '5.0'}
+                </span>
+                <span style={{ fontSize: 12, opacity: 0.8 }}>
+                  接单 {profile?.service_count || 0} 次
+                </span>
+              </div>
+            </div>
+          </div>
+          {/* 工作状态切换 */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 18, paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.2)' }}>
+            <div style={{ fontSize: 13, fontWeight: 600 }}>
+              当前状态：{workStatus === 1 ? '🟢 接单中' : '⚪ 休息中'}
+            </div>
+            <button onClick={toggleWorkStatus} style={{
+              padding: '6px 16px', borderRadius: 20, border: 'none',
+              background: workStatus === 1 ? '#F59E0B' : '#10B981',
+              color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer',
+            }}>{workStatus === 1 ? '切换休息' : '开始接单'}</button>
+          </div>
+        </div>
+
+        {/* 统计数据 */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 14 }}>
+          {[
+            { label: '今日收入', value: `¥${dashboard?.today_income || 0}`, color: '#7C5CFC' },
+            { label: '本月收入', value: `¥${dashboard?.month_income || 0}`, color: '#059669' },
+            { label: '待接订单', value: dashboard?.pending_orders || 0, color: '#D97706' },
+          ].map((s, i) => (
+            <div key={i} style={{ background: '#fff', borderRadius: 16, padding: '16px 10px', textAlign: 'center', boxShadow: '0 1px 6px rgba(0,0,0,0.02)' }}>
+              <div style={{ fontSize: 18, fontWeight: 800, color: s.color }}>{s.value}</div>
+              <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 4 }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* 功能入口 */}
+        <div style={{ background: '#fff', borderRadius: 16, padding: '8px 6px', marginBottom: 14, boxShadow: '0 1px 6px rgba(0,0,0,0.02)' }}>
+          {[
+            { icon: '📋', label: '我的资料', desc: '查看并修改达人信息', action: () => nav('/profile/edit') },
+            { icon: '💰', label: '收入明细', desc: '查看历史收入记录', action: () => setToastMsg({ text: '请下载达人APP查看完整收入明细', type: 'success' }) },
+            { icon: '📍', label: '更新位置', desc: '同步当前定位', action: () => setToastMsg({ text: '请下载达人APP更新实时位置', type: 'success' }) },
+            { icon: '⭐', label: '我的评价', desc: '查看用户反馈', action: () => setToastMsg({ text: '请下载达人APP查看完整评价', type: 'success' }) },
+          ].map((item, i) => (
+            <div key={i} onClick={item.action} style={{
+              display: 'flex', alignItems: 'center', padding: '14px 12px',
+              borderBottom: i < 3 ? '1px solid #F3F4F6' : 'none', cursor: 'pointer',
+            }}>
+              <div style={{ fontSize: 22, marginRight: 12 }}>{item.icon}</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#1F2937' }}>{item.label}</div>
+                <div style={{ fontSize: 11.5, color: '#9CA3AF', marginTop: 1 }}>{item.desc}</div>
+              </div>
+              <ChevronRight size={18} color="#D1D5DB" />
+            </div>
+          ))}
+        </div>
+
+        {/* 提示 */}
+        <div style={{ background: '#EEF2FF', borderRadius: 14, padding: '14px 16px', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+          <span style={{ fontSize: 18, flexShrink: 0 }}>💡</span>
+          <div style={{ fontSize: 12.5, color: '#4338CA', lineHeight: 1.6 }}>
+            完整版达人工作台（抢单、导航、收入提现等功能）请使用「喵搭达人端APP」。如有疑问请联系客服。
+          </div>
+        </div>
+      </div>
+
+      {/* Toast */}
+      {toastMsg && (
+        <div style={{
+          position: 'fixed', bottom: 100, left: '50%', transform: 'translateX(-50%)',
+          background: toastMsg.type === 'success' ? '#10B981' : '#EF4444',
+          color: '#fff', padding: '10px 20px', borderRadius: 10, fontSize: 13, fontWeight: 600,
+          zIndex: 9999, boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+        }}>
+          {toastMsg.text}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ===================================================================
    路由 & 应用入口
    =================================================================== */
 function AppRoutes() {
@@ -5569,6 +5739,7 @@ function AppRoutes() {
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/talent-apply" element={<TalentApplyPage />} />
+          <Route path="/talent-workbench" element={<TalentWorkbenchPage />} />
         </Routes>
       </div>
       {showTab && <TabBar />}

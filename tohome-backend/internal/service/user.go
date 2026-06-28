@@ -65,6 +65,7 @@ type LoginResponse struct {
 	Token        string      `json:"token"`
 	RefreshToken string      `json:"refresh_token"`
 	ExpireIn     int         `json:"expire_in"`
+	UserType     int         `json:"user_type"`
 	User         *model.User `json:"user"`
 }
 
@@ -137,6 +138,7 @@ func (s *UserService) Login(ctx context.Context, req *LoginRequest, ip string) (
 		Token:        token,
 		RefreshToken: refreshToken,
 		ExpireIn:     s.jwtCfg.Expire,
+		UserType:     userType,
 		User:         user,
 	}, nil
 }
@@ -182,6 +184,7 @@ func (s *UserService) TalentLogin(ctx context.Context, req *LoginRequest, ip str
 		Token:        token,
 		RefreshToken: refreshToken,
 		ExpireIn:     s.jwtCfg.Expire,
+		UserType:     2,
 		User:         user,
 	}, nil
 }
@@ -224,6 +227,7 @@ func (s *UserService) RefreshToken(ctx context.Context, refreshToken string) (*L
 		Token:        token,
 		RefreshToken: newRefreshToken,
 		ExpireIn:     s.jwtCfg.Expire,
+		UserType:     userType,
 		User:         user,
 	}, nil
 }

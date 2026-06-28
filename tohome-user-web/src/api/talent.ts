@@ -26,4 +26,9 @@ export const talentApi = {
     formData.append('file', file);
     return api.post('/user/talent/upload', formData);
   },
+  // 达人工作台接口（需要达人身份token）
+  profile: () => api.get('/talent/profile'),
+  dashboard: () => api.get('/talent/dashboard'),
+  incomeStats: () => api.get('/talent/income/statistics'),
+  updateWorkStatus: (status: number) => api.post('/talent/status', { status }),
 };

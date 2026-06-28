@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="keywords" content="智慧物业,物业管理系统,大圣物业,喵喵至家,杭州物业软件">
+    <meta name="description" content="大圣智慧物业管理系统——杭州喵喵至家网络有限公司出品，以科技赋能物业管理，让社区服务更高效、更温暖。">
+    <title>大圣智慧物业管理系统 - 杭州喵喵至家网络有限公司</title>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0e17;
+            --bg2: #111827;
+            --bg3: #1a1f2e;
+            --card: #161b25;
+            --card-hover: #1e2435;
+            --border: rgba(255,255,255,0.06);
+            --text: #e2e8f0;
+            --text2: #94a3b8;
+            --text3: #64748b;
+            --primary: #3b82f6;
+            --primary-glow: rgba(59,130,246,0.3);
+            --accent: #8b5cf6;
+            --accent-glow: rgba(139,92,246,0.3);
+            --green: #10b981;
+            --green-glow: rgba(16,185,129,0.3);
+            --radius: 16px;
+            --radius-sm: 10px;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        html { scroll-behavior:smooth; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+        /* 全局光效 */
+        body::before {
+            content: '';
+            position: fixed; top:0; left:0; right:0; bottom:0;
+            background: 
+                radial-gradient(ellipse 80% 60% at 20% 0%, rgba(59,130,246,0.08) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 50% at 80% 30%, rgba(139,92,246,0.06) 0%, transparent 60%),
+                radial-gradient(ellipse 70% 40% at 50% 90%, rgba(16,185,129,0.04) 0%, transparent 50%);
+            pointer-events:none; z-index:0;
+        }
+        .container { max-width:1200px; margin:0 auto; padding:0 24px; position:relative; z-index:1; }
+
+        /* ===== 导航栏 ===== */
+        .navbar {
+            position:fixed; top:0; left:0; right:0; z-index:100;
+            padding:16px 0;
+            transition:all 0.3s ease;
+        }
+        .navbar.scrolled {
+            background: rgba(10,14,23,0.85);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border-bottom:1px solid var(--border);
+            padding:10px 0;
+        }
+        .nav-inner { display:flex; align-items:center; justify-content:space-between; max-width:1200px; margin:0 auto; padding:0 24px; }
+        .nav-brand { display:flex; align-items:center; gap:10px; text-decoration:none; }
+        .nav-brand img { width:36px; height:36px; border-radius:8px; }
+        .nav-brand-text { font-size:18px; font-weight:700; color:#fff; }
+        .nav-brand-sub { font-size:11px; color:var(--text3); display:block; }
+        .nav-links { display:flex; gap:32px; align-items:center; }
+        .nav-links a { color:var(--text2); text-decoration:none; font-size:14px; font-weight:500; transition:color 0.2s; }
+        .nav-links a:hover { color:#fff; }
+        .nav-cta {
+            background:var(--primary); color:#fff; border:none;
+            padding:9px 22px; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer;
+            transition:all 0.3s; text-decoration:none; display:inline-block;
+        }
+        .nav-cta:hover { box-shadow:0 0 30px var(--primary-glow); transform:translateY(-1px); }
+        .nav-menu-btn { display:none; background:none; border:none; color:#fff; font-size:22px; cursor:pointer; }
+        @media (max-width:900px) {
+            .nav-links { display:none; position:absolute; top:100%; left:0; right:0; background:rgba(10,14,23,0.98); backdrop-filter:blur(20px); flex-direction:column; padding:24px; gap:16px; border-bottom:1px solid var(--border); }
+            .nav-links.open { display:flex; }
+            .nav-menu-btn { display:block; }
+        }
+
+        /* ===== Hero ===== */
+        .hero {
+            min-height:100vh; display:flex; align-items:center;
+            padding-top:80px; padding-bottom:80px;
+            position:relative; overflow:hidden;
+        }
+        .hero-bg-img {
+            position:absolute; inset:-5% -10%;
+            background:url('/images/hero-bg.jpg') center/cover no-repeat;
+            opacity:0.3;
+            pointer-events:none;
+            z-index:0;
+        }
+        .hero::after {
+            content:''; position:absolute; bottom:-10%; right:-5%; width:500px; height:500px;
+            background:radial-gradient(circle, rgba(139,92,246,0.1) 0%, transparent 70%);
+            border-radius:50%; filter:blur(80px);
+            z-index:1;
+        }
+        @media (max-width:900px) {
+            .hero-bg-img { opacity:0.2; }
+        }
+        .hero-grid { display:grid; grid-template-columns:1fr 1fr; gap:60px; align-items:center; position:relative; z-index:2; }
+        @media (max-width:900px) { .hero-grid { grid-template-columns:1fr; text-align:center; } }
+        .hero-badge {
+            display:inline-flex; align-items:center; gap:8px;
+            background:rgba(59,130,246,0.1); border:1px solid rgba(59,130,246,0.2);
+            padding:8px 18px; border-radius:50px; font-size:13px; color:var(--primary); margin-bottom:28px;
+            animation:fadeInUp 0.6s ease;
+        }
+        .hero-badge-dot { width:8px; height:8px; background:var(--primary); border-radius:50%; animation:pulse 2s infinite; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+        .hero-title {
+            font-size:clamp(2.4rem, 5vw, 3.6rem); font-weight:800; line-height:1.2;
+            letter-spacing:-0.02em; margin-bottom:20px;
+            animation:fadeInUp 0.6s ease 0.1s both;
+        }
+        .hero-title .highlight {
+            background:linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+            -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+            background-clip:text;
+        }
+        .hero-desc {
+            font-size:17px; color:var(--text2); line-height:1.7; margin-bottom:36px; max-width:520px;
+            animation:fadeInUp 0.6s ease 0.2s both;
+        }
+        .hero-btns { display:flex; gap:16px; flex-wrap:wrap; animation:fadeInUp 0.6s ease 0.3s both; }
+        @media (max-width:900px) { .hero-btns { justify-content:center; } }
+        .btn-primary {
+            background:linear-gradient(135deg, var(--primary) 0%, #2563eb 100%);
+            color:#fff; padding:14px 32px; border-radius:12px; font-size:15px; font-weight:600;
+            text-decoration:none; border:none; cursor:pointer;
+            transition:all 0.3s; box-shadow:0 4px 20px rgba(59,130,246,0.3);
+            display:inline-flex; align-items:center; gap:8px;
+        }
+        .btn-primary:hover { transform:translateY(-2px); box-shadow:0 8px 35px rgba(59,130,246,0.45); }
+        .btn-outline {
+            background:rgba(255,255,255,0.04); color:#fff; padding:14px 32px; border-radius:12px; font-size:15px; font-weight:600;
+            text-decoration:none; border:1px solid rgba(255,255,255,0.15);
+            transition:all 0.3s; display:inline-flex; align-items:center; gap:8px;
+        }
+        .btn-outline:hover { background:rgba(255,255,255,0.08); border-color:rgba(255,255,255,0.3); transform:translateY(-2px); }
+        .btn-accent {
+            background:linear-gradient(135deg, var(--accent) 0%, #7c3aed 100%);
+            color:#fff; padding:14px 32px; border-radius:12px; font-size:15px; font-weight:600;
+            text-decoration:none; border:none; cursor:pointer;
+            transition:all 0.3s; box-shadow:0 4px 20px rgba(139,92,246,0.3);
+            display:inline-flex; align-items:center; gap:8px;
+        }
+        .btn-accent:hover { transform:translateY(-2px); box-shadow:0 8px 35px rgba(139,92,246,0.45); }
+
+        /* Hero 右侧 */
+        .hero-visual {
+            position:relative; display:flex; justify-content:center; align-items:center;
+            animation:fadeInUp 0.6s ease 0.2s both;
+        }
+        .hero-phone-mock {
+            width:240px; height:480px; background:linear-gradient(180deg, #1a1f2e 0%, #111827 100%);
+            border-radius:36px; border:3px solid rgba(255,255,255,0.1);
+            position:relative; overflow:hidden;
+            box-shadow:0 30px 80px rgba(0,0,0,0.4), 0 0 120px rgba(59,130,246,0.08);
+        }
+        .hero-phone-mock .status-bar {
+            height:28px; display:flex; align-items:center; justify-content:space-between; padding:0 20px; font-size:10px; color:var(--text2);
+        }
+        .hero-phone-mock .status-bar .time { font-weight:600; }
+        .hero-phone-mock .nav-inner-phone {
+            padding:12px 16px; text-align:center; font-weight:700; font-size:15px; border-bottom:1px solid var(--border);
+            background:rgba(255,255,255,0.02);
+        }
+        .hero-phone-mock .phone-grid {
+            display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:16px;
+        }
+        .phone-card {
+            background:var(--card); border-radius:12px; padding:14px 10px; text-align:center;
+            border:1px solid var(--border);
+            transition:all 0.3s;
+        }
+        .phone-card:hover { border-color:rgba(59,130,246,0.3); background:var(--card-hover); }
+        .phone-card .icon { font-size:22px; margin-bottom:6px; }
+        .phone-card .label { font-size:11px; color:var(--text2); font-weight:500; }
+        .hero-glow-orb {
+            position:absolute; width:200px; height:200px; border-radius:50%;
+            background:radial-gradient(circle, rgba(59,130,246,0.2) 0%, transparent 70%);
+            filter:blur(60px); pointer-events:none;
+        }
+
+        /* ===== Stats ===== */
+        .stats-section { padding:0 0 100px; position:relative; z-index:2; }
+        .stats-grid {
+            display:grid; grid-template-columns:repeat(4,1fr); gap:20px;
+            max-width:1100px; margin:0 auto; padding:0 24px;
+        }
+        @media (max-width:768px) { .stats-grid { grid-template-columns:repeat(2,1fr); } }
+        .stat-card {
+            background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+            padding:28px 24px; text-align:center; transition:all 0.3s;
+            position:relative; overflow:hidden;
+        }
+        .stat-card::before {
+            content:''; position:absolute; top:0; left:0; right:0; height:3px;
+            background:linear-gradient(90deg, var(--primary), var(--accent));
+            opacity:0; transition:opacity 0.3s;
+        }
+        .stat-card:hover { border-color:rgba(255,255,255,0.15); transform:translateY(-4px); box-shadow:0 20px 50px rgba(0,0,0,0.3); }
+        .stat-card:hover::before { opacity:1; }
+        .stat-value { font-size:2.4rem; font-weight:800; color:#fff; line-height:1; margin-bottom:8px; }
+        .stat-value .suffix { font-size:1.2rem; color:var(--primary); }
+        .stat-label { font-size:13px; color:var(--text3); font-weight:500; }
+        .stat-icon { font-size:28px; margin-bottom:12px; opacity:0.7; }
+
+        /* ===== Platforms ===== */
+        .section { padding:100px 0; position:relative; z-index:2; }
+        .section-label {
+            text-align:center; font-size:12px; font-weight:700; letter-spacing:0.2em;
+            text-transform:uppercase; color:var(--primary); margin-bottom:12px;
+        }
+        .section-title { text-align:center; font-size:clamp(1.8rem,3vw,2.5rem); font-weight:800; color:#fff; margin-bottom:16px; }
+        .section-desc { text-align:center; color:var(--text2); max-width:600px; margin:0 auto 60px; font-size:15px; }
+        .platform-grid {
+            display:grid; grid-template-columns:repeat(3,1fr); gap:24px; max-width:1100px; margin:0 auto; padding:0 24px;
+        }
+        @media (max-width:768px) { .platform-grid { grid-template-columns:1fr; } }
+        .platform-card {
+            background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:36px 28px;
+            transition:all 0.3s; position:relative; text-decoration:none; display:block;
+        }
+        .platform-card:hover { border-color:rgba(255,255,255,0.15); transform:translateY(-6px); box-shadow:0 25px 60px rgba(0,0,0,0.4); }
+        .platform-tag {
+            display:inline-block; padding:4px 12px; border-radius:50px; font-size:11px; font-weight:700; margin-bottom:20px;
+            letter-spacing:0.05em;
+        }
+        .platform-tag.wx { background:rgba(16,185,129,0.12); color:var(--green); border:1px solid rgba(16,185,129,0.2); }
+        .platform-tag.mobile { background:rgba(59,130,246,0.12); color:var(--primary); border:1px solid rgba(59,130,246,0.2); }
+        .platform-tag.pc { background:rgba(139,92,246,0.12); color:var(--accent); border:1px solid rgba(139,92,246,0.2); }
+        .platform-icon { font-size:40px; margin-bottom:20px; }
+        .platform-card h3 { font-size:1.4rem; font-weight:700; color:#fff; margin-bottom:10px; }
+        .platform-card p { color:var(--text2); font-size:14px; line-height:1.6; margin-bottom:20px; }
+        .platform-link { color:var(--primary); font-size:14px; font-weight:600; }
+
+        /* ===== Features ===== */
+        .features-grid {
+            display:grid; grid-template-columns:repeat(3,1fr); gap:24px; max-width:1100px; margin:0 auto; padding:0 24px;
+        }
+        @media (max-width:768px) { .features-grid { grid-template-columns:1fr; } }
+        .feature-card {
+            background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:32px 28px;
+            transition:all 0.3s; position:relative;
+        }
+        .feature-card:hover { border-color:rgba(255,255,255,0.12); transform:translateY(-4px); }
+        .feature-icon-wrap {
+            width:52px; height:52px; border-radius:14px; display:flex; align-items:center; justify-content:center;
+            font-size:24px; margin-bottom:20px;
+        }
+        .fi-blue { background:rgba(59,130,246,0.1); color:var(--primary); }
+        .fi-purple { background:rgba(139,92,246,0.1); color:var(--accent); }
+        .fi-green { background:rgba(16,185,129,0.1); color:var(--green); }
+        .fi-orange { background:rgba(245,158,11,0.1); color:#f59e0b; }
+        .fi-cyan { background:rgba(6,182,212,0.1); color:#06b6d4; }
+        .fi-pink { background:rgba(236,72,153,0.1); color:#ec4899; }
+        .feature-card h3 { font-size:1.05rem; font-weight:700; color:#fff; margin-bottom:8px; }
+        .feature-card p { color:var(--text2); font-size:13.5px; line-height:1.65; }
+
+        /* ===== Why Us ===== */
+        .why-grid {
+            display:grid; grid-template-columns:1fr 1fr; gap:60px; align-items:center; max-width:1100px; margin:0 auto; padding:0 24px;
+        }
+        @media (max-width:768px) { .why-grid { grid-template-columns:1fr; } }
+        .why-visual {
+            background:linear-gradient(135deg, rgba(59,130,246,0.05), rgba(139,92,246,0.05));
+            border:1px solid var(--border); border-radius:24px; padding:40px;
+            position:relative; overflow:hidden;
+        }
+        .why-glow {
+            position:absolute; width:250px; height:250px; border-radius:50%;
+            background:var(--primary-glow); filter:blur(80px); top:50%; left:50%; transform:translate(-50%,-50%);
+        }
+        .why-item { display:flex; gap:18px; margin-bottom:28px; position:relative; z-index:1; }
+        .why-icon {
+            width:48px; height:48px; min-width:48px; border-radius:14px;
+            display:flex; align-items:center; justify-content:center; font-size:20px;
+            background:rgba(59,130,246,0.08); color:var(--primary);
+        }
+        .why-item h4 { font-size:1.05rem; font-weight:700; color:#fff; margin-bottom:4px; }
+        .why-item p { color:var(--text2); font-size:13.5px; line-height:1.6; }
+
+        /* Trust badges */
+        .trust-section { padding:60px 0 100px; position:relative; z-index:2; }
+        .badges-grid {
+            display:grid; grid-template-columns:repeat(5,1fr); gap:20px; max-width:1000px; margin:0 auto; padding:0 24px;
+        }
+        @media (max-width:768px) { .badges-grid { grid-template-columns:repeat(2,1fr); } }
+        .badge-card {
+            background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+            padding:28px 16px; text-align:center; transition:all 0.3s;
+        }
+        .badge-card:hover { border-color:rgba(255,255,255,0.12); transform:translateY(-3px); }
+        .badge-icon { font-size:32px; margin-bottom:12px; }
+        .badge-icon img { width:34px; height:34px; object-fit:contain; border-radius:8px; display:inline-block; }
+        .badge-card h5 { font-size:13px; font-weight:600; color:#fff; margin-bottom:4px; }
+        .badge-card span { font-size:11px; color:var(--text3); }
+
+        /* ===== CTA ===== */
+        .cta-section {
+            position:relative; overflow:hidden; padding:100px 0;
+            text-align:center; z-index:2;
+        }
+        .cta-inner {
+            background:linear-gradient(135deg, rgba(59,130,246,0.05), rgba(139,92,246,0.05));
+            border:1px solid var(--border); border-radius:24px;
+            padding:64px 40px; position:relative; overflow:hidden;
+            max-width:900px; margin:0 auto;
+        }
+        .cta-inner::before {
+            content:''; position:absolute; top:-30%; left:-20%; width:400px; height:400px;
+            background:radial-gradient(circle, rgba(59,130,246,0.12) 0%, transparent 70%);
+            border-radius:50%; filter:blur(60px);
+        }
+        .cta-title { font-size:clamp(1.6rem,3vw,2.2rem); font-weight:800; color:#fff; margin-bottom:16px; position:relative; z-index:1; }
+        .cta-desc { color:var(--text2); margin-bottom:36px; font-size:15px; position:relative; z-index:1; }
+        .cta-btns { display:flex; gap:16px; justify-content:center; flex-wrap:wrap; position:relative; z-index:1; }
+
+        /* ===== Footer ===== */
+        .footer { padding:80px 0 40px; border-top:1px solid var(--border); position:relative; z-index:2; }
+        .footer-grid {
+            display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:40px; max-width:1100px; margin:0 auto 50px; padding:0 24px;
+        }
+        @media (max-width:768px) { .footer-grid { grid-template-columns:1fr 1fr; } }
+        .footer-brand { display:flex; align-items:center; gap:10px; margin-bottom:16px; }
+        .footer-brand img { width:30px; height:30px; border-radius:6px; }
+        .footer-brand span { font-weight:700; font-size:16px; color:#fff; }
+        .footer-desc { color:var(--text3); font-size:13px; line-height:1.7; margin-bottom:20px; }
+        .footer-col h4 { color:#fff; font-size:13px; font-weight:700; letter-spacing:0.08em; margin-bottom:16px; }
+        .footer-col a { display:block; color:var(--text3); font-size:13px; text-decoration:none; margin-bottom:10px; transition:color 0.2s; }
+        .footer-col a:hover { color:#fff; }
+        .footer-bottom {
+            border-top:1px solid var(--border); padding-top:24px; display:flex;
+            justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;
+            max-width:1100px; margin:0 auto; padding:24px; color:var(--text3); font-size:12px;
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from { opacity:0; transform:translateY(30px); }
+            to { opacity:1; transform:translateY(0); }
+        }
+        .reveal { opacity:0; transform:translateY(40px); transition:all 0.7s cubic-bezier(0.16,1,0.3,1); }
+        .reveal.visible { opacity:1; transform:translateY(0); }
+
+        /* Sparkle grid background pattern */
+        .sparkle-bg {
+            position:absolute; inset:0; pointer-events:none; overflow:hidden;
+            background-image: radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px);
+            background-size: 60px 60px;
+        }
+
+        /* Mobile menu */
+        .mobile-menu { display:none; }
+        @media (max-width:900px) {
+            .mobile-menu.open { display:block; }
+        }
+
+        ::-webkit-scrollbar { width:6px; }
+        ::-webkit-scrollbar-track { background:var(--bg); }
+        ::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.1); border-radius:3px; }
+        #particle-canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none}
+    </style>
+</head>
+<body>
+<canvas id="particle-canvas"></canvas>
+
+<!-- ============ 导航栏 ============ -->
+<nav class="navbar" id="navbar">
+    <div class="nav-inner">
+        <a href="#" class="nav-brand">
+            <img src="/images/monkey-icon.png" alt="大圣物管">
+            <div>
+                <span class="nav-brand-text">大圣智慧物业</span>
+                <span class="nav-brand-sub">杭州喵喵至家网络有限公司</span>
+            </div>
+        </a>
+        <div class="nav-links" id="navLinks">
+            <a href="#home">首页</a>
+            <a href="#features">核心功能</a>
+            <a href="#platforms">多端入口</a>
+            <a href="#why">为什么选我们</a>
+            <a href="/admin/" target="_blank">管理后台</a>
+            <a href="#contact" class="nav-cta">立即咨询</a>
+        </div>
+        <button class="nav-menu-btn" id="menuBtn" aria-label="菜单">
+            <i class="fa fa-bars"></i>
+        </button>
+    </div>
+</nav>
+
+<!-- ============ Hero ============ -->
+<section class="hero" id="home">
+    <div class="sparkle-bg"></div>
+    <div class="hero-bg-img"></div>
+    <div class="container">
+        <div class="hero-grid">
+            <div>
+                <div class="hero-badge">
+                    <span class="hero-badge-dot"></span> 新一代智慧物业 SaaS 平台
+                </div>
+                <h1 class="hero-title">
+                    智慧赋能<br>
+                    <span class="highlight">新一代物业管理系统</span>
+                </h1>
+                <p class="hero-desc">
+                    融合物联网、大数据与 AI 技术，为物业企业提供全场景数字化解决方案。
+                    覆盖报修、收费、巡检、公告等核心业务，助力降本增效，提升业主满意度。
+                </p>
+                <div class="hero-btns">
+                    <a href="#features" class="btn-primary">
+                        <i class="fa fa-cubes"></i> 查看功能
+                    </a>
+                    <a href="#contact" class="btn-outline">
+                        <i class="fa fa-comments-o"></i> 立即咨询
+                    </a>
+                    <a href="/3d-yanshi/" target="_blank" class="btn-accent">
+                        <i class="fa fa-building-o"></i> 小区数字建模
+                    </a>
+                </div>
+            </div>
+            <div class="hero-visual">
+                <div class="hero-glow-orb"></div>
+                <div class="hero-phone-mock">
+                    <div class="status-bar">
+                        <span class="time">9:41</span>
+                        <span>📶 🔋</span>
+                    </div>
+                    <div class="nav-inner-phone" style="color:var(--primary);">🏠 大圣智慧物业</div>
+                    <div class="phone-grid">
+                        <div class="phone-card">
+                            <div class="icon">🔧</div>
+                            <div class="label">智能报修</div>
+                        </div>
+                        <div class="phone-card">
+                            <div class="icon">💬</div>
+                            <div class="label">投诉建议</div>
+                        </div>
+                        <div class="phone-card">
+                            <div class="icon">💰</div>
+                            <div class="label">在线缴费</div>
+                        </div>
+                        <div class="phone-card">
+                            <div class="icon">📋</div>
+                            <div class="label">公告通知</div>
+                        </div>
+                        <div class="phone-card">
+                            <div class="icon">🚗</div>
+                            <div class="label">车辆管理</div>
+                        </div>
+                        <div class="phone-card">
+                            <div class="icon" style="color:var(--primary);">🔍</div>
+                            <div class="label">智能巡检</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ============ 数据统计 ============ -->
+<section class="stats-section">
+    <div class="container">
+        <div class="stats-grid">
+            <div class="stat-card reveal">
+                <div class="stat-icon">🏘️</div>
+                <div class="stat-value">500<span class="suffix">+</span></div>
+                <div class="stat-label">服务社区</div>
+            </div>
+            <div class="stat-card reveal">
+                <div class="stat-icon">👥</div>
+                <div class="stat-value">50万<span class="suffix">+</span></div>
+                <div class="stat-label">覆盖业主</div>
+            </div>
+            <div class="stat-card reveal">
+                <div class="stat-icon">🛡️</div>
+                <div class="stat-value">99.9<span class="suffix">%</span></div>
+                <div class="stat-label">系统稳定性</div>
+            </div>
+            <div class="stat-card reveal">
+                <div class="stat-icon">🎧</div>
+                <div class="stat-value">7×24<span class="suffix">h</span></div>
+                <div class="stat-label">技术支持</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ============ 多端入口 ============ -->
+<section id="platforms" class="section" style="padding-top:0;">
+    <div class="container">
+        <div class="section-label">Multi-Platform</div>
+        <h2 class="section-title">全场景多端覆盖</h2>
+        <p class="section-desc">业主微信端 + 员工移动端 + PC管理后台，三端数据实时同步，随时随地掌控全局。</p>
+        <div class="platform-grid">
+            <a href="owner.html" target="_blank" class="platform-card reveal">
+                <span class="platform-tag wx">微信端</span>
+                <div class="platform-icon">🏠</div>
+                <h3>业主端</h3>
+                <p>报修、投诉、缴费、公告、访客登记，指尖搞定物业服务。</p>
+                <span class="platform-link">进入业主端 →</span>
+            </a>
+            <a href="staff.html" target="_blank" class="platform-card reveal">
+                <span class="platform-tag mobile">移动端</span>
+                <div class="platform-icon">👷</div>
+                <h3>员工端</h3>
+                <p>接单处理、巡检打卡、收费管理，工作高效移动化。</p>
+                <span class="platform-link">进入员工端 →</span>
+            </a>
+            <a href="/admin/" target="_blank" class="platform-card reveal">
+                <span class="platform-tag pc">PC端</span>
+                <div class="platform-icon">💻</div>
+                <h3>管理后台</h3>
+                <p>数据总览、权限管理、报表统计，全局掌控一目了然。</p>
+                <span class="platform-link">进入管理后台 →</span>
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- ============ 核心功能 ============ -->
+<section id="features" class="section">
+    <div class="sparkle-bg" style="opacity:0.5;"></div>
+    <div class="container">
+        <div class="section-label">Core Features</div>
+        <h2 class="section-title">全方位物业数字化能力</h2>
+        <p class="section-desc">覆盖物业管理全场景，从报修投诉到智能巡检，一站解决所有管理难题。</p>
+        <div class="features-grid">
+            <div class="feature-card reveal">
+                <div class="feature-icon-wrap fi-blue"><i class="fa fa-wrench"></i></div>
+                <h3>智能报修</h3>
+                <p>业主一键报修，自动派单到维修人员，实时追踪处理进度，维修效率提升 60%。</p>
+            </div>
+            <div class="feature-card reveal">
+                <div class="feature-icon-wrap fi-purple"><i class="fa fa-comments"></i></div>
+                <h3>投诉建议</h3>
+                <p>业主在线提交投诉建议，AI 智能分类流转，闭环处理机制保障每一条反馈妥善解决。</p>
+            </div>
+            <div class="feature-card reveal">
+                <div class="feature-icon-wrap fi-green"><i class="fa fa-car"></i></div>
+                <h3>车辆管理</h3>
+                <p>车牌识别、车位管理、访客车辆登记一体化，出入自动放行，告别拥堵。</p>
+            </div>
+            <div class="feature-card reveal">
+                <div class="feature-icon-wrap fi-orange"><i class="fa fa-bullhorn"></i></div>
+                <h3>公告推送</h3>
+                <p>物业通知精准触达每位业主，支持图文视频多种格式，已读未读一目了然。</p>
+            </div>
+            <div class="feature-card reveal">
+                <div class="feature-icon-wrap fi-cyan"><i class="fa fa-search"></i></div>
+                <h3>智能巡检</h3>
+                <p>GPS 打卡巡检路线，拍照上传自动归档，隐患排查不留死角，巡查质量可追溯。</p>
+            </div>
+            <div class="feature-card reveal">
+                <div class="feature-icon-wrap fi-pink"><i class="fa fa-credit-card"></i></div>
+                <h3>收费管理</h3>
+                <p>物业费、水电费在线缴纳，账单自动生成，欠费提醒智能催缴，收费率达 98%。</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ============ 为什么选择我们 ============ -->
+<section id="why" class="section">
+    <div class="container">
+        <div class="section-label">Why Choose Us</div>
+        <h2 class="section-title">为什么选择大圣智慧物业</h2>
+        <p class="section-desc">四大核心优势，助力物业服务数字化升级</p>
+        <div class="why-grid">
+            <div class="why-visual">
+                <div class="why-glow"></div>
+                <div style="position:relative; z-index:1;">
+                    <div class="why-item reveal">
+                        <div class="why-icon">⚡</div>
+                        <div>
+                            <h4>开箱即用，快速部署</h4>
+                            <p>云端 SaaS 模式，无需自建服务器，注册即用，3 天完成上线。支持私有化部署，数据安全无忧。</p>
+                        </div>
+                    </div>
+                    <div class="why-item reveal">
+                        <div class="why-icon">📱</div>
+                        <div>
+                            <h4>三端协同，无缝体验</h4>
+                            <p>业主微信端 + 员工移动端 + PC 管理后台，数据实时同步，随时随地掌控全局。</p>
+                        </div>
+                    </div>
+                    <div class="why-item reveal">
+                        <div class="why-icon">🔒</div>
+                        <div>
+                            <h4>金融级安全防护</h4>
+                            <p>数据加密传输存储，多层权限控制，操作日志可追溯，全面通过信息安全等级保护认证。</p>
+                        </div>
+                    </div>
+                    <div class="why-item reveal">
+                        <div class="why-icon">🎯</div>
+                        <div>
+                            <h4>持续迭代，终身升级</h4>
+                            <p>专业研发团队持续打磨，每月功能更新，根据市场需求快速响应，合作伙伴优先体验新功能。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div style="text-align:center;">
+                <div style="font-size:140px; opacity:0.06; line-height:1;">🔐</div>
+                <div style="margin-top:-30px;">
+                    <div style="font-size:18px; font-weight:700; color:#fff; margin-bottom:8px;">安全可信赖</div>
+                    <p style="color:var(--text2); font-size:14px; line-height:1.6;">
+                        采用银行级加密技术，多重安全防护体系，保障您的数据安全与业务连续性。
+                    </p>
+                </div>
+                <div style="margin-top:40px; display:grid; grid-template-columns:1fr 1fr; gap:16px; text-align:center;">
+                    <div style="background:var(--card); border:1px solid var(--border); border-radius:var(--radius-sm); padding:20px;">
+                        <div style="font-size:28px; margin-bottom:8px;">🏆</div>
+                        <div style="font-size:13px; font-weight:600; color:#fff;">ISO 27001</div>
+                        <div style="font-size:11px; color:var(--text3);">信息安全认证</div>
+                    </div>
+                    <div style="background:var(--card); border:1px solid var(--border); border-radius:var(--radius-sm); padding:20px;">
+                        <div style="font-size:28px; margin-bottom:8px;">☁️</div>
+                        <div style="font-size:13px; font-weight:600; color:#fff;">99.9% SLA</div>
+                        <div style="font-size:11px; color:var(--text3);">服务可用性保障</div>
+                    </div>
+                    <div style="background:var(--card); border:1px solid var(--border); border-radius:var(--radius-sm); padding:20px;">
+                        <div style="font-size:28px; margin-bottom:8px;">🔒</div>
+                        <div style="font-size:13px; font-weight:600; color:#fff;">SSL/TLS</div>
+                        <div style="font-size:11px; color:var(--text3);">全链路加密</div>
+                    </div>
+                    <div style="background:var(--card); border:1px solid var(--border); border-radius:var(--radius-sm); padding:20px;">
+                        <div style="font-size:28px; margin-bottom:8px;">🔄</div>
+                        <div style="font-size:13px; font-weight:600; color:#fff;">异地容灾</div>
+                        <div style="font-size:11px; color:var(--text3);">数据备份恢复</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ============ 应用场景 ============ -->
+<section class="section" style="padding-top:0;">
+    <div class="container">
+        <div class="section-label">Scenarios</div>
+        <h2 class="section-title">应用场景</h2>
+        <p class="section-desc">适用于各类居住与商业物业场景</p>
+        <div class="platform-grid" style="grid-template-columns:repeat(3,1fr);">
+            <div class="platform-card reveal" style="cursor:default;">
+                <div style="font-size:48px; margin-bottom:16px;">🏘️</div>
+                <h3>住宅小区</h3>
+                <p style="color:var(--text2); font-size:14px;">为住宅小区提供一站式智慧物业管理方案，提升物业服务品质与业主满意度。</p>
+            </div>
+            <div class="platform-card reveal" style="cursor:default;">
+                <div style="font-size:48px; margin-bottom:16px;">🏢</div>
+                <h3>商业写字楼</h3>
+                <p style="color:var(--text2); font-size:14px;">面向写字楼与商业综合体，整合楼宇管理、设备运维、安防监控等需求。</p>
+            </div>
+            <div class="platform-card reveal" style="cursor:default;">
+                <div style="font-size:48px; margin-bottom:16px;">🏭</div>
+                <h3>产业园区</h3>
+                <p style="color:var(--text2); font-size:14px;">为产业园区提供集中化智慧管理平台，涵盖入园企业服务与公共设施管理。</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ============ CTA 联系我们 ============ -->
+<section id="contact" class="cta-section">
+    <div class="container">
+        <div class="cta-inner">
+            <h2 class="cta-title">开启智慧物业之旅</h2>
+            <p class="cta-desc">获取专属智慧物业解决方案 · 欢迎致电咨询</p>
+            <div class="cta-btns">
+                <a href="https://www.hbdxm.com/wg/contact.html" class="btn-primary" style="font-size:16px; padding:16px 36px;">
+                    <i class="fa fa-comments-o"></i> 立即咨询
+                </a>
+                <a href="owner.html" target="_blank" class="btn-outline" style="font-size:16px; padding:16px 36px;">
+                    <i class="fa fa-external-link"></i> 体验 Demo
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ============ 联系信息 ============ -->
+<section class="section" style="padding-top:0; padding-bottom:60px;">
+    <div class="container">
+        <div class="badges-grid">
+            <div class="badge-card reveal">
+                <div class="badge-icon">📞</div>
+                <h5>咨询热线</h5>
+                <span>17771300068</span>
+                <span style="display:block;">19171045360</span>
+            </div>
+            <div class="badge-card reveal">
+                <a href="https://mm.hbdxm.com" target="_blank" style="text-decoration:none;color:inherit;display:block;">
+                <div class="badge-icon"><img src="mm.PNG" alt="喵喵上门服务平台"></div>
+                <h5>喵喵上门服务平台</h5>
+                <span>mm.hbdxm.com</span>
+                </a>
+            </div>
+            <div class="badge-card reveal">
+                <a href="https://www.hbdxm.com/kf/login" target="_blank" style="text-decoration:none;color:inherit;display:block;">
+                <div class="badge-icon">🎧</div>
+                <h5>快递智能客服</h5>
+                <span>物流查件 · 问题处理 · 快速响应</span>
+                </a>
+            </div>
+            <div class="badge-card reveal">
+                <a href="https://www.hbdxm.com/daka/" target="_blank" style="text-decoration:none;color:inherit;display:block;">
+                <div class="badge-icon">⏰</div>
+                <h5>快递打卡计时</h5>
+                <span>考勤打卡 · 工时统计 · 排班管理</span>
+                </a>
+            </div>
+            <div class="badge-card reveal">
+                <div class="badge-icon">⚙️</div>
+                <h5>企业运维</h5>
+                <a href="qh/index.html" style="color:var(--primary); font-size:12px; font-weight:600; text-decoration:none;">启航科技运维 →</a>
+                <span style="display:block;">IT运维 · 云服务托管</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ============ Footer ============ -->
+<footer class="footer">
+    <div class="footer-grid">
+        <div>
+            <div class="footer-brand">
+                <img src="/images/monkey-icon.png" alt="大圣物管">
+                <span>大圣<span style="color:var(--primary);">智慧物业</span></span>
+            </div>
+            <p class="footer-desc">
+                大圣智慧物业管理系统，由杭州喵喵至家网络有限公司倾力打造，
+                以科技创新驱动物业管理变革，让每一个社区都享受科技带来的便捷与温暖。
+            </p>
+            <p style="color:var(--text3); font-size:13px;">📞 17771300068 / 19171045360</p>
+        </div>
+        <div class="footer-col">
+            <h4>产品功能</h4>
+            <a href="#features">智能报修</a>
+            <a href="#features">投诉建议</a>
+            <a href="#features">车辆管理</a>
+            <a href="#features">公告推送</a>
+            <a href="#features">智能巡检</a>
+            <a href="#features">收费管理</a>
+        </div>
+        <div class="footer-col">
+            <h4>快速入口</h4>
+            <a href="owner.html" target="_blank">业主端入口</a>
+            <a href="staff.html" target="_blank">员工端入口</a>
+            <a href="/admin/" target="_blank">管理后台</a>
+            <a href="https://www.hbdxm.com/wg/contact.html">咨询合作</a>
+            <a href="#home">返回首页</a>
+        </div>
+        <div class="footer-col">
+            <h4>关于我们</h4>
+            <a href="#why">公司介绍</a>
+            <a href="qh/index.html">启航科技运维</a>
+            <a href="https://beian.miit.gov.cn/" target="_blank">鄂ICP备2025153909号</a>
+        </div>
+    </div>
+    <div class="footer-bottom">
+        <span>© 2026 杭州喵喵至家网络有限公司. All Rights Reserved.</span>
+        <span><a href="https://beian.miit.gov.cn/" target="_blank" style="color:var(--text3); text-decoration:none;">鄂ICP备2025153909号</a></span>
+    </div>
+</footer>
+
+<script>
+// ===== 导航栏滚动效果 =====
+const navbar = document.getElementById('navbar');
+window.addEventListener('scroll', () => {
+    navbar.classList.toggle('scrolled', window.scrollY > 60);
+});
+
+// ===== 移动端菜单 =====
+const menuBtn = document.getElementById('menuBtn');
+const navLinks = document.getElementById('navLinks');
+menuBtn.addEventListener('click', () => {
+    navLinks.classList.toggle('open');
+    menuBtn.innerHTML = navLinks.classList.contains('open') 
+        ? '<i class="fa fa-times"></i>' 
+        : '<i class="fa fa-bars"></i>';
+});
+
+// ===== 平滑滚动 =====
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', function(e) {
+        const id = this.getAttribute('href');
+        if (id === '#') return;
+        const target = document.querySelector(id);
+        if (target) {
+            e.preventDefault();
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            // 关闭移动端菜单
+            navLinks.classList.remove('open');
+            menuBtn.innerHTML = '<i class="fa fa-bars"></i>';
+        }
+    });
+});
+
+// ===== 滚动渐显动画 =====
+const revealElements = document.querySelectorAll('.reveal');
+const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+        }
+    });
+}, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+revealElements.forEach(el => observer.observe(el));
+
+// ===== Hero 手机模拟器微交互 =====
+document.querySelectorAll('.phone-card').forEach(card => {
+    card.addEventListener('mouseenter', function() {
+        this.style.transform = 'scale(1.05)';
+    });
+    card.addEventListener('mouseleave', function() {
+        this.style.transform = 'scale(1)';
+    });
+});
+
+// ===== 初始立即触发可见元素 =====
+window.addEventListener('load', () => {
+    document.querySelectorAll('.reveal').forEach(el => {
+        const rect = el.getBoundingClientRect();
+        if (rect.top < window.innerHeight) {
+            el.classList.add('visible');
+        }
+    });
+});
+</script>
+<!-- ============ 粒子特效 ============ -->
+<script>
+(function(){
+const canvas=document.getElementById('particle-canvas');
+const ctx=canvas.getContext('2d');
+let W,H,particles=[],mouseX=-200,mouseY=-200,isDown=false,animId;
+const COLORS=['rgba(99,160,255,','rgba(139,92,246,','rgba(6,182,212,','rgba(34,211,238,'];
+const MAX=120;
+
+function resize(){W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight;}
+window.addEventListener('resize',resize);
+resize();
+
+function spawn(x,y,vx,vy,size,color,life){
+  particles.push({x,y,vx,vy,size,color,life,age:0});
+  if(particles.length>MAX*3)particles.shift();
+}
+
+// idle particles
+function initParticles(){
+  for(let i=0;i<MAX;i++){
+    spawn(Math.random()*W,Math.random()*H,(Math.random()-0.5)*0.3,(Math.random()-0.5)*0.3,Math.random()*2+1,COLORS[Math.floor(Math.random()*COLORS.length)],0);
+  }
+}
+initParticles();
+
+// mouse repel
+document.addEventListener('mousemove',e=>{mouseX=e.clientX;mouseY=e.clientY;});
+document.addEventListener('mousedown',()=>{isDown=true;});
+document.addEventListener('mouseup',()=>{isDown=false;});
+document.addEventListener('touchmove',e=>{const t=e.touches[0];mouseX=t.clientX;mouseY=t.clientY;},{passive:true});
+document.addEventListener('touchstart',e=>{isDown=true;const t=e.touches[0];mouseX=t.clientX;mouseY=t.clientY;});
+document.addEventListener('touchend',()=>{isDown=false;});
+
+// click burst
+document.addEventListener('click',e=>{
+  const cx=e.clientX,cy=e.clientY;
+  for(let i=0;i<24;i++){
+    const a=Math.random()*Math.PI*2,s=Math.random()*4+3;
+    const c=COLORS[Math.floor(Math.random()*COLORS.length)]+'0.9)';
+    spawn(cx,cy,Math.cos(a)*s,Math.sin(a)*s,Math.random()*3+2,c,1);
+  }
+});
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+
+  for(let i=particles.length-1;i>=0;i--){
+    const p=particles[i];
+    const dx=mouseX-p.x,dy=mouseY-p.y,dist=Math.sqrt(dx*dx+dy*dy);
+
+    // repel when cursor near
+    if(dist<120&&dist>1){
+      const f=(120-dist)/120*3;
+      p.vx-=dx/dist*f*0.15;
+      p.vy-=dy/dist*f*0.15;
+    }
+    // click attract then scatter: do a little burst when cursor is down nearby
+    if(isDown&&dist<80&&dist>1){
+      const f=(80-dist)/80*4;
+      p.vx+=Math.sign(dx)*f*0.2;
+      p.vy-=f*0.8;
+    }
+
+    // damping / gravity
+    p.vx*=0.98;p.vy+=0.01;p.vy*=0.99;
+    p.x+=p.vx;p.y+=p.vy;
+
+    // boundary wrap
+    if(p.x<0)p.x=W;if(p.x>W)p.x=0;
+    if(p.y<0)p.y=H;if(p.y>H)p.y=0;
+
+    // lifetime for burst particles
+    if(p.life>0){p.age++;if(p.age>p.life*60){particles.splice(i,1);continue;}}
+
+    // idle particles: respawn if too slow
+    if(p.life===0&&Math.abs(p.vx)<0.05&&Math.abs(p.vy)<0.05&&Math.random()<0.005){
+      p.x=Math.random()*W;p.y=Math.random()*H;
+      p.vx=(Math.random()-0.5)*0.3;p.vy=(Math.random()-0.5)*0.3;
+    }
+
+    // draw
+    const alpha=p.life>0?Math.max(0,1-p.age/(p.life*60)):0.5;
+    const sz=p.life>0?p.size*(1-p.age/(p.life*60)):p.size;
+    ctx.beginPath();
+    ctx.arc(p.x,p.y,sz,0,Math.PI*2);
+    ctx.fillStyle=p.color+alpha+')';
+    ctx.fill();
+  }
+
+  // connection lines between nearby particles
+  for(let i=0;i<particles.length;i++){
+    for(let j=i+1;j<particles.length;j++){
+      const dx=particles[i].x-particles[j].x,dy=particles[i].y-particles[j].y;
+      const d=Math.sqrt(dx*dx+dy*dy);
+      if(d<100){
+        ctx.beginPath();
+        ctx.moveTo(particles[i].x,particles[i].y);
+        ctx.lineTo(particles[j].x,particles[j].y);
+        ctx.strokeStyle='rgba(99,160,255,'+(0.15*(1-d/100))+')';
+        ctx.lineWidth=0.5;
+        ctx.stroke();
+      }
+    }
+  }
+
+  animId=requestAnimationFrame(draw);
+}
+draw();
+})();
+</script>
+</body>
+</html>

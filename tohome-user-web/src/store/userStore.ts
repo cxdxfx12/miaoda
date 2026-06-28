@@ -11,6 +11,7 @@ interface UserInfo {
   gender: number;
   member_level: number;
   member_points: number;
+  user_type?: number;
 }
 
 interface UserState {
@@ -37,9 +38,11 @@ export const useUserStore = create<UserState>()(
         try {
           const res: any = await authApi.login(phone, code, inviteCode);
           setToken(res.data.token);
+          const userInfo = res.data.user || {};
+          userInfo.user_type = res.data.user_type;
           set({
             token: res.data.token,
-            userInfo: res.data.user,
+            userInfo,
             isLoggedIn: true,
             loading: false,
           });
@@ -55,9 +58,11 @@ export const useUserStore = create<UserState>()(
         try {
           const res: any = await authApi.wechatLogin(code, state, inviteCode);
           setToken(res.data.token);
+          const userInfo = res.data.user || {};
+          userInfo.user_type = res.data.user_type;
           set({
             token: res.data.token,
-            userInfo: res.data.user,
+            userInfo,
             isLoggedIn: true,
             loading: false,
           });
