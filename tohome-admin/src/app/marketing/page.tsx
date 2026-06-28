@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { AdminLayout } from '@/components/layout/AdminLayout';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { Plus, Gift, Ticket, Calendar, TrendingUp, Loader2 } from 'lucide-react';
 import { marketingApi } from '@/api';
 
@@ -50,12 +51,7 @@ export default function MarketingPage() {
 
   return (
     <AdminLayout>
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">营销中心</h1>
-          <p className="mt-1 text-sm text-gray-400">优惠券与营销活动管理</p>
-        </div>
-      </div>
+      <PageHeader tag="营销工具" title="营销中心" subtitle="管理平台营销活动、优惠券和邀请奖励" />
 
       {loading ? (
         <div className="flex items-center justify-center py-32"><Loader2 className="h-8 w-8 animate-spin text-[#6B7FD7]" /></div>

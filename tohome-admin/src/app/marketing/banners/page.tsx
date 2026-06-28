@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { AdminLayout } from '@/components/layout/AdminLayout';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { Plus, Pencil, Trash2, Image, Eye, EyeOff, GripVertical, Save, X, Loader2, Upload, AlertCircle, ImageIcon } from 'lucide-react';
 import { marketingApi, BannerItem } from '@/api/marketing';
 import { safePrepareUpload, UPLOAD_LIMITS, type UploadType } from '@/lib/utils';
@@ -107,21 +108,20 @@ export default function BannersPage() {
 
   return (
     <AdminLayout>
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">轮播图管理</h1>
-          <p className="mt-1 text-sm text-gray-400">
-            管理用户端首页轮播区（最多4张），支持自定义标题、副标题和主题色
-          </p>
-        </div>
-        <button
-          onClick={() => { setEditing(defaultBanner()); setShowForm(true); }}
-          disabled={banners.filter(b => b.status === 1).length >= 4 && !showForm}
-          className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-[#6B7FD7] to-[#8B9AE3] px-4 py-2 text-sm font-medium text-white shadow-soft disabled:opacity-50"
-        >
-          <Plus className="h-4 w-4" /> 新增轮播图
-        </button>
-      </div>
+      <PageHeader
+        tag="内容运营"
+        title="轮播图管理"
+        subtitle="管理首页和各页面的轮播图广告素材"
+        actions={
+          <button
+            onClick={() => { setEditing(defaultBanner()); setShowForm(true); }}
+            disabled={banners.filter(b => b.status === 1).length >= 4 && !showForm}
+            className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-[#6B7FD7] to-[#8B9AE3] px-4 py-2 text-sm font-medium text-white shadow-soft disabled:opacity-50"
+          >
+            <Plus className="h-4 w-4" /> 新增轮播图
+          </button>
+        }
+      />
 
       {/* Tab schema: list OR edit dialog */}
       <div className="grid grid-cols-1 gap-4">

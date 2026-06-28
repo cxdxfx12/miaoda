@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { AdminLayout } from '@/components/layout/AdminLayout';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { Save, Bell, Shield, Globe, Database, Server, MessageSquare, Loader2, Headphones, Percent, Car, Send, FileText, Download, RotateCcw, Trash2, RefreshCw, HardDrive } from 'lucide-react';
 import { settingsApi } from '@/api';
 
@@ -630,18 +631,19 @@ export default function SettingsPage() {
 
   return (
     <AdminLayout>
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">系统设置</h1>
-          <p className="mt-1 text-sm text-gray-400">平台配置与系统管理</p>
-        </div>
-        {active !== 'server' && active !== 'database' && (
-          <button onClick={() => saveConfig(active)} disabled={saving}
-            className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-[#6B7FD7] to-[#8B9AE3] px-4 py-2 text-sm font-medium text-white shadow-soft disabled:opacity-60">
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}保存设置
-          </button>
-        )}
-      </div>
+      <PageHeader
+        tag="系统管理"
+        title="系统设置"
+        subtitle="管理平台基本配置、安全设置和服务参数"
+        actions={
+          active !== 'server' && active !== 'database' && (
+            <button onClick={() => saveConfig(active)} disabled={saving}
+              className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-[#6B7FD7] to-[#8B9AE3] px-4 py-2 text-sm font-medium text-white shadow-soft disabled:opacity-60">
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}保存设置
+            </button>
+          )
+        }
+      />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
         <div className="admin-card h-fit p-2">

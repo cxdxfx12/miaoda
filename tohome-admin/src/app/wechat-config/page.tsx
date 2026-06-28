@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Save, MessageCircle, Link, Loader2, Info, Copy, Check } from 'lucide-react';
 import { AdminLayout } from '@/components/layout/AdminLayout';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { configApi } from '@/api/config';
 
 interface WechatConfig {
@@ -83,20 +84,21 @@ export default function WechatConfigPage() {
         </div>
       ) : (
         <>
-          <div className="page-header">
-            <div>
-              <h1 className="page-title">微信配置</h1>
-              <p className="mt-1 text-sm text-gray-400">配置微信公众号/服务号，启用微信OAuth一键登录</p>
-            </div>
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-[#07C160] to-[#06AD56] text-white rounded-lg font-medium hover:shadow-lg transition-all disabled:opacity-60"
-            >
-              {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-              {saving ? '保存中...' : saved ? '已保存' : '保存配置'}
-            </button>
-          </div>
+          <PageHeader
+            tag="基础设施"
+            title="微信配置"
+            subtitle="配置微信公众号/小程序的 AppID 和密钥"
+            actions={
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-[#07C160] to-[#06AD56] text-white rounded-lg font-medium hover:shadow-lg transition-all disabled:opacity-60"
+              >
+                {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+                {saving ? '保存中...' : saved ? '已保存' : '保存配置'}
+              </button>
+            }
+          />
 
           {/* 连接状态卡片 */}
           {config.appId && config.appSecret ? (

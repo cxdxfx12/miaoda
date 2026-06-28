@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { AdminLayout } from '@/components/layout/AdminLayout';
-import { Download, TrendingUp, Users, ShoppingBag, MapPin, Loader2 } from 'lucide-react';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { Download, TrendingUp, Users, ShoppingBag, MapPin, Loader2, BarChart3 } from 'lucide-react';
 import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis,
   CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -62,15 +63,17 @@ export default function AnalyticsPage() {
 
   return (
     <AdminLayout>
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">数据分析</h1>
-          <p className="mt-1 text-sm text-gray-400">多维度业务数据洞察</p>
-        </div>
-        <button className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-[#6B7FD7] to-[#8B9AE3] px-3 py-1.5 text-sm font-medium text-white shadow-soft">
-          <Download className="h-4 w-4" />导出报告
-        </button>
-      </div>
+      <PageHeader
+        icon={BarChart3}
+        tag="经营分析"
+        title="数据分析"
+        subtitle="深度分析平台运营数据，洞察增长趋势和用户行为"
+        actions={
+          <button className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-[#6B7FD7] to-[#8B9AE3] px-3 py-1.5 text-sm font-medium text-white shadow-soft">
+            <Download className="h-4 w-4" />导出报告
+          </button>
+        }
+      />
 
       {loading ? (
         <div className="flex items-center justify-center py-32"><Loader2 className="h-8 w-8 animate-spin text-[#6B7FD7]" /></div>

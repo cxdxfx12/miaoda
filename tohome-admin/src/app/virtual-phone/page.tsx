@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Save, Phone, Shield, Clock, BarChart3, Loader2, Zap, Server } from 'lucide-react';
 import { AdminLayout } from '@/components/layout/AdminLayout';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { configApi } from '@/api/config';
 
 // ---- 服务商定义 ----
@@ -314,17 +315,18 @@ export default function VirtualPhonePage() {
   return (
     <AdminLayout>
       {/* Page Header */}
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">虚拟电话配置</h1>
-          <p className="mt-1 text-sm text-gray-400">管理隐私通话保护服务，保护用户与达人的手机号隐私</p>
-        </div>
-        <button onClick={handleSave} disabled={saving}
-          className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-[#6B7FD7] to-[#8B9FE8] text-white rounded-lg font-medium hover:shadow-lg transition-all disabled:opacity-60">
-          {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-          {saving ? '保存中...' : saved ? '已保存 ✓' : '保存配置'}
-        </button>
-      </div>
+      <PageHeader
+        tag="基础设施"
+        title="虚拟电话"
+        subtitle="管理虚拟号码池和隐私号绑定规则"
+        actions={
+          <button onClick={handleSave} disabled={saving}
+            className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-[#6B7FD7] to-[#8B9FE8] text-white rounded-lg font-medium hover:shadow-lg transition-all disabled:opacity-60">
+            {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+            {saving ? '保存中...' : saved ? '已保存 ✓' : '保存配置'}
+          </button>
+        }
+      />
 
       {/* 统计卡片 */}
       <div className="grid grid-cols-3 gap-4 mb-6">

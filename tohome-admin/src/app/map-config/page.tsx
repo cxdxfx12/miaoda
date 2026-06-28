@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Save, MapPin, Globe, Database, Loader2 } from 'lucide-react';
 import { AdminLayout } from '@/components/layout/AdminLayout';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { configApi } from '@/api/config';
 
 interface MapConfig {
@@ -64,20 +65,21 @@ export default function MapConfigPage() {
         </div>
       ) : (
         <>
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">地图配置</h1>
-          <p className="mt-1 text-sm text-gray-400">配置地图服务商及定位参数</p>
-        </div>
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-[#6B7FD7] to-[#8B9FE8] text-white rounded-lg font-medium hover:shadow-lg transition-all disabled:opacity-60"
-        >
-          {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-          {saving ? '保存中...' : saved ? '已保存' : '保存配置'}
-        </button>
-      </div>
+      <PageHeader
+        tag="基础设施"
+        title="地图配置"
+        subtitle="配置地图服务参数和高德/腾讯地图 API 密钥"
+        actions={
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-[#6B7FD7] to-[#8B9FE8] text-white rounded-lg font-medium hover:shadow-lg transition-all disabled:opacity-60"
+          >
+            {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+            {saving ? '保存中...' : saved ? '已保存' : '保存配置'}
+          </button>
+        }
+      />
 
         {/* 服务商选择 */}
         <div className="bg-white rounded-xl shadow-sm border border-[#E5E7EB] p-6 mb-6">

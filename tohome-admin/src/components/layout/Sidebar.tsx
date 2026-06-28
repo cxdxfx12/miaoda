@@ -26,8 +26,7 @@ import {
   Building2,
   ChevronLeft,
   ChevronRight,
-  Cat,
-} from 'lucide-react';
+  } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { settingsApi } from '@/api';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -235,9 +234,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           'flex h-16 shrink-0 items-center border-b border-[#EEF1F6]',
           collapsed ? 'justify-center px-3' : 'gap-2.5 px-5'
         )}>
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#6B7FD7]">
-            <Cat className="h-5 w-5 text-white" />
-          </div>
+          <img src="/logo.png" alt="喵搭" className={cn("h-9 w-9 shrink-0 object-contain", collapsed && "h-8 w-8")} />
           {!collapsed && (
             <div className="overflow-hidden">
               <div className="text-[15px] font-bold text-[#1F2937] tracking-tight">喵搭</div>
