@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { AdminLayout } from '@/components/layout/AdminLayout';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { MapPin, Navigation, Phone, User, Clock, Loader2 } from 'lucide-react';
 import { dispatchApi } from '@/api';
 
@@ -70,43 +71,32 @@ export default function DispatchPage() {
 
   return (
     <AdminLayout>
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">派单调度</h1>
-          <p className="mt-1 text-sm text-gray-400">实时订单派发与达人调度</p>
-        </div>
-        <div className="flex gap-2">
+      <PageHeader
+        icon={MapPin}
+        tag="调度中心"
+        title="派单调度"
+        subtitle="为待接单订单手动分配服务达人，提升履约效率"
+        stats={[
+          { value: stats.pending.toString(), label: '待派订单' },
+          { value: stats.available.toString(), label: '可派达人' },
+          { value: stats.dispatching.toString(), label: '派单中' },
+          { value: stats.avg_response.toString(), label: '平均响应(秒)' },
+        ]}
+        actions={
           <button
             onClick={handleAutoDispatch}
             disabled={dispatching === -1}
-            className="rounded-lg bg-gradient-to-r from-[#6B7FD7] to-[#8B9AE3] px-3 py-1.5 text-sm font-medium text-white shadow-soft disabled:opacity-60"
+            className="rounded-lg bg-white/20 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60 hover:bg-white/30"
           >
             {dispatching === -1 ? <Loader2 className="mr-1 inline h-4 w-4 animate-spin" /> : null}自动派单
           </button>
-        </div>
-      </div>
+        }
+      />
 
       {loading ? (
         <div className="flex items-center justify-center py-32"><Loader2 className="h-8 w-8 animate-spin text-[#6B7FD7]" /></div>
       ) : (
         <>
-          <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-            {[
-              { label: '待派订单', value: stats.pending.toString(), color: 'from-[#FFB84D] to-[#FFC97A]' },
-              { label: '可派达人', value: stats.available.toString(), color: 'from-[#34D399] to-[#6EE7B7]' },
-              { label: '派单中', value: stats.dispatching.toString(), color: 'from-[#6B7FD7] to-[#8B9AE3]' },
-              { label: '平均响应', value: stats.avg_response.toString(), unit: '秒', color: 'from-[#F472B6] to-[#FBA3D0]' },
-            ].map((s, i) => (
-              <div key={i} className="stat-card flex items-center justify-between">
-                <div>
-                  <div className="text-sm text-gray-500">{s.label}</div>
-                  <div className="mt-1 text-2xl font-bold text-[#1F2937]">{s.value}{s.unit && <span className="ml-1 text-sm text-gray-400">{s.unit}</span>}</div>
-                </div>
-                <div className={`h-10 w-10 rounded-lg bg-gradient-to-br ${s.color}`} />
-              </div>
-            ))}
-          </div>
-
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <div className="admin-card p-5">
               <div className="mb-4 flex items-center justify-between">

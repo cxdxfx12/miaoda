@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { AdminLayout } from '@/components/layout/AdminLayout';
-import { Search, UserPlus, Crown, Loader2, X, Edit3, Trash2, Check, AlertTriangle } from 'lucide-react';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { Search, UserPlus, Crown, Loader2, X, Edit3, Trash2, Check, AlertTriangle, Users } from 'lucide-react';
 import { userApi } from '@/api/users';
 import type { UserCreateParams } from '@/api/users';
 
@@ -140,18 +141,20 @@ export default function UsersPage() {
 
   return (
     <AdminLayout>
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">用户管理</h1>
-          <p className="mt-1 text-sm text-gray-400">共 {total.toLocaleString()} 位注册用户</p>
-        </div>
-        <button
-          onClick={() => { setForm({ ...emptyForm }); setShowCreate(true); }}
-          className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-[#6B7FD7] to-[#8B9AE3] px-4 py-2 text-sm font-medium text-white shadow-soft hover:opacity-90 transition-opacity"
-        >
-          <UserPlus className="h-4 w-4" />新增用户
-        </button>
-      </div>
+      <PageHeader
+        icon={Users}
+        tag="用户中心"
+        title="用户管理"
+        subtitle="管理平台注册用户，查看用户信息和消费记录"
+        actions={
+          <button
+            onClick={() => { setForm({ ...emptyForm }); setShowCreate(true); }}
+            className="flex items-center gap-1.5 rounded-lg bg-white/20 px-4 py-2 text-sm font-medium text-white hover:bg-white/30"
+          >
+            <UserPlus className="h-4 w-4" />新增用户
+          </button>
+        }
+      />
 
       <div className="admin-card overflow-hidden">
         <div className="flex flex-wrap items-center gap-3 border-b border-[#EEF1F6] px-5 py-3">

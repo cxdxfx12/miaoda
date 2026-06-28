@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { AdminLayout } from '@/components/layout/AdminLayout';
-import { Search, Download, Filter, MoreVertical, Eye, Phone, MessageSquare, Loader2 } from 'lucide-react';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { Search, Download, Filter, MoreVertical, Eye, Phone, MessageSquare, Loader2, ShoppingBag } from 'lucide-react';
 import { orderApi } from '@/api/orders';
 
 const tabs = ['全部', '待支付', '待服务', '服务中', '已完成', '已取消', '已退款'];
@@ -195,20 +196,22 @@ export default function OrdersPage() {
 
   return (
     <AdminLayout>
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">订单管理</h1>
-          <p className="mt-1 text-sm text-gray-400">共 {total.toLocaleString()} 个订单</p>
-        </div>
-        <div className="flex gap-2">
-          <button className="flex items-center gap-1.5 rounded-lg border border-[#EEF1F6] bg-white px-3 py-1.5 text-sm text-gray-600 hover:bg-[#F3F4FE]">
-            <Filter className="h-4 w-4" />筛选
-          </button>
-          <button className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-[#6B7FD7] to-[#8B9AE3] px-3 py-1.5 text-sm text-white shadow-soft hover:from-[#5668C2] hover:to-[#6B7FD7]">
-            <Download className="h-4 w-4" />导出
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        icon={ShoppingBag}
+        tag="订单中心"
+        title="订单管理"
+        subtitle="管理和追踪所有服务订单，支持按状态筛选、关键词搜索和详情查看"
+        actions={
+          <div className="flex gap-2">
+            <button className="flex items-center gap-1.5 rounded-lg border border-white/20 bg-white/10 px-3 py-1.5 text-sm text-white/80 hover:bg-white/20">
+              <Filter className="h-4 w-4" />筛选
+            </button>
+            <button className="flex items-center gap-1.5 rounded-lg bg-white/20 px-3 py-1.5 text-sm text-white hover:bg-white/30">
+              <Download className="h-4 w-4" />导出
+            </button>
+          </div>
+        }
+      />
 
       <div className="admin-card overflow-hidden">
         {/* 标签栏 */}

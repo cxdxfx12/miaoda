@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { AdminLayout } from '@/components/layout/AdminLayout';
+import { PageHeader } from '@/components/layout/PageHeader';
 import {
   Plus, Pencil, Trash2, Eye, EyeOff, GripVertical, Save, X, Loader2,
   Package, Layers, Clock, DollarSign, Star, Filter, Upload, Image as ImageIcon,
@@ -213,20 +214,20 @@ export default function ServicesPage() {
 
   return (
     <AdminLayout>
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">服务项目管理</h1>
-          <p className="mt-1 text-sm text-gray-400">
-            管理用户端展示的所有服务项目，支持分类筛选、规格管理和上下线控制
-          </p>
-        </div>
-        <button
-          onClick={() => { setEditing(defaultService()); setShowForm(true); }}
-          className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-[#6B7FD7] to-[#8B9AE3] px-4 py-2 text-sm font-medium text-white shadow-soft"
-        >
-          <Plus className="h-4 w-4" /> 新增服务
-        </button>
-      </div>
+      <PageHeader
+        icon={Package}
+        tag="服务配置"
+        title="服务管理"
+        subtitle="配置平台可售服务项目、价格规格和上下架状态"
+        actions={
+          <button
+            onClick={() => { setEditing(defaultService()); setShowForm(true); }}
+            className="flex items-center gap-1.5 rounded-lg bg-white/20 px-4 py-2 text-sm font-medium text-white hover:bg-white/30"
+          >
+            <Plus className="h-4 w-4" /> 新增服务
+          </button>
+        }
+      />
 
       {/* ====== 大项图标管理 ====== */}
       <div className="admin-card mb-4">

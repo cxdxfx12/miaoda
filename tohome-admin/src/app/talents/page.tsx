@@ -3,7 +3,8 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { AdminLayout } from '@/components/layout/AdminLayout';
-import { Search, Plus, Star, MapPin, Phone, Loader2, X, Edit3, Trash2, Check, Upload, Camera, ImageIcon, AlertCircle } from 'lucide-react';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { Search, Plus, Star, MapPin, Phone, Loader2, X, Edit3, Trash2, Check, Upload, Camera, ImageIcon, AlertCircle, UserCog } from 'lucide-react';
 import { talentApi } from '@/api/talents';
 import { serviceApi, ServiceCategory, ServiceItem } from '@/api/services';
 import { safePrepareUpload, UPLOAD_LIMITS } from '@/lib/utils';
@@ -384,20 +385,20 @@ export default function TechniciansPage() {
 
   return (
     <AdminLayout>
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">达人管理</h1>
-          <p className="mt-1 text-sm text-gray-400">
-            共 {filteredTalents.length.toLocaleString()} 位达人
-          </p>
-        </div>
-        <button
-          onClick={() => router.push('/talents/add')}
-          className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-[#6B7FD7] to-[#8B9AE3] px-4 py-2 text-sm font-medium text-white shadow-soft hover:from-[#5668C2] hover:to-[#6B7FD7] transition-all"
-        >
-          <Plus className="h-4 w-4" />新增达人
-        </button>
-      </div>
+      <PageHeader
+        icon={UserCog}
+        tag="达人运营"
+        title="达人管理"
+        subtitle="管理平台技师/达人，包括资料审核、服务分配和工作状态"
+        actions={
+          <button
+            onClick={() => router.push('/talents/add')}
+            className="flex items-center gap-1.5 rounded-lg bg-white/20 px-4 py-2 text-sm font-medium text-white hover:bg-white/30"
+          >
+            <Plus className="h-4 w-4" />新增达人
+          </button>
+        }
+      />
 
       <div className="admin-card overflow-hidden">
         {/* 搜索筛选 */}

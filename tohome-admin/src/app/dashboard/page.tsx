@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { AdminLayout } from '@/components/layout/AdminLayout';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { adminApi } from '@/api/admin';
 import {
   Users,
@@ -130,26 +131,18 @@ export default function DashboardPage() {
 
   return (
     <AdminLayout>
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">数据概览</h1>
-          <p className="mt-1 text-sm text-gray-400">2026年6月23日 · 实时数据</p>
-        </div>
-        <div className="flex items-center gap-2 text-sm">
-          <button className="rounded-md border border-[#EEF1F6] bg-white px-3 py-1.5 text-gray-600 hover:bg-[#F3F4FE]">
-            今日
-          </button>
-          <button className="rounded-md border border-[#EEF1F6] bg-white px-3 py-1.5 text-gray-600 hover:bg-[#F3F4FE]">
-            本周
-          </button>
-          <button className="rounded-md border border-[#6B7FD7] bg-[#6B7FD7] px-3 py-1.5 text-white">
-            本月
-          </button>
-          <button className="rounded-md border border-[#EEF1F6] bg-white px-3 py-1.5 text-gray-600 hover:bg-[#F3F4FE]">
-            自定义
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        icon={TrendingUp}
+        tag="经营看板"
+        title="数据概览"
+        subtitle="平台核心经营指标一览，实时掌握运营状态"
+        stats={[
+          { value: stats[0].value, label: '今日订单' },
+          { value: stats[1].value, label: '今日营收' },
+          { value: stats[2].value, label: '活跃用户' },
+          { value: stats[3].value, label: '在线达人' },
+        ]}
+      />
 
       {/* 统计卡片 */}
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">

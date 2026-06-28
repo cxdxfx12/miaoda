@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { AdminLayout } from '@/components/layout/AdminLayout';
+import { PageHeader } from '@/components/layout/PageHeader';
 import dayjs from 'dayjs';
 import { Download, ArrowUpRight, Wallet, CreditCard, Coins, Receipt, Loader2 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -63,12 +64,12 @@ export default function FinancePage() {
 
   return (
     <AdminLayout>
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">财务管理</h1>
-          <p className="mt-1 text-sm text-gray-400">财务概览</p>
-        </div>
-      </div>
+      <PageHeader
+        icon={Wallet}
+        tag="财务中心"
+        title="财务管理"
+        subtitle="管理平台收入流水、技师提现和退款记录"
+      />
 
       {loading ? (
         <div className="flex items-center justify-center py-32"><Loader2 className="h-8 w-8 animate-spin text-[#6B7FD7]" /></div>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { AdminLayout } from '@/components/layout/AdminLayout';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { marketingApi } from '@/api';
 import { Gift, Loader2, Search, Users, CheckCircle2, Clock } from 'lucide-react';
 
@@ -34,31 +35,17 @@ export default function InviteAdminPage() {
 
   return (
     <AdminLayout>
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">邀请管理</h1>
-          <p className="mt-1 text-sm text-gray-400">查看邀请关系、首单状态和奖励发放情况</p>
-        </div>
-      </div>
-
-      <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
-        {[
-          { label: '累计邀请', value: overview.total, icon: Users, color: 'from-[#6B7FD7] to-[#8B9AE3]' },
-          { label: '待生效', value: overview.pending, icon: Clock, color: 'from-[#FFB84D] to-[#FFC97A]' },
-          { label: '已发奖励', value: overview.rewarded, icon: CheckCircle2, color: 'from-[#34D399] to-[#6EE7B7]' },
-        ].map((s) => {
-          const Icon = s.icon;
-          return (
-            <div key={s.label} className="stat-card flex items-center justify-between">
-              <div>
-                <div className="text-sm text-gray-500">{s.label}</div>
-                <div className="mt-1 text-2xl font-bold text-[#1F2937]">{s.value}</div>
-              </div>
-              <div className={`flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br ${s.color}`}><Icon className="h-5 w-5 text-white" /></div>
-            </div>
-          );
-        })}
-      </div>
+      <PageHeader
+        icon={Gift}
+        tag="增长工具"
+        title="邀请管理"
+        subtitle="管理邀请活动、邀请码和奖励发放记录"
+        stats={[
+          { value: String(overview.total), label: '累计邀请' },
+          { value: String(overview.pending), label: '待生效' },
+          { value: String(overview.rewarded), label: '已发奖励' },
+        ]}
+      />
 
       <div className="admin-card overflow-hidden">
         <div className="flex flex-col gap-3 border-b border-[#EEF1F6] px-5 py-4 md:flex-row md:items-center md:justify-between">

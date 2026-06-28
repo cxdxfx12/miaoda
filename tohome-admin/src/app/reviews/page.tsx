@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { AdminLayout } from '@/components/layout/AdminLayout';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { Star, ThumbsUp, MessageSquare, Loader2 } from 'lucide-react';
 import { reviewApi } from '@/api';
 
@@ -61,26 +62,18 @@ export default function ReviewsPage() {
 
   return (
     <AdminLayout>
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">评价管理</h1>
-          <p className="mt-1 text-sm text-gray-400">用户评价与反馈</p>
-        </div>
-      </div>
-
-      <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {[
-          { label: '总评价数', value: stats.total_reviews.toLocaleString() },
-          { label: '回复率', value: stats.reply_rate },
-          { label: '平均评分', value: stats.avg_rating },
-          { label: '待回复', value: stats.pending_reply.toString() },
-        ].map((s, i) => (
-          <div key={i} className="stat-card">
-            <div className="text-sm text-gray-500">{s.label}</div>
-            <div className="mt-2 text-2xl font-bold text-[#1F2937]">{s.value}</div>
-          </div>
-        ))}
-      </div>
+      <PageHeader
+        icon={Star}
+        tag="口碑管理"
+        title="评价管理"
+        subtitle="查看和管理用户对服务的评价反馈"
+        stats={[
+          { value: stats.total_reviews.toLocaleString(), label: '总评价数' },
+          { value: stats.reply_rate, label: '回复率' },
+          { value: stats.avg_rating, label: '平均评分' },
+          { value: stats.pending_reply.toString(), label: '待回复' },
+        ]}
+      />
 
       {loading ? (
         <div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-[#6B7FD7]" /></div>

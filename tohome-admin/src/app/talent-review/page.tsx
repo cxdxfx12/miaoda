@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Search, Check, X, Eye, UserCheck, Filter, Loader2 } from 'lucide-react';
 import { AdminLayout } from '@/components/layout/AdminLayout';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { talentApi } from '@/api/talents';
 
 interface ReviewItem {
@@ -183,33 +184,33 @@ export default function TalentReviewPage() {
           </div>
         </div>
       )}
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">达人审核</h1>
-          <p className="mt-1 text-sm text-gray-400">
-            待审核 {pendingCount} · 已通过 {approvedCount} · 已驳回 {rejectedCount}
-          </p>
-        </div>
-        {selectedIds.length > 0 && (
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-[#4B5563]">已选 {selectedIds.length} 项</span>
-            <button
-              onClick={handleBatchApprove}
-              disabled={actionLoading}
-              className="flex items-center gap-2 px-4 py-2 bg-[#52C41A] text-white rounded-lg text-sm font-medium hover:bg-[#49B519] disabled:opacity-60"
-            >
-              {actionLoading ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
-              批量通过
-            </button>
-            <button
-              onClick={() => setSelectedIds([])}
-              className="px-4 py-2 border border-[#E5E7EB] rounded-lg text-sm text-[#9CA3AF]"
-            >
-              取消
-            </button>
-          </div>
-        )}
-      </div>
+      <PageHeader
+        icon={UserCheck}
+        tag="准入审核"
+        title="达人审核"
+        subtitle="审核达人入驻申请，查验资质材料和服务能力"
+        actions={
+          selectedIds.length > 0 ? (
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-white/80">已选 {selectedIds.length} 项</span>
+              <button
+                onClick={handleBatchApprove}
+                disabled={actionLoading}
+                className="flex items-center gap-2 px-4 py-2 bg-white/20 text-white rounded-lg text-sm font-medium hover:bg-white/30 disabled:opacity-60"
+              >
+                {actionLoading ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
+                批量通过
+              </button>
+              <button
+                onClick={() => setSelectedIds([])}
+                className="px-4 py-2 border border-white/20 rounded-lg text-sm text-white/80 hover:bg-white/10"
+              >
+                取消
+              </button>
+            </div>
+          ) : undefined
+        }
+      />
 
         {/* 标签页 */}
         <div className="flex gap-1 bg-[#F3F4F6] p-1 rounded-xl w-fit mb-6">
