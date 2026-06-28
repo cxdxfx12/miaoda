@@ -18,7 +18,7 @@ interface PageHeaderProps {
 
 export function PageHeader({ icon: Icon, tag, title, subtitle, stats, actions }: PageHeaderProps) {
   return (
-    <div className="mb-6 overflow-hidden rounded-2xl bg-[#111827] p-6 text-white shadow-soft">
+    <div className="mb-6 overflow-hidden rounded-2xl p-6 text-white shadow-soft" style={{ backgroundColor: '#111827' }}>
       <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
         {/* 左侧：标签 + 标题 + 描述 */}
         <div>
