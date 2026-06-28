@@ -214,7 +214,7 @@ export default function UsersPage() {
                         <span className="font-medium text-[#1F2937]">{u.nickname || '-'}</span>
                       </div>
                     </td>
-                    <td className="px-3 py-3 text-gray-600">{u.gender === 1 ? '男' : '女'}</td>
+                    <td className="px-3 py-3 text-gray-600">{u.gender === 1 ? '男' : u.gender === 2 ? '女' : '-'}</td>
                     <td className="px-3 py-3 text-gray-600">{(u.phone || '').replace(/(\d{3})\d{4}(\d{4})/, '$1****$2')}</td>
                     <td className="px-3 py-3">
                       <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${lc.bg} ${lc.text}`}>

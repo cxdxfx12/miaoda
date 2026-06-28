@@ -1,15 +1,41 @@
 'use client';
 
-import { Bell, Search, ChevronDown, LogOut, User as UserIcon, MapPin, Lock, X, Loader2, Camera, Mail, Phone } from 'lucide-react';
+import { Bell, Search, ChevronDown, LogOut, User as UserIcon, Menu, X, Loader2, Camera, Mail, Phone, Lock } from 'lucide-react';
 import { useAdminStore } from '@/store/adminStore';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useState } from 'react';
-import { cityNames } from '@/constants/cities';
 import { adminApi } from '@/api/admin';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
-export function Topbar() {
+interface TopbarProps {
+  onToggleSidebar: () => void;
+}
+
+// 页面名称映射
+const pageNames: Record<string, string> = {
+  '/dashboard': '数据概览',
+  '/orders': '订单管理',
+  '/dispatch': '派单调度',
+  '/talents': '达人管理',
+  '/talent-review': '达人审核',
+  '/users': '用户管理',
+  '/services': '服务管理',
+  '/marketing': '营销中心',
+  '/reviews': '评价管理',
+  '/finance': '财务管理',
+  '/analytics': '数据分析',
+  '/cities': '城市管理',
+  '/map-config': '地图配置',
+  '/payment-config': '支付配置',
+  '/wechat-config': '微信配置',
+  '/virtual-phone': '虚拟电话',
+  '/settings': '系统设置',
+};
+
+export function Topbar({ onToggleSidebar }: TopbarProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const admin = useAdminStore((s) => s.admin);
   const setAdmin = useAdminStore((s) => s.setAdmin);
   const logout = useAdminStore((s) => s.logout);
@@ -21,10 +47,15 @@ export function Topbar() {
   const [savingPassword, setSavingPassword] = useState(false);
   const [profileForm, setProfileForm] = useState({ nickname: '', email: '', phone: '', avatar: '' });
   const [passwordForm, setPasswordForm] = useState({ oldPassword: '', newPassword: '', confirmPassword: '' });
-  const [city, setCity] = useState(() => {
-    if (typeof window === 'undefined') return '全部城市';
-    return localStorage.getItem('admin-current-city') || '全部城市';
-  });
+
+  // 获取当前页面名称（支持子路由）
+  const currentPageName = (() => {
+    // 精确匹配
+    if (pageNames[pathname || '']) return pageNames[pathname || ''];
+    // 前缀匹配（如 /marketing/invites）
+    const match = Object.entries(pageNames).find(([path]) => pathname?.startsWith(path + '/'));
+    return match ? match[1] : '管理后台';
+  })();
 
   const handleLogout = () => {
     logout();
@@ -141,108 +172,111 @@ export function Topbar() {
     }
   };
 
-  const changeCity = (nextCity: string) => {
-    setCity(nextCity);
-    localStorage.setItem('admin-current-city', nextCity);
-    window.dispatchEvent(new CustomEvent('admin-city-changed', { detail: nextCity }));
-  };
-
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-[#EEF1F6] bg-white/80 px-6 backdrop-blur-md">
-      <div className="relative w-80">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-        <input
-          type="text"
-          placeholder="搜索订单号/用户手机号/技师姓名..."
-          className="h-9 w-full rounded-lg border border-[#EEF1F6] bg-[#F5F7FA] pl-9 pr-4 text-sm placeholder:text-gray-400 focus:border-[#6B7FD7] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#6B7FD7]/20"
-        />
-      </div>
-
-      <div className="flex items-center gap-3">
-        <div className="flex h-9 items-center gap-2 rounded-lg border border-[#EEF1F6] bg-[#F8FAFC] px-3">
-          <MapPin className="h-4 w-4 text-[#6B7FD7]" />
-          <select
-            value={city}
-            onChange={(e) => changeCity(e.target.value)}
-            className="bg-transparent text-sm font-medium text-[#1F2937] outline-none"
+    <>
+      <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-gray-200/60 bg-white px-5 shadow-sm">
+        {/* 左侧：折叠按钮 + 面包屑 */}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onToggleSidebar}
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700"
           >
-            <option>全部城市</option>
-            {cityNames.map((name) => <option key={name}>{name}</option>)}
-          </select>
+            <Menu className="h-[18px] w-[18px]" />
+          </button>
+          <nav className="flex items-center gap-1.5 text-sm">
+            <span className="text-gray-400">首页</span>
+            <span className="text-gray-300">/</span>
+            <span className="font-medium text-gray-800">{currentPageName}</span>
+          </nav>
         </div>
 
-        <button className="relative flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-[#F3F4FE] hover:text-[#6B7FD7]">
-          <Bell className="h-[18px] w-[18px]" />
-          <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-[#FF6B6B] ring-2 ring-white" />
-        </button>
+        {/* 右侧：搜索框 + 通知 + 用户 */}
+        <div className="flex items-center gap-2.5">
+          {/* 搜索框 */}
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="搜索..."
+              className="h-8 w-48 rounded-lg bg-gray-100 pl-8 pr-3 text-sm text-gray-700 placeholder:text-gray-400 transition-all focus:w-64 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-300"
+            />
+          </div>
 
-        <div className="relative">
-          <button
-            onClick={() => setShowMenu(!showMenu)}
-            className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-[#F3F4FE]"
-          >
-            {admin?.avatar ? (
-              <img src={admin.avatar} alt="管理员头像" className="h-8 w-8 rounded-full object-cover ring-2 ring-[#EEF1F6]" />
-            ) : (
-              <div className="flex h-8 w-8 items-center justify-center rounded-full gradient-primary text-sm font-semibold text-white">
-                {admin?.username?.[0]?.toUpperCase() || 'A'}
-              </div>
-            )}
-            <div className="text-left">
-              <div className="text-sm font-medium text-[#1F2937]">
-                {admin?.username || '管理员'}
-              </div>
-              <div className="text-[11px] text-gray-400">
-                {admin?.role || '超级管理员'}
-              </div>
-            </div>
-            <ChevronDown className="h-4 w-4 text-gray-400" />
+          {/* 通知铃铛 */}
+          <button className="relative flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700">
+            <Bell className="h-[18px] w-[18px]" />
+            <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" />
           </button>
 
-          {showMenu && (
-            <>
-              <div
-                className="fixed inset-0 z-40"
-                onClick={() => setShowMenu(false)}
-              />
-              <div className="absolute right-0 top-full z-50 mt-1.5 w-44 overflow-hidden rounded-lg border border-[#EEF1F6] bg-white py-1 shadow-lg animate-fade-in">
-                <button
-                  onClick={openProfileModal}
-                  className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-[#F3F4FE]"
-                >
-                  <UserIcon className="h-4 w-4" />
-                  个人信息
-                </button>
-                <button
-                  onClick={() => {
-                    setShowMenu(false);
-                    setPasswordForm({ oldPassword: '', newPassword: '', confirmPassword: '' });
-                    setShowPasswordModal(true);
-                  }}
-                  className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-[#F3F4FE]"
-                >
-                  <Lock className="h-4 w-4" />
-                  修改密码
-                </button>
-                <div className="my-1 h-px bg-[#EEF1F6]" />
-                <button
-                  onClick={handleLogout}
-                  className="flex w-full items-center gap-2 px-3 py-2 text-sm text-[#EF4444] hover:bg-red-50"
-                >
-                  <LogOut className="h-4 w-4" />
-                  退出登录
-                </button>
-              </div>
-            </>
-          )}
+          {/* 分隔线 */}
+          <div className="h-5 w-px bg-gray-200" />
+
+          {/* 管理员头像+名字 */}
+          <div className="relative">
+            <button
+              onClick={() => setShowMenu(!showMenu)}
+              className={cn(
+                'flex items-center gap-2 rounded-lg px-1.5 py-1 transition-colors',
+                showMenu ? 'bg-gray-100' : 'hover:bg-gray-100'
+              )}
+            >
+              {admin?.avatar ? (
+                <img src={admin.avatar} alt="管理员头像" className="h-7 w-7 rounded-full object-cover ring-2 ring-white" />
+              ) : (
+                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 text-xs font-semibold text-white">
+                  {admin?.username?.[0]?.toUpperCase() || 'A'}
+                </div>
+              )}
+              <span className="text-sm font-medium text-gray-700">
+                {admin?.username || '管理员'}
+              </span>
+              <ChevronDown className="h-3.5 w-3.5 text-gray-400" />
+            </button>
+
+            {showMenu && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
+                <div className="absolute right-0 top-full z-50 mt-1 w-44 overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-lg animate-fade-in">
+                  <button
+                    onClick={openProfileModal}
+                    className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50"
+                  >
+                    <UserIcon className="h-4 w-4 text-gray-400" />
+                    个人设置
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowMenu(false);
+                      setPasswordForm({ oldPassword: '', newPassword: '', confirmPassword: '' });
+                      setShowPasswordModal(true);
+                    }}
+                    className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50"
+                  >
+                    <Lock className="h-4 w-4 text-gray-400" />
+                    修改密码
+                  </button>
+                  <div className="my-1 h-px bg-gray-100" />
+                  <button
+                    onClick={handleLogout}
+                    className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-red-500 hover:bg-red-50"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    退出登录
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
-      </div>
+      </header>
+
+      {/* 个人信息弹窗 */}
       {showProfileModal && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/30 px-4">
-          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl animate-fade-in">
             <div className="mb-5 flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-semibold text-[#1F2937]">个人信息</h3>
+                <h3 className="text-lg font-semibold text-gray-900">个人信息</h3>
                 <p className="mt-1 text-sm text-gray-400">维护后台管理员头像、昵称和联系方式</p>
               </div>
               <button
@@ -253,19 +287,19 @@ export function Topbar() {
               </button>
             </div>
             <form onSubmit={handleSaveProfile} className="space-y-4">
-              <div className="flex items-center gap-4 rounded-xl bg-[#F8FAFC] p-4">
+              <div className="flex items-center gap-4 rounded-xl bg-gray-50 p-4">
                 {profileForm.avatar ? (
                   <img src={profileForm.avatar} alt="管理员头像" className="h-16 w-16 rounded-full object-cover ring-4 ring-white" />
                 ) : (
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full gradient-primary text-xl font-semibold text-white">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 text-xl font-semibold text-white">
                     {admin?.username?.[0]?.toUpperCase() || 'A'}
                   </div>
                 )}
                 <div className="flex-1">
-                  <div className="text-sm font-medium text-[#1F2937]">管理员头像</div>
+                  <div className="text-sm font-medium text-gray-900">管理员头像</div>
                   <div className="mt-1 text-xs text-gray-400">支持 jpg/png/webp，上传后会自动压缩</div>
                 </div>
-                <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-[#E5E7EB] bg-white px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">
+                <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">
                   {uploadingAvatar ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
                   上传
                   <input
@@ -281,7 +315,7 @@ export function Topbar() {
                 <input
                   value={admin?.username || ''}
                   disabled
-                  className="h-11 w-full rounded-lg border border-[#E5E7EB] bg-gray-50 px-3 text-sm text-gray-400 outline-none"
+                  className="h-11 w-full rounded-lg border border-gray-200 bg-gray-50 px-3 text-sm text-gray-400 outline-none"
                 />
               </div>
               <div>
@@ -289,7 +323,7 @@ export function Topbar() {
                 <input
                   value={profileForm.nickname}
                   onChange={(e) => setProfileForm({ ...profileForm, nickname: e.target.value })}
-                  className="h-11 w-full rounded-lg border border-[#E5E7EB] px-3 text-sm outline-none focus:border-[#6B7FD7] focus:ring-2 focus:ring-[#6B7FD7]/20"
+                  className="h-11 w-full rounded-lg border border-gray-200 px-3 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20"
                   placeholder="请输入昵称"
                 />
               </div>
@@ -303,7 +337,7 @@ export function Topbar() {
                     type="email"
                     value={profileForm.email}
                     onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
-                    className="h-11 w-full rounded-lg border border-[#E5E7EB] px-3 text-sm outline-none focus:border-[#6B7FD7] focus:ring-2 focus:ring-[#6B7FD7]/20"
+                    className="h-11 w-full rounded-lg border border-gray-200 px-3 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20"
                     placeholder="admin@example.com"
                   />
                 </div>
@@ -315,7 +349,7 @@ export function Topbar() {
                   <input
                     value={profileForm.phone}
                     onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
-                    className="h-11 w-full rounded-lg border border-[#E5E7EB] px-3 text-sm outline-none focus:border-[#6B7FD7] focus:ring-2 focus:ring-[#6B7FD7]/20"
+                    className="h-11 w-full rounded-lg border border-gray-200 px-3 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20"
                     placeholder="请输入手机号"
                   />
                 </div>
@@ -325,7 +359,7 @@ export function Topbar() {
                 <input
                   value={profileForm.avatar}
                   onChange={(e) => setProfileForm({ ...profileForm, avatar: e.target.value })}
-                  className="h-11 w-full rounded-lg border border-[#E5E7EB] px-3 text-sm outline-none focus:border-[#6B7FD7] focus:ring-2 focus:ring-[#6B7FD7]/20"
+                  className="h-11 w-full rounded-lg border border-gray-200 px-3 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20"
                   placeholder="/uploads/2026/06/avatar.jpg"
                 />
               </div>
@@ -333,14 +367,14 @@ export function Topbar() {
                 <button
                   type="button"
                   onClick={() => setShowProfileModal(false)}
-                  className="rounded-lg border border-[#E5E7EB] px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
+                  className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
                 >
                   取消
                 </button>
                 <button
                   type="submit"
                   disabled={savingProfile}
-                  className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-[#6B7FD7] to-[#8B9AE3] px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+                  className="inline-flex items-center gap-2 rounded-lg bg-indigo-500 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-600 disabled:opacity-60"
                 >
                   {savingProfile && <Loader2 className="h-4 w-4 animate-spin" />}
                   保存资料
@@ -350,12 +384,14 @@ export function Topbar() {
           </div>
         </div>
       )}
+
+      {/* 修改密码弹窗 */}
       {showPasswordModal && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/30 px-4">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl animate-fade-in">
             <div className="mb-5 flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-semibold text-[#1F2937]">修改密码</h3>
+                <h3 className="text-lg font-semibold text-gray-900">修改密码</h3>
                 <p className="mt-1 text-sm text-gray-400">修改后需要重新登录管理后台</p>
               </div>
               <button
@@ -372,7 +408,7 @@ export function Topbar() {
                   type="password"
                   value={passwordForm.oldPassword}
                   onChange={(e) => setPasswordForm({ ...passwordForm, oldPassword: e.target.value })}
-                  className="h-11 w-full rounded-lg border border-[#E5E7EB] px-3 text-sm outline-none focus:border-[#6B7FD7] focus:ring-2 focus:ring-[#6B7FD7]/20"
+                  className="h-11 w-full rounded-lg border border-gray-200 px-3 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20"
                   placeholder="请输入旧密码"
                 />
               </div>
@@ -382,7 +418,7 @@ export function Topbar() {
                   type="password"
                   value={passwordForm.newPassword}
                   onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
-                  className="h-11 w-full rounded-lg border border-[#E5E7EB] px-3 text-sm outline-none focus:border-[#6B7FD7] focus:ring-2 focus:ring-[#6B7FD7]/20"
+                  className="h-11 w-full rounded-lg border border-gray-200 px-3 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20"
                   placeholder="至少6位"
                 />
               </div>
@@ -392,7 +428,7 @@ export function Topbar() {
                   type="password"
                   value={passwordForm.confirmPassword}
                   onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
-                  className="h-11 w-full rounded-lg border border-[#E5E7EB] px-3 text-sm outline-none focus:border-[#6B7FD7] focus:ring-2 focus:ring-[#6B7FD7]/20"
+                  className="h-11 w-full rounded-lg border border-gray-200 px-3 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20"
                   placeholder="再次输入新密码"
                 />
               </div>
@@ -400,14 +436,14 @@ export function Topbar() {
                 <button
                   type="button"
                   onClick={() => setShowPasswordModal(false)}
-                  className="rounded-lg border border-[#E5E7EB] px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
+                  className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
                 >
                   取消
                 </button>
                 <button
                   type="submit"
                   disabled={savingPassword}
-                  className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-[#6B7FD7] to-[#8B9AE3] px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+                  className="inline-flex items-center gap-2 rounded-lg bg-indigo-500 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-600 disabled:opacity-60"
                 >
                   {savingPassword && <Loader2 className="h-4 w-4 animate-spin" />}
                   保存修改
@@ -417,6 +453,6 @@ export function Topbar() {
           </div>
         </div>
       )}
-    </header>
+    </>
   );
 }

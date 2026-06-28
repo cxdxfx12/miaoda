@@ -308,13 +308,14 @@ export default function TechniciansPage() {
   };
 
   // 切换状态
-  const toggleStatus = (t: any) => {
-    const idx = talents.findIndex((x: any) => x.id === t.id);
-    if (idx === -1) return;
+  const toggleStatus = async (t: any) => {
     const next = t.work_status === 1 ? 2 : 1; // 在线↔休息
-    const updated = [...talents];
-    updated[idx] = { ...updated[idx], work_status: next };
-    setTalents(updated);
+    try {
+      await talentApi.update(t.id, { work_status: next } as any);
+      setTalents(prev => prev.map(x => x.id === t.id ? { ...x, work_status: next } : x));
+    } catch (e) {
+      console.error('状态切换失败', e);
+    }
   };
 
   // 删除

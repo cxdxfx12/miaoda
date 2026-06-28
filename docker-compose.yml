@@ -99,6 +99,11 @@ services:
     container_name: miaoda-centrifugo
     restart: unless-stopped
     command: centrifugo -c config.json
+    environment:
+      - CENTRIFUGO_ENGINE=redis
+      - CENTRIFUGO_REDIS_ADDRESS=redis:6379
+      - CENTRIFUGO_REDIS_PASSWORD=redis123
+      - CENTRIFUGO_REDIS_DB=0
     volumes:
       - ./tohome-deploy/centrifugo/config.json:/centrifugo/config.json
       - centrifugo-data:/centrifugo/data

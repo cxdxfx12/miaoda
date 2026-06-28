@@ -131,9 +131,9 @@ function OrderDetailDrawer({ orderId, open, onClose }: { orderId: string | null;
               <div className="space-y-3">
                 {[
                   { label: '服务项目', value: order.service_name },
-                  { label: '用户', value: typeof order.user_name === 'object' ? (order.user_name?.String || '待分配') : order.user_name },
-                  { label: '达人', value: typeof order.technician_name === 'object' ? (order.technician_name?.String || '待分配') : order.technician_name },
-                  { label: '服务城市', value: typeof order.city === 'object' ? (order.city?.String || '-') : order.city },
+                  { label: '用户', value: order.user_name != null && typeof order.user_name === 'object' ? (order.user_name.String || '待分配') : (order.user_name || '待分配') },
+                  { label: '达人', value: order.technician_name != null && typeof order.technician_name === 'object' ? (order.technician_name.String || '待分配') : (order.technician_name || '待分配') },
+                  { label: '服务城市', value: order.city != null && typeof order.city === 'object' ? (order.city.String || '-') : (order.city || '-') },
                   { label: '服务地址', value: order.address },
                   { label: '预约时间', value: order.appointment_time ? fmtTime(order.appointment_time) : '-' },
                   { label: '订单金额', value: `¥${order.amount || 0}` },
@@ -186,6 +186,12 @@ export default function OrdersPage() {
   useEffect(() => { fetchOrders(); }, [activeTab, keyword, page]);
 
   const totalPages = Math.ceil(total / pageSize);
+
+  const safeStr = (v: any, fallback = '-') => {
+    if (v == null) return fallback;
+    if (typeof v === 'object') return v.String || fallback;
+    return v || fallback;
+  };
 
   return (
     <AdminLayout>
@@ -272,13 +278,13 @@ export default function OrdersPage() {
                   </td>
                   <td className="px-3 py-3 font-mono text-xs text-[#1F2937]">{o.order_no || '-'}</td>
                   <td className="px-3 py-3">
-                    <div className="text-[#1F2937]">{o.user_name || '-'}</div>
+                    <div className="text-[#1F2937]">{safeStr(o.user_name)}</div>
                     <div className="text-xs text-gray-400">{(o.user_phone || '').replace(/(\d{3})\d{4}(\d{4})/, '$1****$2')}</div>
                   </td>
                   <td className="px-3 py-3 text-gray-600">{o.talent_name || '等待派单'}</td>
                   <td className="px-3 py-3 text-gray-600">{o.service_name}{o.service_spec ? `${o.service_spec}分钟` : ''}</td>
-                  <td className="px-3 py-3 font-semibold text-[#1F2937]">¥{o.final_amount || 0}</td>
-                  <td className="px-3 py-3 text-gray-600 text-xs">余额</td>
+                  <td className="px-3 py-3 font-semibold text-[#1F2937]">¥{safeStr(o.final_amount, '0')}</td>
+                  <td className="px-3 py-3 text-gray-600 text-xs">{o.pay_method === 2 ? '微信' : o.pay_method === 3 ? '支付宝' : '余额'}</td>
                   <td className="px-3 py-3">
                     <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium ${sc}`}>
                       {statusLabel}

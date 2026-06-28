@@ -71,7 +71,7 @@ export default function ReviewsPage() {
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         {[
           { label: '总评价数', value: stats.total_reviews.toLocaleString() },
-          { label: '好评率', value: stats.reply_rate },
+          { label: '回复率', value: stats.reply_rate },
           { label: '平均评分', value: stats.avg_rating },
           { label: '待回复', value: stats.pending_reply.toString() },
         ].map((s, i) => (
@@ -113,7 +113,7 @@ export default function ReviewsPage() {
                       <p className="mt-2 text-sm text-gray-700">{r.content}</p>
                       {r.tags && (
                         <div className="mt-2 flex flex-wrap gap-1.5">
-                          {(Array.isArray(r.tags) ? r.tags : typeof r.tags === 'string' ? [] : []).map((t: any, i: number) => (
+                          {(Array.isArray(r.tags) ? r.tags : typeof r.tags === 'string' ? ((() => { try { return JSON.parse(r.tags); } catch { return []; } })()) : []).map((t: any, i: number) => (
                             <span key={i} className="rounded-md bg-[#F3F4FE] px-2 py-0.5 text-[11px] text-[#6B7FD7]">{typeof t === 'string' ? t : t}</span>
                           ))}
                         </div>
