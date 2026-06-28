@@ -183,7 +183,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         className={cn(
           'group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200',
           active
-            ? 'bg-[#F3F4FE] text-[#6B7FD7] font-semibold'
+            ? 'bg-[#FFF1F0] text-[#FF6B35] font-semibold'
             : 'text-gray-500 hover:bg-[#F8FAFC] hover:text-[#1F2937]'
         )}
       >
@@ -192,7 +192,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           className={cn(
             'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-all duration-200',
             active
-              ? 'bg-[#6B7FD7]/10 text-[#6B7FD7]'
+              ? 'bg-[#FF6B35]/10 text-[#FF6B35]'
               : 'text-gray-400 group-hover:text-gray-500'
           )}
         >
@@ -244,7 +244,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         </div>
 
         {/* 菜单区域 */}
-        <nav className="flex-1 overflow-y-auto overflow-x-hidden px-2 py-3">
+        <nav className="flex-1 overscroll-y-contain overflow-y-auto overflow-x-hidden px-2 py-3">
           {navGroups.map((group) => (
             <div key={group.title} className="mb-4 last:mb-0">
               {/* 分组标题 */}
