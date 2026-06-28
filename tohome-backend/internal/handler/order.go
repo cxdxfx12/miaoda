@@ -260,43 +260,30 @@ func (h *OrderHandler) RejectOrder(c *gin.Context) {
 	response.Success(c, nil)
 }
 
-// UpdateOrderStatus 更新订单状态
+// UpdateOrderStatus 更新订单状态（达人端流程推进）
 func (h *OrderHandler) UpdateOrderStatus(c *gin.Context) {
-	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
-
-	talentID, err := h.resolveTalentID(c)
-	if err != nil {
-		response.Fail(c, response.CodeBusinessError, "获取达人身份失败: "+err.Error())
+	orderID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	if orderID <= 0 {
+		response.ParamError(c, "无效的订单ID")
 		return
 	}
-
 	var req struct {
-		Status string  `json:"status" binding:"required"`
-		Lat    float64 `json:"lat"`
-		Lng    float64 `json:"lng"`
+		Status int `json:"status" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.ParamError(c, "参数错误")
 		return
 	}
-
-	statusMap := map[string]int{
-		"departed":  model.OrderStatusDeparted,
-		"arrived":   model.OrderStatusArrived,
-		"started":   model.OrderStatusInService,
-		"completed": model.OrderStatusCompleted,
-	}
-	status, ok := statusMap[req.Status]
-	if !ok {
-		response.ParamError(c, "无效状态")
+	talentID, err := h.resolveTalentID(c)
+	if err != nil {
+		response.Unauthorized(c)
 		return
 	}
-
-	if err := h.orderService.UpdateOrderStatus(c.Request.Context(), id, talentID, status); err != nil {
-		response.Fail(c, response.CodeBusinessError, err.Error())
+	if err := h.orderService.UpdateOrderFlowStatus(c.Request.Context(), orderID, talentID, req.Status); err != nil {
+		response.Fail(c, 1002, err.Error())
 		return
 	}
-	response.Success(c, nil)
+	response.Success(c, gin.H{"message": "状态更新成功"})
 }
 
 // UpdateLocation 更新位置

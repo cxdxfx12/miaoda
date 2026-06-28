@@ -16,8 +16,9 @@ import { colors, spacing, fontSize, fontWeight, radius, shadow } from '../theme'
 import { formatPrice, maskPhone } from '../utils';
 
 const STEP_CFG = [
-  { label: '已接单', icon: 'checkmark-circle' as const, c: '#94A3B8' },
-  { label: '出发中', icon: 'navigate' as const, c: '#6366F1' },
+  { label: '待接单', icon: 'clock' as const, c: '#94A3B8' },
+  { label: '已接单', icon: 'checkmark-circle' as const, c: '#6366F1' },
+  { label: '已出发', icon: 'navigate' as const, c: '#0EA5E9' },
   { label: '已到达', icon: 'location' as const, c: '#0891B2' },
   { label: '服务中', icon: 'time' as const, c: '#D97706' },
   { label: '已完成', icon: 'checkmark-circle' as const, c: '#059669' },
@@ -71,7 +72,16 @@ export const CurrentOrderScreen: React.FC<{ navigation: any }> = ({ navigation }
     </SafeAreaView>
   );
 
-  const curIdx = order.status >= 4 ? 4 : order.status >= 3 ? 3 : order.status >= 2 ? 2 : 0;
+  // 订单状态 -> 步骤索引映射
+  const STATUS_TO_STEP: Record<number, number> = {
+    1: 0,  // 待接单 -> 步骤0
+    2: 1,  // 已接单 -> 步骤1
+    7: 2,  // 已出发 -> 步骤2
+    8: 3,  // 已到达 -> 步骤3
+    3: 4,  // 服务中 -> 步骤4
+    4: 5,  // 已完成 -> 步骤5
+  };
+  const curIdx = STATUS_TO_STEP[order.status] ?? -1;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -129,7 +139,7 @@ export const CurrentOrderScreen: React.FC<{ navigation: any }> = ({ navigation }
                       stepsStyle.stepDot,
                       i <= curIdx && [stepsStyle.stepDotActive, { backgroundColor: step.c }],
                     ]}>
-                      {i <= curIdx && i < 4 ? (
+                      {i <= curIdx && i < 5 ? (
                         <CheckCircle size={10} color="#fff" weight="fill" />
                       ) : null}
                     </View>
@@ -211,40 +221,40 @@ export const CurrentOrderScreen: React.FC<{ navigation: any }> = ({ navigation }
 
       {/* ====== 底部操作栏 ====== */}
       <View style={styles.footer}>
-        {order.status === 1 && (
-          <>
-            <TouchableOpacity style={styles.secAction} onPress={handleCall} activeOpacity={0.7}>
-              <Phone size={16} color={colors.textSecondary} />
-              <Text style={styles.secActTxt}>联系用户</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.priAction} onPress={() => updateStatus('departed')} activeOpacity={0.8}>
-              <NavigationArrow size={16} color="#fff" weight="bold" />
-              <Text style={styles.priActTxt}>出发前往</Text>
-            </TouchableOpacity>
-          </>
-        )}
         {order.status === 2 && (
           <>
             <TouchableOpacity style={styles.secAction} onPress={handleCall} activeOpacity={0.7}>
               <Phone size={16} color={colors.textSecondary} />
               <Text style={styles.secActTxt}>联系用户</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.priAction, { backgroundColor: '#0891B2' }]} onPress={() => updateStatus('arrived')} activeOpacity={0.8}>
-              <CheckCircle size={16} color="#fff" weight="fill" />
-              <Text style={styles.priActTxt}>到达打卡</Text>
+            <TouchableOpacity style={[styles.priAction, { backgroundColor: '#F59E0B' }]} onPress={() => updateStatus('departed')} activeOpacity={0.8}>
+              <NavigationArrow size={16} color="#fff" weight="bold" />
+              <Text style={styles.priActTxt}>我出发了</Text>
             </TouchableOpacity>
           </>
         )}
-        {(order.status as number) >= 3 && (order.status as number) < 4 && (
-          <TouchableOpacity style={[styles.priFull, { backgroundColor: '#D97706' }]} onPress={() => updateStatus('started')} activeOpacity={0.8}>
-            <Clock size={18} color="#fff" weight="bold" />
+        {order.status === 7 && (
+          <>
+            <TouchableOpacity style={styles.secAction} onPress={handleCall} activeOpacity={0.7}>
+              <Phone size={16} color={colors.textSecondary} />
+              <Text style={styles.secActTxt}>联系用户</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.priAction, { backgroundColor: '#059669' }]} onPress={() => updateStatus('arrived')} activeOpacity={0.8}>
+              <MapPin size={16} color="#fff" weight="fill" />
+              <Text style={styles.priActTxt}>已到达用户位置</Text>
+            </TouchableOpacity>
+          </>
+        )}
+        {order.status === 8 && (
+          <TouchableOpacity style={[styles.priFull, { backgroundColor: '#EC4899' }]} onPress={() => updateStatus('started')} activeOpacity={0.8}>
+            <Timer size={18} color="#fff" weight="bold" />
             <Text style={styles.priFullTxt}>开始服务</Text>
           </TouchableOpacity>
         )}
         {order.status === 3 && (
-          <TouchableOpacity style={[styles.priFull, { backgroundColor: '#059669' }]} onPress={() => updateStatus('completed')} activeOpacity={0.8}>
+          <TouchableOpacity style={[styles.priFull, { backgroundColor: '#10B981' }]} onPress={() => updateStatus('completed')} activeOpacity={0.8}>
             <CheckCircle size={18} color="#fff" weight="fill" />
-            <Text style={styles.priFullTxt}>完成服务，结算收入</Text>
+            <Text style={styles.priFullTxt}>服务完成，结算收入</Text>
           </TouchableOpacity>
         )}
       </View>

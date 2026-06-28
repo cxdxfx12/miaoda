@@ -16,17 +16,145 @@ const tabStatusMap: Record<string, string> = {
 };
 
 const statusLabelMap: Record<number, string> = {
-  0: '待支付', 1: '待服务', 2: '已接单', 3: '服务中', 4: '已完成', 5: '已取消', 6: '已退款',
+  0: '待支付', 1: '待接单', 2: '已接单', 3: '服务中',
+  4: '已完成', 5: '已取消', 6: '已退款', 7: '技师已出发', 8: '技师已到达',
 };
-const statusColor: Record<string, string> = {
-  '已完成': 'bg-[#E6F9F0] text-[#10B981]',
-  '服务中': 'bg-[#E8EBFD] text-[#6B7FD7]',
-  '待服务': 'bg-[#FFF4E0] text-[#FF9800]',
-  '已接单': 'bg-[#E8EBFD] text-[#6B7FD7]',
-  '待支付': 'bg-[#FFE5EE] text-[#F472B6]',
-  '已取消': 'bg-gray-100 text-gray-500',
-  '已退款': 'bg-red-50 text-[#EF4444]',
+const statusColor: Record<number, string> = {
+  0: 'bg-amber-50 text-amber-700',
+  1: 'bg-blue-50 text-blue-700',
+  2: 'bg-indigo-50 text-indigo-700',
+  3: 'bg-pink-50 text-pink-700',
+  4: 'bg-emerald-50 text-emerald-700',
+  5: 'bg-gray-50 text-gray-600',
+  6: 'bg-red-50 text-red-700',
+  7: 'bg-orange-50 text-orange-700',
+  8: 'bg-teal-50 text-teal-700',
 };
+
+// 订单详情抽屉
+function OrderDetailDrawer({ orderId, open, onClose }: { orderId: string | null; open: boolean; onClose: () => void }) {
+  const [order, setOrder] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (open && orderId) {
+      setLoading(true);
+      fetch(`/api/v1/admin/orders/${orderId}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      })
+        .then(r => r.json())
+        .then(data => {
+          setOrder(data.data || data);
+          setLoading(false);
+        })
+        .catch(() => setLoading(false));
+    }
+  }, [open, orderId]);
+
+  const fmtTime = (t: string) => {
+    if (!t) return '-';
+    const d = new Date(t);
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  };
+
+  // 订单流程时间轴
+  const flowSteps = [
+    { key: 'paid_at', label: '已支付', icon: '💰', color: '#F59E0B' },
+    { key: 'accepted_at', label: '已接单', icon: '✅', color: '#7C5CFC' },
+    { key: 'departed_at', label: '已出发', icon: '🚗', color: '#D97706' },
+    { key: 'arrived_at', label: '已到达', icon: '📍', color: '#059669' },
+    { key: 'start_time', label: '开始服务', icon: '🔧', color: '#EC4899' },
+    { key: 'completed_at', label: '已完成', icon: '🎉', color: '#10B981' },
+  ];
+
+  const STATUS_TEXT: Record<number, string> = {
+    0: '待支付', 1: '待接单', 2: '已接单', 7: '技师已出发', 8: '技师已到达',
+    3: '服务中', 4: '已完成', 5: '已取消', 6: '已退款',
+  };
+
+  return (
+    <div className={`fixed inset-0 z-50 ${open ? '' : 'hidden'}`}>
+      {/* 遮罩 */}
+      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
+      {/* 抽屉 */}
+      <div className="absolute right-0 top-0 bottom-0 w-[480px] max-w-[90vw] bg-white shadow-xl flex flex-col">
+        {/* 头部 */}
+        <div className="flex items-center justify-between px-6 py-4 border-b">
+          <h3 className="font-bold text-lg">订单详情</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+        </div>
+        {/* 内容 */}
+        <div className="flex-1 overflow-y-auto px-6 py-4">
+          {loading && <div className="text-center py-12 text-gray-400">加载中...</div>}
+          {!loading && !order && <div className="text-center py-12 text-gray-400">订单不存在</div>}
+          {order && (
+            <>
+              {/* 状态 */}
+              <div className="mb-4">
+                <span className="inline-block px-3 py-1 rounded-full text-sm font-semibold bg-indigo-50 text-indigo-700">
+                  {STATUS_TEXT[order.status] || '未知'}
+                </span>
+                <span className="ml-3 text-sm text-gray-500">{order.order_no || ''}</span>
+              </div>
+
+              {/* 时间轴 */}
+              {(order.status >= 1 && order.status !== 5 && order.status !== 6) && (
+                <div className="mb-6 bg-gray-50 rounded-xl p-4">
+                  <div className="text-sm font-bold text-gray-700 mb-4">服务进度</div>
+                  <div className="space-y-0">
+                    {flowSteps.map((step, i) => {
+                      const timeVal = order[step.key];
+                      const stepStatus = order.status >= [1, 2, 7, 8, 3, 4][i];
+                      const isLast = i === flowSteps.length - 1;
+                      return (
+                        <div key={i} className="flex gap-3">
+                          <div className="flex flex-col items-center">
+                            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs ${
+                              timeVal ? '' : 'bg-gray-200 text-gray-400'
+                            }`} style={timeVal ? { background: step.color + '20', color: step.color } : {}}>
+                              {step.icon}
+                            </div>
+                            {!isLast && <div className={`w-0.5 h-6 ${timeVal ? 'bg-gray-300' : 'bg-gray-200'}`} />}
+                          </div>
+                          <div className="pb-4">
+                            <div className={`text-sm ${timeVal ? 'font-semibold text-gray-800' : 'text-gray-400'}`}>{step.label}</div>
+                            {timeVal && <div className="text-xs text-gray-400 mt-0.5">{fmtTime(timeVal)}</div>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* 订单信息 */}
+              <div className="space-y-3">
+                {[
+                  { label: '服务项目', value: order.service_name },
+                  { label: '用户', value: typeof order.user_name === 'object' ? (order.user_name?.String || '待分配') : order.user_name },
+                  { label: '达人', value: typeof order.technician_name === 'object' ? (order.technician_name?.String || '待分配') : order.technician_name },
+                  { label: '服务城市', value: typeof order.city === 'object' ? (order.city?.String || '-') : order.city },
+                  { label: '服务地址', value: order.address },
+                  { label: '预约时间', value: order.appointment_time ? fmtTime(order.appointment_time) : '-' },
+                  { label: '订单金额', value: `¥${order.amount || 0}` },
+                  { label: '车费', value: order.travel_fee ? `¥${order.travel_fee}` : '-' },
+                  { label: '合计支付', value: order.total_amount ? `¥${order.total_amount}` : '-' },
+                  { label: '下单时间', value: fmtTime(order.created_at) },
+                  { label: '支付时间', value: fmtTime(order.paid_at) },
+                ].map((item, i) => (
+                  <div key={i} className="flex justify-between py-2 border-b border-gray-50 last:border-0">
+                    <span className="text-sm text-gray-500">{item.label}</span>
+                    <span className="text-sm font-medium text-gray-800">{item.value || '-'}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function OrdersPage() {
   const [activeTab, setActiveTab] = useState('全部');
@@ -35,6 +163,7 @@ export default function OrdersPage() {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [detailOrderId, setDetailOrderId] = useState<string | null>(null);
   const pageSize = 20;
 
   const fetchOrders = async () => {
@@ -135,9 +264,9 @@ export default function OrdersPage() {
             <tbody>
               {orders.map((o, i) => {
                 const statusLabel = statusLabelMap[o.status] || '未知';
-                const sc = statusColor[statusLabel] || 'bg-gray-100 text-gray-500';
+                const sc = statusColor[o.status] || 'bg-gray-100 text-gray-500';
                 return (
-                <tr key={o.id || i} className="border-t border-[#F5F7FA] hover:bg-[#FAFBFC]">
+                <tr key={o.id || i} className="border-t border-[#F5F7FA] hover:bg-[#FAFBFC] cursor-pointer" onClick={() => setDetailOrderId(String(o.id))}>
                   <td className="px-5 py-3">
                     <input type="checkbox" className="h-4 w-4 rounded border-gray-300" />
                   </td>
@@ -203,6 +332,7 @@ export default function OrdersPage() {
           </div>
         </div>
       </div>
+      <OrderDetailDrawer orderId={detailOrderId} open={!!detailOrderId} onClose={() => setDetailOrderId(null)} />
     </AdminLayout>
   );
 }

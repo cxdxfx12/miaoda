@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, NavLink, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, NavLink, useNavigate, useLocation, useSearchParams, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Home, Search, Users, User, Star, MapPin, Heart, ArrowRight, ChevronLeft, ChevronRight, Phone, Lock, MessageCircle, X, Clock, Shield, Sparkles, TrendingUp, Award, Zap, Eye, Bell, Settings, Ticket, Gift, Headphones, HelpCircle, FileText } from 'lucide-react';
 import { useUserStore } from './store/userStore';
@@ -3178,6 +3178,237 @@ function OrderDetailPage() {
 }
 
 /* ===================================================================
+   订单详情页 V2 /orders/:id（含流程进度条）
+   =================================================================== */
+function OrderDetailPageV2() {
+  const nav = useNavigate();
+  const params = useParams();
+  const orderId = params.id;
+  const [order, setOrder] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!orderId || !getToken()) {
+      nav('/login?redirect=/orders/' + orderId, { replace: true });
+      return;
+    }
+    (async () => {
+      try {
+        const res = await orderApi.detail(Number(orderId));
+        setOrder((res as any)?.data || res);
+      } catch (e: any) {
+        setToastMsg(e?.response?.data?.message || '获取订单失败');
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [orderId, nav]);
+
+  if (loading) {
+    return (
+      <div className="page" style={{ background: '#F5F0E8', minHeight: '100vh' }}>
+        <SubPageNav title="订单详情" />
+        <div style={{ textAlign: 'center', padding: 80 }}>加载中...</div>
+      </div>
+    );
+  }
+
+  if (!order) {
+    return (
+      <div className="page" style={{ background: '#F5F0E8', minHeight: '100vh' }}>
+        <SubPageNav title="订单详情" />
+        <div style={{ textAlign: 'center', padding: 80 }}>
+          <div style={{ fontSize: 44, marginBottom: 12 }}>📋</div>
+          <div style={{ fontWeight: 800, color: '#1a1a2e' }}>订单不存在</div>
+        </div>
+      </div>
+    );
+  }
+
+  const status = order.status;
+  // 订单状态文本映射
+  const STATUS_TEXT: Record<number, string> = {
+    0: '待支付', 1: '待接单', 2: '已接单', 7: '技师已出发', 8: '技师已到达',
+    3: '服务中', 4: '已完成', 5: '已取消', 6: '已退款',
+  };
+  const STATUS_COLOR: Record<number, string> = {
+    0: '#F59E0B', 1: '#3B82F6', 2: '#7C5CFC', 7: '#D97706', 8: '#059669',
+    3: '#EC4899', 4: '#10B981', 5: '#6B7280', 6: '#EF4444',
+  };
+
+  // 流程步骤
+  const flowSteps = [
+    { key: 'paid_at', label: '已支付', icon: '💰', status: 1 },
+    { key: 'accepted_at', label: '已接单', icon: '✅', status: 2 },
+    { key: 'departed_at', label: '已出发', icon: '🚗', status: 7 },
+    { key: 'arrived_at', label: '已到达', icon: '📍', status: 8 },
+    { key: 'start_time', label: '服务中', icon: '🔧', status: 3 },
+    { key: 'completed_at', label: '已完成', icon: '🎉', status: 4 },
+  ];
+
+  // 计算当前完成到第几步
+  const getStepIndex = () => {
+    if (status === 5 || status === 6) return -1; // 取消/退款不显示进度
+    for (let i = flowSteps.length - 1; i >= 0; i--) {
+      if (order[flowSteps[i].key]) return i;
+      if (status > flowSteps[i].status) return i;
+    }
+    return -1;
+  };
+  const currentStep = getStepIndex();
+
+  // 时间格式化
+  const fmtTime = (t: string) => {
+    if (!t) return '';
+    const d = new Date(t);
+    return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  };
+
+  return (
+    <div className="page" style={{ background: '#F5F0E8', minHeight: '100vh' }}>
+      <SubPageNav title="订单详情" />
+
+      <div style={{ padding: 16 }}>
+        {/* 状态卡片 */}
+        <div style={{
+          background: `linear-gradient(135deg, ${STATUS_COLOR[status] || '#6B7280'}, ${STATUS_COLOR[status] || '#6B7280'}dd)`,
+          borderRadius: 20, padding: '24px 20px', color: '#fff', marginBottom: 14,
+        }}>
+          <div style={{ fontSize: 22, fontWeight: 900 }}>{STATUS_TEXT[status] || '未知状态'}</div>
+          <div style={{ fontSize: 12, opacity: 0.8, marginTop: 6 }}>
+            订单号：{order.order_no || ''}
+          </div>
+        </div>
+
+        {/* 流程进度条 */}
+        {currentStep >= 0 && status !== 5 && status !== 6 && (
+          <div style={{
+            background: '#fff', borderRadius: 16, padding: '20px 12px', marginBottom: 14,
+            boxShadow: '0 1px 6px rgba(0,0,0,0.02)',
+          }}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: '#1F2937', marginBottom: 16, paddingLeft: 4 }}>
+              服务进度
+            </div>
+            {flowSteps.map((step, i) => {
+              const isDone = i <= currentStep;
+              const isActive = i === currentStep && status !== 4;
+              const timeVal = order[step.key];
+              return (
+                <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, paddingBottom: i < flowSteps.length - 1 ? 18 : 0 }}>
+                  {/* 左侧：圆点+线 */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 24, flexShrink: 0 }}>
+                    <div style={{
+                      width: isActive ? 26 : 22, height: isActive ? 26 : 22,
+                      borderRadius: '50%',
+                      background: isDone ? STATUS_COLOR[step.status] : '#E5E7EB',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: isActive ? 13 : 11,
+                      border: isActive ? '2px solid #fff' : '2px solid #E5E7EB',
+                      boxShadow: isActive ? `0 0 0 3px ${STATUS_COLOR[step.status]}30` : 'none',
+                      transition: 'all 0.3s',
+                    }}>
+                      {isDone ? step.icon : ''}
+                    </div>
+                    {i < flowSteps.length - 1 && (
+                      <div style={{
+                        width: 2, height: 18, marginTop: 4,
+                        background: isDone ? STATUS_COLOR[step.status] : '#E5E7EB',
+                      }} />
+                    )}
+                  </div>
+                  {/* 右侧：文字 */}
+                  <div style={{ flex: 1, paddingTop: 2 }}>
+                    <div style={{
+                      fontSize: isActive ? 14 : 13, fontWeight: isActive ? 800 : 600,
+                      color: isDone ? '#1F2937' : '#9CA3AF',
+                    }}>
+                      {step.label}
+                      {isActive && status !== 4 && (
+                        <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, color: STATUS_COLOR[step.status] }}>进行中</span>
+                      )}
+                    </div>
+                    {timeVal && (
+                      <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{fmtTime(timeVal)}</div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* 达人信息卡 */}
+        {(order.technician_name || order.talent_name) && (
+          <div style={{
+            background: '#fff', borderRadius: 16, padding: '16px 14px', marginBottom: 14,
+            boxShadow: '0 1px 6px rgba(0,0,0,0.02)',
+          }}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: '#1F2937', marginBottom: 12 }}>服务达人</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{
+                width: 44, height: 44, borderRadius: '50%', background: '#F3F4F6',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
+                overflow: 'hidden',
+              }}>
+                <img
+                  src={order.technician_avatar || order.talent_avatar || '/logo.png'}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  onError={(e: any) => { e.target.style.display = 'none'; }}
+                />
+              </div>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#1F2937' }}>
+                  {order.technician_name || order.talent_name || ''}
+                </div>
+                <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>喵搭认证达人</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 订单信息 */}
+        <div style={{
+          background: '#fff', borderRadius: 16, padding: '16px 14px', marginBottom: 14,
+          boxShadow: '0 1px 6px rgba(0,0,0,0.02)',
+        }}>
+          <div style={{ fontSize: 14, fontWeight: 800, color: '#1F2937', marginBottom: 12 }}>订单信息</div>
+          {[
+            { label: '服务项目', value: order.service_name },
+            { label: '服务地址', value: order.address },
+            { label: '预约时间', value: order.appointment_time ? fmtTime(order.appointment_time) : '-' },
+            { label: '订单金额', value: `¥${order.original_amount || order.final_amount || order.amount || 0}` },
+            ...(Number(order.extra_amount || order.travel_fee || 0) > 0 ? [{ label: '车费', value: `¥${order.extra_amount || order.travel_fee}` }] : []),
+            { label: '合计支付', value: `¥${order.final_amount || order.total_amount || 0}`, bold: true },
+            { label: '下单时间', value: fmtTime(order.created_at) },
+          ].map((item, i) => (
+            <div key={i} style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              padding: '8px 0', borderBottom: i < 6 ? '1px solid #F3F4F6' : 'none',
+            }}>
+              <span style={{ fontSize: 13, color: '#6B7280' }}>{item.label}</span>
+              <span style={{
+                fontSize: 13, fontWeight: (item as any).bold ? 800 : 600,
+                color: '#1F2937',
+              }}>{item.value || '-'}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Toast */}
+      {toastMsg && (
+        <div style={{
+          position: 'fixed', bottom: 100, left: '50%', transform: 'translateX(-50%)',
+          background: '#EF4444', color: '#fff', padding: '10px 20px', borderRadius: 10,
+          fontSize: 13, fontWeight: 600, zIndex: 9999, boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+        }}>{toastMsg}</div>
+      )}
+    </div>
+  );
+}
+
+/* ===================================================================
    个人中心 — 内嵌订单列表
    =================================================================== */
 const statusMap: Record<number, { label: string; color: string; bg: string }> = {
@@ -5724,6 +5955,7 @@ function AppRoutes() {
           <Route path="/talents" element={<TalentStandalonePage />} />
           <Route path="/feed" element={<TalentFeedPage />} />
           <Route path="/orders" element={<OrdersPage />} />
+          <Route path="/orders/:id" element={<OrderDetailPageV2 />} />
           <Route path="/order-detail" element={<OrderDetailPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/profile/edit" element={<ProfileEditPage />} />

@@ -89,7 +89,7 @@ func RegisterOrderRoutes(r *gin.Engine, h *handler.OrderHandler, jwtCfg *config.
 }
 
 // RegisterTalentRoutes 注册达人服务路由
-func RegisterTalentRoutes(r *gin.Engine, h *handler.TalentHandler, grabH *handler.GrabPoolHandler, jwtCfg *config.JWTConfig) {
+func RegisterTalentRoutes(r *gin.Engine, h *handler.TalentHandler, grabH *handler.GrabPoolHandler, orderH *handler.OrderHandler, jwtCfg *config.JWTConfig) {
 	api := r.Group("/api/v1")
 
 	// 公开接口
@@ -112,6 +112,19 @@ func RegisterTalentRoutes(r *gin.Engine, h *handler.TalentHandler, grabH *handle
 		talent.GET("/income/records", h.GetIncomeRecords)
 		talent.POST("/income/withdraw", h.RequestWithdraw)
 		talent.GET("/dashboard", h.GetDashboard)
+		talent.PUT("/orders/:id/status", orderH.UpdateOrderStatus)
+
+		// 达人中心
+		talent.GET("/center/services", h.ListMyServices)
+		talent.POST("/center/services", h.AddMyService)
+		talent.DELETE("/center/services/:service_id", h.RemoveMyService)
+		talent.GET("/center/addresses", h.ListMyAddresses)
+		talent.POST("/center/addresses", h.AddMyAddress)
+		talent.PUT("/center/addresses/:id", h.UpdateMyAddress)
+		talent.DELETE("/center/addresses/:id", h.DeleteMyAddress)
+		talent.PUT("/center/addresses/:id/default", h.SetDefaultMyAddress)
+		talent.GET("/center/withdraws", h.ListMyWithdraws)
+		talent.POST("/center/withdraws", h.RequestWithdraw)
 
 		// 抢单池
 		talent.GET("/grab-pool/list", grabH.ListPoolOrders)

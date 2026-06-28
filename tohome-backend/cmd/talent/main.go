@@ -42,8 +42,13 @@ func main() {
 
 	talentRepo := repository.NewTalentRepository(database.DB, database.RedisClient)
 	orderRepo := repository.NewOrderRepository(database.DB)
+	userRepo := repository.NewUserRepository(database.DB, database.RedisClient)
+	svcRepo := repository.NewServiceRepository(database.DB)
+	couponRepo := repository.NewCouponRepository(database.DB)
 	talentService := service.NewTalentService(talentRepo, orderRepo)
+	orderService := service.NewOrderService(orderRepo, userRepo, talentRepo, svcRepo, couponRepo)
 	talentHandler := handler.NewTalentHandler(talentService)
+	orderHandler := handler.NewOrderHandler(orderService, talentRepo)
 
 	// 抢单池
 	grabPoolService := service.NewGrabPoolService(orderRepo, talentRepo, database.RedisClient)
@@ -57,7 +62,7 @@ func main() {
 	r.Use(middleware.RequestID())
 	// CORS 由 Gateway 统一处理
 
-	router.RegisterTalentRoutes(r, talentHandler, grabPoolHandler, &cfg.JWT)
+	router.RegisterTalentRoutes(r, talentHandler, grabPoolHandler, orderHandler, &cfg.JWT)
 
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})

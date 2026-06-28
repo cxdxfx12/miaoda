@@ -445,6 +445,61 @@ func (s *OrderService) RequestExtraTime(ctx context.Context, id int64, talentID 
 	return nil
 }
 
+// UpdateOrderFlowStatus 订单流程状态推进（带状态机校验和时间戳更新）
+func (s *OrderService) UpdateOrderFlowStatus(ctx context.Context, orderID, talentID int64, targetStatus int) error {
+	db := database.Database()
+
+	// 读取当前订单
+	var order model.Order
+	if err := db.GetContext(ctx, &order, `SELECT * FROM orders WHERE id = $1`, orderID); err != nil {
+		return fmt.Errorf("订单不存在")
+	}
+
+	// 确认是此达人的订单
+	if order.TalentID == nil || *order.TalentID != talentID {
+		return fmt.Errorf("无权操作此订单")
+	}
+
+	// 状态转换校验
+	allowedMap := map[int][]int{
+		2: {7}, // 已接单 -> 已出发
+		7: {8}, // 已出发 -> 已到达
+		8: {3}, // 已到达 -> 服务中
+		3: {4}, // 服务中 -> 已完成
+	}
+	validTargets, ok := allowedMap[order.Status]
+	if !ok {
+		return fmt.Errorf("当前状态不可变更")
+	}
+	canTransition := false
+	for _, t := range validTargets {
+		if t == targetStatus {
+			canTransition = true
+			break
+		}
+	}
+	if !canTransition {
+		return fmt.Errorf("不允许从 %s 变更为 %s", model.OrderStatusText[order.Status], model.OrderStatusText[targetStatus])
+	}
+
+	// 更新状态和时间戳
+	now := time.Now()
+	var timeCol string
+	switch targetStatus {
+	case 7:
+		timeCol = "departed_at"
+	case 8:
+		timeCol = "arrived_at"
+	case 3:
+		timeCol = "start_time"
+	case 4:
+		timeCol = "completed_at"
+	}
+
+	_, err := db.ExecContext(ctx, fmt.Sprintf(`UPDATE orders SET status = $1, %s = $2 WHERE id = $3`, timeCol), targetStatus, now, orderID)
+	return err
+}
+
 // UpdateTalentLocation 更新技师位置（从订单上下文）
 func (s *OrderService) UpdateTalentLocation(ctx context.Context, talentID int64, lat, lng float64) error {
 	return s.techRepo.UpdateLocation(ctx, talentID, lat, lng)
