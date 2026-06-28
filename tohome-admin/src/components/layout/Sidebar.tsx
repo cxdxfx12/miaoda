@@ -182,21 +182,19 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         key={item.href}
         href={item.href}
         className={cn(
-          'group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200',
+          'group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200',
           active
-            ? 'bg-white/10 text-white'
-            : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
+            ? 'bg-[#F3F4FE] text-[#6B7FD7] font-semibold'
+            : 'text-gray-500 hover:bg-[#F8FAFC] hover:text-[#1F2937]'
         )}
       >
-        {/* 左侧品牌色竖条 */}
-        {active && (
-          <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-indigo-500" />
-        )}
-        {/* 图标背景 */}
+        {/* 图标 */}
         <span
           className={cn(
             'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-all duration-200',
-            active ? 'bg-indigo-500/20 text-indigo-400' : 'text-slate-500 group-hover:text-slate-300'
+            active
+              ? 'bg-[#6B7FD7]/10 text-[#6B7FD7]'
+              : 'text-gray-400 group-hover:text-gray-500'
           )}
         >
           <Icon className="h-[18px] w-[18px]" strokeWidth={2} />
@@ -212,7 +210,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         <TooltipProvider key={item.href} delayDuration={0}>
           <Tooltip>
             <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
-            <TooltipContent side="right" className="rounded-md bg-slate-800 px-2 py-1 text-xs text-white">
+            <TooltipContent side="right" className="rounded-md bg-[#1F2937] px-2 py-1 text-xs text-white">
               {item.label}
             </TooltipContent>
           </Tooltip>
@@ -228,22 +226,22 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       <aside
         className={cn(
           'sidebar-transition fixed left-0 top-0 z-40 flex h-screen flex-col',
-          'bg-gradient-to-b from-[#0F172A] to-[#1E293B] border-r border-white/5',
+          'bg-white border-r border-[#EEF1F6]',
           collapsed ? 'w-[72px]' : 'w-[240px]'
         )}
       >
-        {/* Logo 区域 */}
+        {/* Logo 区域 - 高度 h-16 与 Topbar 对齐 */}
         <div className={cn(
-          'flex h-14 shrink-0 items-center border-b border-white/5',
+          'flex h-16 shrink-0 items-center border-b border-[#EEF1F6]',
           collapsed ? 'justify-center px-3' : 'gap-2.5 px-5'
         )}>
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-500/20">
-            <Cat className="h-5 w-5 text-indigo-400" />
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#6B7FD7]">
+            <Cat className="h-5 w-5 text-white" />
           </div>
           {!collapsed && (
             <div className="overflow-hidden">
-              <div className="text-[15px] font-bold text-white tracking-tight">喵搭</div>
-              <div className="text-[10px] text-slate-500">管理后台</div>
+              <div className="text-[15px] font-bold text-[#1F2937] tracking-tight">喵搭</div>
+              <div className="text-[10px] text-gray-400">管理后台</div>
             </div>
           )}
         </div>
@@ -254,12 +252,12 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             <div key={group.title} className="mb-4 last:mb-0">
               {/* 分组标题 */}
               {!collapsed && (
-                <div className="mb-1.5 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-600">
+                <div className="mb-1.5 px-4 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
                   {group.title}
                 </div>
               )}
               {collapsed && (
-                <div className="mx-auto mb-1.5 h-px w-6 bg-white/5" />
+                <div className="mx-auto mb-1.5 h-px w-6 bg-[#EEF1F6]" />
               )}
               {/* 菜单项 */}
               <div className="space-y-0.5">
@@ -270,12 +268,12 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         </nav>
 
         {/* 底部：折叠按钮 + 版本号 */}
-        <div className="shrink-0 border-t border-white/5 px-2 py-3">
+        <div className="shrink-0 border-t border-[#EEF1F6] px-2 py-3">
           {/* 折叠按钮 */}
           <button
             onClick={onToggle}
             className={cn(
-              'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-500 transition-all duration-200 hover:bg-white/5 hover:text-slate-300',
+              'flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-gray-400 transition-all duration-200 hover:bg-[#F8FAFC] hover:text-[#1F2937]',
               collapsed && 'justify-center'
             )}
           >
@@ -291,7 +289,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
           {/* 版本号 */}
           {!collapsed && (
-            <div className="mt-2 px-3 text-[10px] text-slate-600">
+            <div className="mt-2 px-4 text-[10px] text-gray-400">
               v1.0.0 &copy; 2026 喵搭
             </div>
           )}
@@ -301,18 +299,18 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       {/* 技术支持悬浮组件 */}
       <div
         onMouseDown={startDragSupport}
-        className="fixed z-50 w-[196px] cursor-move select-none rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-[0_18px_45px_rgba(15,23,42,0.16)] backdrop-blur"
+        className="fixed z-50 w-[196px] cursor-move select-none rounded-2xl border border-[#EEF1F6] bg-white/95 p-3 shadow-[0_18px_45px_rgba(15,23,42,0.16)] backdrop-blur"
         style={supportPos ? { left: supportPos.left, top: supportPos.top } : { right: 24, bottom: 24 }}
         title="按住拖动"
       >
         <div className="mb-1 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-indigo-500">
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-[#6B7FD7]">
             <Tags className="h-3.5 w-3.5" />
             <span>技术支持</span>
           </div>
-          <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] text-indigo-500">可拖动</span>
+          <span className="rounded-full bg-[#F3F4FE] px-2 py-0.5 text-[10px] text-[#6B7FD7]">可拖动</span>
         </div>
-        <div className="text-[11px] leading-relaxed text-slate-500">
+        <div className="text-[11px] leading-relaxed text-gray-400">
           7x24小时在线<br />{servicePhone}
         </div>
       </div>

@@ -198,7 +198,7 @@ export function Topbar({ onToggleSidebar }: TopbarProps) {
             <input
               type="text"
               placeholder="搜索..."
-              className="h-8 w-48 rounded-lg bg-gray-100 pl-8 pr-3 text-sm text-gray-700 placeholder:text-gray-400 transition-all focus:w-64 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-300"
+              className="h-8 w-48 rounded-lg bg-gray-100 pl-8 pr-3 text-sm text-gray-700 placeholder:text-gray-400 transition-all focus:w-64 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#6B7FD7]/20 focus:border-[#6B7FD7]"
             />
           </div>
 
@@ -223,7 +223,7 @@ export function Topbar({ onToggleSidebar }: TopbarProps) {
               {admin?.avatar ? (
                 <img src={admin.avatar} alt="管理员头像" className="h-7 w-7 rounded-full object-cover ring-2 ring-white" />
               ) : (
-                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 text-xs font-semibold text-white">
+                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-[#6B7FD7] to-[#8B9AE3] text-xs font-semibold text-white">
                   {admin?.username?.[0]?.toUpperCase() || 'A'}
                 </div>
               )}
@@ -291,7 +291,7 @@ export function Topbar({ onToggleSidebar }: TopbarProps) {
                 {profileForm.avatar ? (
                   <img src={profileForm.avatar} alt="管理员头像" className="h-16 w-16 rounded-full object-cover ring-4 ring-white" />
                 ) : (
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 text-xl font-semibold text-white">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-[#6B7FD7] to-[#8B9AE3] text-xl font-semibold text-white">
                     {admin?.username?.[0]?.toUpperCase() || 'A'}
                   </div>
                 )}
@@ -323,7 +323,7 @@ export function Topbar({ onToggleSidebar }: TopbarProps) {
                 <input
                   value={profileForm.nickname}
                   onChange={(e) => setProfileForm({ ...profileForm, nickname: e.target.value })}
-                  className="h-11 w-full rounded-lg border border-gray-200 px-3 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20"
+                  className="h-11 w-full rounded-lg border border-gray-200 px-3 text-sm outline-none focus:border-[#6B7FD7] focus:ring-2 focus:ring-[#6B7FD7]/20"
                   placeholder="请输入昵称"
                 />
               </div>
@@ -337,7 +337,7 @@ export function Topbar({ onToggleSidebar }: TopbarProps) {
                     type="email"
                     value={profileForm.email}
                     onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
-                    className="h-11 w-full rounded-lg border border-gray-200 px-3 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20"
+                    className="h-11 w-full rounded-lg border border-gray-200 px-3 text-sm outline-none focus:border-[#6B7FD7] focus:ring-2 focus:ring-[#6B7FD7]/20"
                     placeholder="admin@example.com"
                   />
                 </div>
@@ -349,7 +349,7 @@ export function Topbar({ onToggleSidebar }: TopbarProps) {
                   <input
                     value={profileForm.phone}
                     onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
-                    className="h-11 w-full rounded-lg border border-gray-200 px-3 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20"
+                    className="h-11 w-full rounded-lg border border-gray-200 px-3 text-sm outline-none focus:border-[#6B7FD7] focus:ring-2 focus:ring-[#6B7FD7]/20"
                     placeholder="请输入手机号"
                   />
                 </div>
@@ -359,7 +359,7 @@ export function Topbar({ onToggleSidebar }: TopbarProps) {
                 <input
                   value={profileForm.avatar}
                   onChange={(e) => setProfileForm({ ...profileForm, avatar: e.target.value })}
-                  className="h-11 w-full rounded-lg border border-gray-200 px-3 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20"
+                  className="h-11 w-full rounded-lg border border-gray-200 px-3 text-sm outline-none focus:border-[#6B7FD7] focus:ring-2 focus:ring-[#6B7FD7]/20"
                   placeholder="/uploads/2026/06/avatar.jpg"
                 />
               </div>
@@ -374,7 +374,7 @@ export function Topbar({ onToggleSidebar }: TopbarProps) {
                 <button
                   type="submit"
                   disabled={savingProfile}
-                  className="inline-flex items-center gap-2 rounded-lg bg-indigo-500 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-600 disabled:opacity-60"
+                  className="inline-flex items-center gap-2 rounded-lg bg-[#6B7FD7] px-4 py-2 text-sm font-medium text-white hover:bg-[#5668C2] disabled:opacity-60"
                 >
                   {savingProfile && <Loader2 className="h-4 w-4 animate-spin" />}
                   保存资料
@@ -408,7 +408,7 @@ export function Topbar({ onToggleSidebar }: TopbarProps) {
                   type="password"
                   value={passwordForm.oldPassword}
                   onChange={(e) => setPasswordForm({ ...passwordForm, oldPassword: e.target.value })}
-                  className="h-11 w-full rounded-lg border border-gray-200 px-3 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20"
+                  className="h-11 w-full rounded-lg border border-gray-200 px-3 text-sm outline-none focus:border-[#6B7FD7] focus:ring-2 focus:ring-[#6B7FD7]/20"
                   placeholder="请输入旧密码"
                 />
               </div>
@@ -418,7 +418,7 @@ export function Topbar({ onToggleSidebar }: TopbarProps) {
                   type="password"
                   value={passwordForm.newPassword}
                   onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
-                  className="h-11 w-full rounded-lg border border-gray-200 px-3 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20"
+                  className="h-11 w-full rounded-lg border border-gray-200 px-3 text-sm outline-none focus:border-[#6B7FD7] focus:ring-2 focus:ring-[#6B7FD7]/20"
                   placeholder="至少6位"
                 />
               </div>
@@ -428,7 +428,7 @@ export function Topbar({ onToggleSidebar }: TopbarProps) {
                   type="password"
                   value={passwordForm.confirmPassword}
                   onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
-                  className="h-11 w-full rounded-lg border border-gray-200 px-3 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20"
+                  className="h-11 w-full rounded-lg border border-gray-200 px-3 text-sm outline-none focus:border-[#6B7FD7] focus:ring-2 focus:ring-[#6B7FD7]/20"
                   placeholder="再次输入新密码"
                 />
               </div>
@@ -443,7 +443,7 @@ export function Topbar({ onToggleSidebar }: TopbarProps) {
                 <button
                   type="submit"
                   disabled={savingPassword}
-                  className="inline-flex items-center gap-2 rounded-lg bg-indigo-500 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-600 disabled:opacity-60"
+                  className="inline-flex items-center gap-2 rounded-lg bg-[#6B7FD7] px-4 py-2 text-sm font-medium text-white hover:bg-[#5668C2] disabled:opacity-60"
                 >
                   {savingPassword && <Loader2 className="h-4 w-4 animate-spin" />}
                   保存修改

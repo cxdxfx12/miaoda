@@ -52,6 +52,11 @@
   transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* shadow-soft 柔和阴影 */
+.shadow-soft {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 0 1px rgba(0, 0, 0, 0.06);
+}
+
 /* Tooltip 动画 */
 .tooltip-content {
   animation: tooltipIn 0.15s ease-out;
