@@ -1044,7 +1044,7 @@ func (h *AdminHandler) AdminListSmsLogs(c *gin.Context) {
 		Provider  string    `db:"provider" json:"provider"`
 		Status    int       `db:"status" json:"status"`
 		Result    string    `db:"result" json:"result"`
-		IP        string    `db:"ip" json:"ip"`
+		IP        *string   `db:"ip" json:"ip"`
 		CreatedAt time.Time `db:"created_at" json:"created_at"`
 	}
 

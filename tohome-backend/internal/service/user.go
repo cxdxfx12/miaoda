@@ -326,16 +326,20 @@ func sendSmsBaoCode(phone, code string) error {
 	apiKey := config.GetString("third_party.sms.smsbao.api_key")
 	signName := config.GetString("third_party.sms.smsbao.sign_name")
 
+	logger.Info("短信宝配置读取: username=%s, signName=%s", username, signName)
+
 	if username == "" || apiKey == "" {
 		return fmt.Errorf("短信宝配置缺失")
 	}
 
 	if signName == "" {
 		signName = "喵搭"
+		logger.Info("短信宝签名使用默认值: 喵搭")
 	}
 
 	// 短信内容格式：【签名】验证码内容
 	content := fmt.Sprintf("【%s】您的验证码是%s，5分钟内有效，请勿泄露给他人。", signName, code)
+	logger.Info("短信宝发送内容: %s", content)
 
 	// 短信宝 API: https://api.smsbao.com/sms?u=USERNAME&p=APIKEY&m=PHONE&c=CONTENT
 	apiURL := fmt.Sprintf("https://api.smsbao.com/sms?u=%s&p=%s&m=%s&c=%s",
@@ -357,6 +361,7 @@ func sendSmsBaoCode(phone, code string) error {
 	}
 
 	result := strings.TrimSpace(string(body))
+	logger.Info("短信宝API返回: %s", result)
 	// 短信宝返回状态码：0=成功, 其他为错误
 	if result != "0" {
 		errMsg := smsBaoCode(result)
