@@ -1076,7 +1076,7 @@ func (h *AdminHandler) AdminGetSmsStats(c *gin.Context) {
 	_ = db.GetContext(c.Request.Context(), &success, `SELECT COUNT(*) FROM sms_logs WHERE status = 1`)
 	_ = db.GetContext(c.Request.Context(), &fail, `SELECT COUNT(*) FROM sms_logs WHERE status = 2`)
 
-	today := time.Now().Truncate(24 * time.Hour)
+	today := time.Now().Add(8 * time.Hour).Truncate(24 * time.Hour).Add(-8 * time.Hour) // 北京时间当天 0 点
 	_ = db.GetContext(c.Request.Context(), &todayCount, `SELECT COUNT(*) FROM sms_logs WHERE created_at >= $1`, today)
 
 	response.Success(c, gin.H{

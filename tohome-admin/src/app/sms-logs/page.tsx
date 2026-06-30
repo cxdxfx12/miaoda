@@ -37,10 +37,6 @@ interface SmsStats {
 
 const PAGE_SIZE = 20;
 
-function maskCode(code: string): string {
-  if (!code || code.length <= 4) return code || '-';
-  return code.slice(0, Math.floor(code.length / 2) - 2) + '****' + code.slice(Math.ceil(code.length / 2) + 2);
-}
 
 export default function SmsLogsPage() {
   const [loading, setLoading] = useState(true);
@@ -59,10 +55,15 @@ export default function SmsLogsPage() {
     try {
       const res: any = await api.get('/api/v1/admin/sms/stats');
       const d = res?.data || res || {};
+      const totalVal = Number(d.total || 0);
+      const successVal = Number(d.success || 0);
+      const failVal = Number(d.fail || 0);
+      const sentVal = successVal + failVal;
+      const rate = sentVal > 0 ? ((successVal / sentVal) * 100).toFixed(1) + '%' : '0%';
       setStats({
-        today_sent: Number(d.today_sent || 0),
-        total_sent: Number(d.total_sent || 0),
-        success_rate: String(d.success_rate || '0%'),
+        today_sent: Number(d.today_count || 0),
+        total_sent: totalVal,
+        success_rate: rate,
       });
     } catch {
       // backend unavailable
@@ -115,9 +116,11 @@ export default function SmsLogsPage() {
 
   const fmtTime = (t: string) => {
     if (!t) return '-';
-    const d = new Date(t);
+    const d = new Date(t + 'Z'); // 后端返回的时间无时区，按 UTC 处理
     if (Number.isNaN(d.getTime())) return t;
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`;
+    // 转为北京时间 UTC+8
+    const bj = new Date(d.getTime() + 8 * 60 * 60 * 1000);
+    return `${bj.getFullYear()}-${String(bj.getMonth() + 1).padStart(2, '0')}-${String(bj.getDate()).padStart(2, '0')} ${String(bj.getHours()).padStart(2, '0')}:${String(bj.getMinutes()).padStart(2, '0')}:${String(bj.getSeconds()).padStart(2, '0')}`;
   };
 
   const statCards = [
@@ -305,8 +308,8 @@ export default function SmsLogsPage() {
                       <td className="px-5 py-3 font-medium text-[#1F2937]">
                         {log.phone || '-'}
                       </td>
-                      <td className="px-5 py-3 font-mono text-sm text-gray-600">
-                        {maskCode(log.code)}
+                      <td className="px-5 py-3 font-mono text-sm font-medium text-[#1F2937]">
+                        {log.code || '-'}
                       </td>
                       <td className="px-5 py-3 text-gray-600">
                         <span className="rounded-md bg-[#F3F4FE] px-2 py-0.5 text-[11px] font-medium text-[#6B7FD7]">
