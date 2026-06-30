@@ -357,6 +357,14 @@ func (s *TalentService) AdminCreate(ctx context.Context, req *AdminCreateTalentR
 	}
 
 	logger.Info("管理员创建达人成功: id=%d name=%s auto_approve=%v", talent.ID, req.RealName, req.AutoApprove)
+
+	// 同步服务到 talent_services 表
+	if len(req.Skills) > 0 {
+		if err := s.syncTalentServices(ctx, talent.ID, req.Skills); err != nil {
+			logger.Warn("同步达人服务到 talent_services 表失败: %v", err)
+		}
+	}
+
 	return talent, nil
 }
 
@@ -405,6 +413,10 @@ func (s *TalentService) AdminUpdate(ctx context.Context, id int64, req *AdminCre
 	if req.Skills != nil {
 		skillsJSON, _ := json.Marshal(req.Skills)
 		talent.Skills = skillsJSON
+		// 同步写入 talent_services 关联表
+		if err := s.syncTalentServices(ctx, talent.ID, req.Skills); err != nil {
+			logger.Warn("同步达人服务到 talent_services 表失败: %v", err)
+		}
 	}
 	if req.Certificates != nil {
 		certsJSON, _ := json.Marshal(req.Certificates)
@@ -443,6 +455,50 @@ func (s *TalentService) AdminDelete(ctx context.Context, id int64) error {
 		return err
 	}
 	logger.Info("管理员删除达人成功: id=%d", id)
+	return nil
+}
+
+// syncTalentServices 同步达人服务到 talent_services 关联表
+func (s *TalentService) syncTalentServices(ctx context.Context, talentID int64, skillIDs []int64) error {
+	if talentID <= 0 {
+		return nil
+	}
+
+	type svcPrice struct {
+		ID        int64   `db:"id"`
+		BasePrice float64 `db:"base_price"`
+	}
+	var svcs []svcPrice
+	if len(skillIDs) > 0 {
+		placeholders := ""
+		args := []interface{}{}
+		for i, id := range skillIDs {
+			if i > 0 {
+				placeholders += ","
+			}
+			placeholders += fmt.Sprintf("$%d", i+1)
+			args = append(args, id)
+		}
+		query := fmt.Sprintf("SELECT id, COALESCE(base_price,0) AS base_price FROM services WHERE id IN (%s) AND deleted_at IS NULL", placeholders)
+		if err := s.talentRepo.DB.SelectContext(ctx, &svcs, query, args...); err != nil {
+			return fmt.Errorf("查询服务价格失败: %w", err)
+		}
+	}
+
+	// 删除旧记录
+	if _, err := s.talentRepo.DB.ExecContext(ctx, "DELETE FROM talent_services WHERE talent_id = $1", talentID); err != nil {
+		return fmt.Errorf("删除旧服务关联失败: %w", err)
+	}
+
+	// 插入新记录
+	for i, svc := range svcs {
+		_, err := s.talentRepo.DB.ExecContext(ctx,
+			"INSERT INTO talent_services (talent_id, service_id, custom_price, is_available, sort_order) VALUES ($1, $2, $3, true, $4)",
+			talentID, svc.ID, svc.BasePrice, i)
+		if err != nil {
+			return fmt.Errorf("插入服务关联失败: %w", err)
+		}
+	}
 	return nil
 }
 

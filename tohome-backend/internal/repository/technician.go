@@ -15,7 +15,7 @@ import (
 
 // TalentRepository 达人仓储
 type TalentRepository struct {
-	db    *sqlx.DB
+	DB    *sqlx.DB
 	redis *redis.Client
 }
 
@@ -26,13 +26,13 @@ const talentSelectColumns = `id, created_at, updated_at, deleted_at, user_id, re
 
 // NewTalentRepository 创建达人仓储
 func NewTalentRepository(db *sqlx.DB, redis *redis.Client) *TalentRepository {
-	return &TalentRepository{db: db, redis: redis}
+	return &TalentRepository{DB: db, redis: redis}
 }
 
 // GetByID 根据ID获取达人
 func (r *TalentRepository) GetByID(ctx context.Context, id int64) (*model.Talent, error) {
 	var talent model.Talent
-	err := r.db.GetContext(ctx, &talent, `SELECT `+talentSelectColumns+` FROM technicians WHERE id = $1 AND deleted_at IS NULL`, id)
+	err := r.DB.GetContext(ctx, &talent, `SELECT `+talentSelectColumns+` FROM technicians WHERE id = $1 AND deleted_at IS NULL`, id)
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +42,7 @@ func (r *TalentRepository) GetByID(ctx context.Context, id int64) (*model.Talent
 // GetByUserID 根据用户ID获取达人
 func (r *TalentRepository) GetByUserID(ctx context.Context, userID int64) (*model.Talent, error) {
 	var talent model.Talent
-	err := r.db.GetContext(ctx, &talent, `SELECT `+talentSelectColumns+` FROM technicians WHERE user_id = $1 AND deleted_at IS NULL`, userID)
+	err := r.DB.GetContext(ctx, &talent, `SELECT `+talentSelectColumns+` FROM technicians WHERE user_id = $1 AND deleted_at IS NULL`, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +52,7 @@ func (r *TalentRepository) GetByUserID(ctx context.Context, userID int64) (*mode
 // GetByPhone 根据手机号获取达人
 func (r *TalentRepository) GetByPhone(ctx context.Context, phone string) (*model.Talent, error) {
 	var talent model.Talent
-	err := r.db.GetContext(ctx, &talent, `SELECT `+talentSelectColumns+` FROM technicians WHERE phone = $1 AND deleted_at IS NULL`, phone)
+	err := r.DB.GetContext(ctx, &talent, `SELECT `+talentSelectColumns+` FROM technicians WHERE phone = $1 AND deleted_at IS NULL`, phone)
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +66,7 @@ func (r *TalentRepository) Create(ctx context.Context, talent *model.Talent) err
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $18)
 		RETURNING id, created_at, updated_at`
 	now := time.Now()
-	err := r.db.QueryRowxContext(ctx, query,
+	err := r.DB.QueryRowxContext(ctx, query,
 		talent.UserID, talent.RealName, talent.IDCard, talent.Gender, talent.Birthday, talent.Avatar, talent.Phone,
 		talent.EmergencyContact, talent.EmergencyPhone, talent.Skills, talent.Certificates, talent.LifePhotos, talent.ArtPhotos, talent.ServiceCity, talent.ServiceDistricts, talent.Introduction,
 		model.TalentStatusPending, now,
@@ -76,7 +76,7 @@ func (r *TalentRepository) Create(ctx context.Context, talent *model.Talent) err
 
 // Update 更新达人
 func (r *TalentRepository) Update(ctx context.Context, talent *model.Talent) error {
-	_, err := r.db.ExecContext(ctx, `
+	_, err := r.DB.ExecContext(ctx, `
 		UPDATE technicians
 		SET real_name = $1, avatar = $2, skills = $3, certificates = $4, service_city = $5,
 		    service_districts = $6, introduction = $7, life_photos = $8, art_photos = $9,
@@ -93,7 +93,7 @@ func (r *TalentRepository) Update(ctx context.Context, talent *model.Talent) err
 // Delete 软删除达人
 func (r *TalentRepository) Delete(ctx context.Context, id int64) error {
 	now := time.Now()
-	result, err := r.db.ExecContext(ctx,
+	result, err := r.DB.ExecContext(ctx,
 		`UPDATE technicians SET deleted_at = $1, updated_at = $1, work_status = $2 WHERE id = $3 AND deleted_at IS NULL`,
 		now, model.WorkStatusOffline, id)
 	if err != nil {
@@ -113,7 +113,7 @@ func (r *TalentRepository) Delete(ctx context.Context, id int64) error {
 
 // UpdateWorkStatus 更新工作状态
 func (r *TalentRepository) UpdateWorkStatus(ctx context.Context, id int64, status int) error {
-	_, err := r.db.ExecContext(ctx,
+	_, err := r.DB.ExecContext(ctx,
 		`UPDATE technicians SET work_status = $1, updated_at = $2 WHERE id = $3`,
 		status, time.Now(), id)
 
@@ -129,7 +129,7 @@ func (r *TalentRepository) UpdateWorkStatus(ctx context.Context, id int64, statu
 // UpdateLocation 更新位置
 func (r *TalentRepository) UpdateLocation(ctx context.Context, id int64, lat, lng float64) error {
 	now := time.Now()
-	_, err := r.db.ExecContext(ctx, `
+	_, err := r.DB.ExecContext(ctx, `
 		UPDATE technicians
 		SET current_lat = $1, current_lng = $2, location_updated_at = $3, updated_at = $3
 		WHERE id = $4`,
@@ -140,7 +140,7 @@ func (r *TalentRepository) UpdateLocation(ctx context.Context, id int64, lat, ln
 // FindAvailable 查找可用的达人
 func (r *TalentRepository) FindAvailable(ctx context.Context, appointmentTime time.Time) ([]model.Talent, error) {
 	var talents []model.Talent
-	err := r.db.SelectContext(ctx, &talents, `
+	err := r.DB.SelectContext(ctx, &talents, `
 		SELECT * FROM technicians
 		WHERE status = $1
 		AND work_status = $2
@@ -155,7 +155,7 @@ func (r *TalentRepository) FindAvailable(ctx context.Context, appointmentTime ti
 func (r *TalentRepository) FindNearby(ctx context.Context, lat, lng, radius float64, limit int) ([]model.Talent, error) {
 	// 使用Haversine公式计算距离
 	var talents []model.Talent
-	err := r.db.SelectContext(ctx, &talents, `
+	err := r.DB.SelectContext(ctx, &talents, `
 		SELECT id, created_at, updated_at, deleted_at, user_id, real_name, id_card, gender, birthday,
 			avatar, phone, emergency_contact, emergency_phone, skills, certificates, life_photos,
 			art_photos, service_city, service_districts, rating, service_count, positive_rate,
@@ -199,7 +199,7 @@ func (r *TalentRepository) List(ctx context.Context, status *int, keyword string
 		args = append(args, kw, kw)
 	}
 
-	if err := r.db.GetContext(ctx, &total,
+	if err := r.DB.GetContext(ctx, &total,
 		fmt.Sprintf("SELECT COUNT(*) FROM technicians WHERE %s", where), args...); err != nil {
 		return nil, 0, err
 	}
@@ -209,13 +209,13 @@ func (r *TalentRepository) List(ctx context.Context, status *int, keyword string
 		SELECT `+talentSelectColumns+` FROM technicians WHERE %s
 		ORDER BY created_at DESC
 		LIMIT $%d OFFSET $%d`, where, len(args)-1, len(args))
-	err := r.db.SelectContext(ctx, &talents, listQuery, args...)
+	err := r.DB.SelectContext(ctx, &talents, listQuery, args...)
 	return talents, total, err
 }
 
 // Approve 审核通过
 func (r *TalentRepository) Approve(ctx context.Context, id int64) error {
-	_, err := r.db.ExecContext(ctx,
+	_, err := r.DB.ExecContext(ctx,
 		`UPDATE technicians
 		SET status = $1,
 		    work_status = CASE WHEN work_status = 0 THEN $2 ELSE work_status END,
@@ -230,7 +230,7 @@ func (r *TalentRepository) Approve(ctx context.Context, id int64) error {
 
 // Reject 审核拒绝
 func (r *TalentRepository) Reject(ctx context.Context, id int64) error {
-	_, err := r.db.ExecContext(ctx,
+	_, err := r.DB.ExecContext(ctx,
 		`UPDATE technicians SET status = $1, updated_at = $2 WHERE id = $3`,
 		model.TalentStatusRejected, time.Now(), id)
 	return err
@@ -242,7 +242,7 @@ func (r *TalentRepository) GetIncomeStatistics(ctx context.Context, talentID int
 
 	// 总收入
 	var totalIncome float64
-	err := r.db.GetContext(ctx, &totalIncome, `
+	err := r.DB.GetContext(ctx, &totalIncome, `
 		SELECT COALESCE(SUM(technician_income), 0) FROM orders
 		WHERE technician_id = $1 AND status = $2 AND completed_at BETWEEN $3 AND $4`,
 		talentID, model.OrderStatusCompleted, startTime, endTime)
@@ -253,7 +253,7 @@ func (r *TalentRepository) GetIncomeStatistics(ctx context.Context, talentID int
 
 	// 订单数
 	var orderCount int64
-	err = r.db.GetContext(ctx, &orderCount, `
+	err = r.DB.GetContext(ctx, &orderCount, `
 		SELECT COUNT(*) FROM orders
 		WHERE technician_id = $1 AND status = $2 AND completed_at BETWEEN $3 AND $4`,
 		talentID, model.OrderStatusCompleted, startTime, endTime)
@@ -264,7 +264,7 @@ func (r *TalentRepository) GetIncomeStatistics(ctx context.Context, talentID int
 
 	// 服务时长
 	var totalDuration int64
-	err = r.db.GetContext(ctx, &totalDuration, `
+	err = r.DB.GetContext(ctx, &totalDuration, `
 		SELECT COALESCE(SUM(service_duration), 0) FROM orders
 		WHERE technician_id = $1 AND status = $2 AND completed_at BETWEEN $3 AND $4`,
 		talentID, model.OrderStatusCompleted, startTime, endTime)
