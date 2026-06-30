@@ -458,6 +458,18 @@ func (s *TalentService) AdminDelete(ctx context.Context, id int64) error {
 	return nil
 }
 
+// SyncSkillsFromDB 从 talent_services 表同步 skill IDs 到 technicians.skills 字段
+func (s *TalentService) SyncSkillsFromDB(ctx context.Context, talentID int64) {
+	var ids []int64
+	err := s.talentRepo.DB.SelectContext(ctx, &ids, "SELECT service_id FROM talent_services WHERE talent_id = $1 ORDER BY sort_order, id", talentID)
+	if err != nil {
+		logger.Warn("SyncSkillsFromDB 查询失败: %v", err)
+		return
+	}
+	skillsJSON, _ := json.Marshal(ids)
+	s.talentRepo.DB.ExecContext(ctx, "UPDATE technicians SET skills = $1 WHERE id = $2", skillsJSON, talentID)
+}
+
 // syncTalentServices 同步达人服务到 talent_services 关联表
 func (s *TalentService) syncTalentServices(ctx context.Context, talentID int64, skillIDs []int64) error {
 	if talentID <= 0 {

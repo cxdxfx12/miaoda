@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { AdminLayout } from '@/components/layout/AdminLayout';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { Search, Plus, Star, MapPin, Phone, Loader2, X, Edit3, Trash2, Check, Upload, Camera, ImageIcon, AlertCircle, UserCog } from 'lucide-react';
+import { Search, Plus, Star, MapPin, Phone, Loader2, X, Edit3, Trash2, Check, Upload, Camera, ImageIcon, AlertCircle, UserCog, CheckCircle, XCircle } from 'lucide-react';
 import { talentApi } from '@/api/talents';
 import { serviceApi, ServiceCategory, ServiceItem } from '@/api/services';
 import { safePrepareUpload, UPLOAD_LIMITS } from '@/lib/utils';
@@ -83,6 +83,16 @@ export default function TechniciansPage() {
   const [services, setServices] = useState<ServiceItem[]>([]);
   const [categories, setCategories] = useState<ServiceCategory[]>([]);
   const [servicesLoading, setServicesLoading] = useState(false);
+
+  // 审核
+  const doReview = async (t: any, approve: boolean) => {
+    try {
+      await talentApi.review(t.id, approve ? 2 : 3);
+      fetchTalents();
+    } catch (e) {
+      console.error('审核失败', e);
+    }
+  };
 
   // 删除确认
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
@@ -514,6 +524,16 @@ export default function TechniciansPage() {
                 <div className="mt-3 flex gap-2">
                   <button onClick={() => openEdit(t)} className="flex-1 rounded-md border border-[#6B7FD7] px-2 py-1.5 text-xs font-medium text-[#6B7FD7] hover:bg-[#F3F4FE] transition-colors">编辑详情</button>
                   <button onClick={() => doAssign(t)} className="flex-1 rounded-md bg-gradient-to-r from-[#6B7FD7] to-[#8B9AE3] px-2 py-1.5 text-xs font-medium text-white hover:from-[#5668C2] hover:to-[#6B7FD7] transition-all">分配服务</button>
+                  {t.status === 1 && (
+                    <button onClick={() => doReview(t, true)} className="rounded-md border border-green-200 px-2 py-1.5 text-xs text-green-600 hover:bg-green-50 transition-colors" title="审核通过">
+                      <CheckCircle className="h-3 w-3" />
+                    </button>
+                  )}
+                  {t.status === 1 && (
+                    <button onClick={() => doReview(t, false)} className="rounded-md border border-orange-200 px-2 py-1.5 text-xs text-orange-500 hover:bg-orange-50 transition-colors" title="审核拒绝">
+                      <XCircle className="h-3 w-3" />
+                    </button>
+                  )}
                   <button onClick={() => toggleStatus(t)} title={t.work_status === 1 ? '切换休息' : '切换在线'} className="rounded-md border border-[#EEF1F6] px-2 py-1.5 text-xs text-gray-500 hover:bg-gray-50 transition-colors">
                     {t.work_status === 1 ? '休息' : '上线'}
                   </button>

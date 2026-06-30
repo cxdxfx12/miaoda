@@ -306,6 +306,8 @@ func (h *TalentHandler) AddMyService(c *gin.Context) {
 		response.ServerError(c, err.Error())
 		return
 	}
+	// 同步更新 technicians.skills
+	h.talentService.SyncSkillsFromDB(c.Request.Context(), talent.ID)
 	response.Success(c, gin.H{"message": "添加成功"})
 }
 
@@ -327,6 +329,8 @@ func (h *TalentHandler) RemoveMyService(c *gin.Context) {
 		response.ServerError(c, err.Error())
 		return
 	}
+	// 同步更新 technicians.skills
+	h.talentService.SyncSkillsFromDB(c.Request.Context(), talent.ID)
 	response.Success(c, gin.H{"message": "移除成功"})
 }
 
