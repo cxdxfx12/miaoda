@@ -49,6 +49,8 @@ func main() {
 		{"/uploads/", fmt.Sprintf("http://%s:%d", cfg.Services.UserHost, cfg.Services.User)},
 		// 达人端订单路由 → order-service
 		{"/api/v1/talent/orders/", fmt.Sprintf("http://%s:%d", cfg.Services.OrderHost, cfg.Services.Order)},
+		// 达人工作台路由 → talent-service
+		{"/api/v1/talent/", fmt.Sprintf("http://%s:%d", cfg.Services.TalentHost, cfg.Services.Talent)},
 		// 管理后台 - 具体子路由要放在通用 /api/v1/admin/ 之前
 		{"/api/v1/admin/orders", fmt.Sprintf("http://%s:%d", cfg.Services.OrderHost, cfg.Services.Order)},
 		{"/api/v1/admin/dispatch", fmt.Sprintf("http://%s:%d", cfg.Services.DispatchHost, cfg.Services.Dispatch)},

@@ -1192,7 +1192,7 @@ function HomePage() {
             {[
               { icon: '🎁', label: '新人有礼', desc: '首单立减', color: '#E11D48', bg: 'linear-gradient(135deg, #FFF1F2, #FFE4E6)', path: '/invite' },
               isTalent
-                ? { icon: '💼', label: '达人工作台', desc: '接单赚钱', color: '#7C5CFC', bg: 'linear-gradient(135deg, #F5F3FF, #EDE9FE)', path: '/talent-workbench' }
+                ? { icon: '💼', label: '达人中心', desc: '接单赚钱', color: '#7C5CFC', bg: 'linear-gradient(135deg, #F5F3FF, #EDE9FE)', path: '/talent-workbench' }
                 : { icon: '🛡️', label: '达人入驻', desc: '成为达人', color: '#7C5CFC', bg: 'linear-gradient(135deg, #F5F3FF, #EDE9FE)', path: '/talent-apply' },
               { icon: '🔥', label: '热门排行', desc: '大家都在看', color: '#D97706', bg: 'linear-gradient(135deg, #FFFBEB, #FEF3C7)', path: '/services?sort=hot' },
               { icon: '⚡', label: '限时优惠', desc: '低至5折', color: '#059669', bg: 'linear-gradient(135deg, #ECFDF5, #D1FAE5)', path: '/coupons' },
@@ -5773,169 +5773,683 @@ function TalentApplyPage() {
 }
 
 /* ===================================================================
-   达人工作台页 /talent-workbench
+   达人中心页 /talent-workbench
    =================================================================== */
 function TalentWorkbenchPage() {
   const nav = useNavigate();
   const [profile, setProfile] = useState<any>(null);
   const [dashboard, setDashboard] = useState<any>(null);
+  const [currentOrder, setCurrentOrder] = useState<any>(null);
+  const [pendingOrders, setPendingOrders] = useState<any[]>([]);
+  const [poolOrders, setPoolOrders] = useState<any[]>([]);
+  const [poolStats, setPoolStats] = useState<any>(null);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [allServices, setAllServices] = useState<any[]>([]);
+  const [myServices, setMyServices] = useState<any[]>([]);
+  const [incomeRecords, setIncomeRecords] = useState<any[]>([]);
+  const [reviews, setReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [workStatus, setWorkStatus] = useState(0);
+  const [activeTab, setActiveTab] = useState<'overview' | 'orders' | 'income' | 'services' | 'settings'>('overview');
+  const [withdrawModal, setWithdrawModal] = useState(false);
+  const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [poolModal, setPoolModal] = useState(false);
+  const [pendingModal, setPendingModal] = useState(false);
+  const [incomeModal, setIncomeModal] = useState(false);
+  const [reviewsModal, setReviewsModal] = useState(false);
+  const [serviceCityModal, setServiceCityModal] = useState(false);
+  const [selectedCity, setSelectedCity] = useState('');
+  const [selectedDistricts, setSelectedDistricts] = useState<string[]>([]);
+  const [expandedCats, setExpandedCats] = useState<Record<number, boolean>>({});
+  const [countdowns, setCountdowns] = useState<Record<number, number>>({});
+  const [locating, setLocating] = useState(false);
   const [toastMsg, setToastMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
+  const cities = ['北京', '上海', '杭州', '深圳', '成都', '武汉', '广州', '南京'];
+  const districtsMap: Record<string, string[]> = {
+    '杭州': ['西湖区', '拱墅区', '上城区', '滨江区', '萧山区', '余杭区', '临安区'],
+    '北京': ['朝阳区', '海淀区', '东城区', '西城区', '丰台区', '通州区'],
+    '上海': ['浦东新区', '黄浦区', '徐汇区', '长宁区', '静安区', '普陀区'],
+  };
+
   useEffect(() => {
-    if (!getToken()) {
-      nav('/login?redirect=/talent-workbench', { replace: true });
-      return;
-    }
-    (async () => {
-      try {
-        const [pRes, dRes] = await Promise.all([
-          talentApi.profile(),
-          talentApi.dashboard(),
-        ]);
-        const pData = pRes.data as any;
-        const dData = dRes.data as any;
-        setProfile(pData);
-        setDashboard(dData);
-        setWorkStatus(pData?.work_status ?? 0);
-      } catch (e: any) {
-        if (e?.response?.status === 403 || e?.code === 1003) {
-          setToastMsg({ text: '您还不是认证达人，请先申请入驻', type: 'error' });
-          setTimeout(() => nav('/talent-apply'), 1500);
-        }
-      } finally {
-        setLoading(false);
-      }
-    })();
+    if (!getToken()) { nav('/login?redirect=/talent-workbench', { replace: true }); return; }
+    loadAllData();
   }, [nav]);
+
+  // 倒计时
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCountdowns(prev => {
+        const next: Record<number, number> = {};
+        poolOrders.forEach((o: any) => { const e = Math.floor((Date.now() - (o.created_at || Date.now())) / 1000); next[o.id] = Math.max(0, 300 - e); });
+        return next;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [poolOrders]);
+
+  const loadAllData = async () => {
+    try {
+      const [pRes, dRes, poolRes, curRes, pendRes, catRes, mySvcRes, incRes, revRes] = await Promise.all([
+        talentApi.profile(),
+        talentApi.dashboard(),
+        talentApi.grabPoolList({ page: 1, page_size: 20 }).catch(() => ({ data: { list: [] } })),
+        talentApi.currentOrder().catch(() => ({ data: null })),
+        talentApi.pendingOrders().catch(() => ({ data: { list: [] } })),
+        talentApi.serviceCategories().catch(() => ({ data: [] })),
+        talentApi.myServices().catch(() => ({ data: [] })),
+        talentApi.incomeRecords({ page: 1, page_size: 10 }).catch(() => ({ data: { list: [] } })),
+        talentApi.reviews(0).catch(() => ({ data: { list: [] } })),
+      ]);
+      const pData = pRes.data as any;
+      const dData = dRes.data as any;
+      setProfile(pData);
+      setDashboard(dData);
+      setWorkStatus(pData?.work_status ?? 0);
+      setPoolOrders((poolRes.data as any)?.list || []);
+      setCurrentOrder((curRes.data as any) || null);
+      setPendingOrders((pendRes.data as any)?.list || []);
+      setCategories((catRes.data as any) || []);
+      setMyServices((mySvcRes.data as any) || []);
+      setIncomeRecords((incRes.data as any)?.list || []);
+      // 评价需要 talent id
+      if (pData?.id) {
+        talentApi.reviews(pData.id).then(r => setReviews((r.data as any)?.list || [])).catch(() => {});
+      }
+      setSelectedCity(pData?.service_city || '');
+      setSelectedDistricts(pData?.service_districts || []);
+      // 加载所有服务项目用于勾选
+      if ((catRes.data as any)?.length) {
+        const svcRes = await talentApi.serviceList({ page: 1, page_size: 100 });
+        setAllServices((svcRes.data as any)?.list || []);
+      }
+    } catch (e: any) {
+      if (e?.response?.status === 403 || e?.code === 1003) {
+        setToastMsg({ text: '您还不是认证达人，请先申请入驻', type: 'error' });
+        setTimeout(() => nav('/talent-apply'), 1500);
+      }
+    } finally { setLoading(false); }
+  };
 
   const toggleWorkStatus = async () => {
     const next = workStatus === 1 ? 0 : 1;
-    try {
-      await talentApi.updateWorkStatus(next);
-      setWorkStatus(next);
-      setToastMsg({ text: next === 1 ? '已切换为接单中' : '已切换为休息中', type: 'success' });
-    } catch {
-      setToastMsg({ text: '状态切换失败，请重试', type: 'error' });
-    }
+    try { await talentApi.updateWorkStatus(next); setWorkStatus(next); setToastMsg({ text: next === 1 ? '已上线接单' : '已下线休息', type: 'success' }); }
+    catch { setToastMsg({ text: '状态切换失败', type: 'error' }); }
   };
 
-  if (!getToken()) {
-    return (
-      <div className="page" style={{ background: '#F5F0E8', minHeight: '100vh' }}>
-        <SubPageNav title="达人工作台" />
-        <div style={{ textAlign: 'center', padding: '80px 24px' }}>
-          <div style={{ fontSize: 44, marginBottom: 12 }}>🔐</div>
-          <div style={{ fontWeight: 900, fontSize: 18, color: '#1a1a2e' }}>请先登录</div>
-        </div>
-      </div>
+  const grabOrder = async (orderId: number) => {
+    try { await talentApi.grabOrder(orderId); setPoolOrders(prev => prev.filter((o: any) => o.id !== orderId)); setToastMsg({ text: '抢单成功！请尽快出发', type: 'success' }); loadAllData(); }
+    catch (e: any) { setToastMsg({ text: e?.response?.data?.message || '抢单失败', type: 'error' }); }
+  };
+
+  const acceptOrder = async (id: number) => {
+    try { await talentApi.acceptOrder(id); setToastMsg({ text: '接单成功', type: 'success' }); loadAllData(); }
+    catch (e: any) { setToastMsg({ text: e?.response?.data?.message || '接单失败', type: 'error' }); }
+  };
+
+  const rejectOrder = async (id: number) => {
+    try { await talentApi.rejectOrder(id, '暂时无法接单'); setToastMsg({ text: '已拒绝订单', type: 'success' }); loadAllData(); }
+    catch (e: any) { setToastMsg({ text: e?.response?.data?.message || '操作失败', type: 'error' }); }
+  };
+
+  const updateOrderStatus = async (status: number) => {
+    if (!currentOrder) return;
+    const statusMap: Record<number, string> = { 3: '出发', 4: '到达', 5: '开始服务', 6: '完成服务' };
+    try { await talentApi.updateOrderStatus(currentOrder.id, status); setToastMsg({ text: `已${statusMap[status] || '更新状态'}`, type: 'success' }); loadAllData(); }
+    catch (e: any) { setToastMsg({ text: e?.response?.data?.message || '状态更新失败', type: 'error' }); }
+  };
+
+  const handleWithdraw = async () => {
+    const amount = parseFloat(withdrawAmount);
+    if (!amount || amount <= 0) { setToastMsg({ text: '请输入有效金额', type: 'error' }); return; }
+    if (amount > (profile?.balance || 0)) { setToastMsg({ text: '余额不足', type: 'error' }); return; }
+    try { await talentApi.withdraw({ amount }); setToastMsg({ text: `提现申请 ¥${amount} 已提交`, type: 'success' }); setWithdrawModal(false); setWithdrawAmount(''); loadAllData(); }
+    catch (e: any) { setToastMsg({ text: e?.response?.data?.message || '提现失败', type: 'error' }); }
+  };
+
+  const toggleMyService = async (serviceId: number, isMy: boolean) => {
+    try {
+      if (isMy) { await talentApi.removeMyService(serviceId); setMyServices(prev => prev.filter((s: any) => s.service_id !== serviceId)); }
+      else { await talentApi.addMyService(serviceId); const r = await talentApi.myServices(); setMyServices((r.data as any) || []); }
+      setToastMsg({ text: isMy ? '已取消服务项目' : '已添加服务项目', type: 'success' });
+    } catch (e: any) { setToastMsg({ text: e?.response?.data?.message || '操作失败', type: 'error' }); }
+  };
+
+  const updateLocation = () => {
+    setLocating(true);
+    if (!navigator.geolocation) { setToastMsg({ text: '浏览器不支持定位', type: 'error' }); setLocating(false); return; }
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try { await talentApi.updateLocation(pos.coords.latitude, pos.coords.longitude); setToastMsg({ text: '位置上报成功', type: 'success' }); }
+        catch { setToastMsg({ text: '位置上报失败', type: 'error' }); }
+        setLocating(false);
+      },
+      () => { setToastMsg({ text: '定位失败，请检查权限', type: 'error' }); setLocating(false); }
     );
-  }
+  };
+
+  const saveServiceCity = async () => {
+    try { await talentApi.updateProfile({ service_city: selectedCity, service_districts: selectedDistricts } as any); setToastMsg({ text: '服务城市已更新', type: 'success' }); setServiceCityModal(false); loadAllData(); }
+    catch (e: any) { setToastMsg({ text: e?.response?.data?.message || '更新失败', type: 'error' }); }
+  };
+
+  const formatCountdown = (s: number) => { const m = Math.floor(s / 60); const sec = s % 60; return `${m}:${sec.toString().padStart(2, '0')}`; };
+
+  if (!getToken()) return (
+    <div className="page" style={{ background: '#F5F0E8', minHeight: '100vh' }}>
+      <SubPageNav title="达人中心" />
+      <div style={{ textAlign: 'center', padding: '80px 24px' }}>
+        <div style={{ fontSize: 44, marginBottom: 12 }}>🔐</div>
+        <div style={{ fontWeight: 900, fontSize: 18, color: '#1a1a2e' }}>请先登录</div>
+      </div>
+    </div>
+  );
+
+  const ws = workStatus === 1 ? { label: '🟢 接单中', btn: '切换休息' } : { label: '⚪ 休息中', btn: '开始接单' };
+  const myServiceIds = new Set(myServices.map((s: any) => s.service_id));
+  const servicesByCat = categories.map((cat: any) => ({
+    ...cat,
+    services: allServices.filter((s: any) => s.category_id === cat.id),
+  }));
+
+  // ====== 底部导航标签 ======
+  const tabs = [
+    { key: 'overview', label: '工作台', icon: '🏠' },
+    { key: 'orders', label: '订单', icon: '📋' },
+    { key: 'income', label: '收入', icon: '💰' },
+    { key: 'services', label: '服务', icon: '🛠️' },
+    { key: 'settings', label: '设置', icon: '⚙️' },
+  ];
 
   return (
-    <div className="page" style={{ background: '#F5F0E8', minHeight: '100vh' }}>
-      <SubPageNav title="达人工作台" />
-      <div style={{ padding: '16px' }}>
-        {/* 达人资料卡 */}
-        <div style={{
-          background: 'linear-gradient(135deg, #7C5CFC, #A78BFA)',
-          borderRadius: 20, padding: '24px 20px', color: '#fff', marginBottom: 14,
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <img
-              src={profile?.avatar || '/logo.png'}
-              alt="avatar"
-              style={{ width: 64, height: 64, borderRadius: '50%', border: '3px solid rgba(255,255,255,0.3)', objectFit: 'cover' }}
-              onError={(e: any) => { e.target.src = '/logo.png'; }}
-            />
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 18, fontWeight: 800 }}>{profile?.real_name || profile?.nickname || '达人'}</div>
-              <div style={{ fontSize: 12, opacity: 0.85, marginTop: 4 }}>
-                {profile?.service_city || '未知城市'} · {profile?.service_districts?.join('、') || ''}
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
-                <span style={{ fontSize: 12, fontWeight: 700, background: 'rgba(255,255,255,0.2)', padding: '2px 10px', borderRadius: 10 }}>
-                  ⭐ {profile?.rating || '5.0'}
-                </span>
-                <span style={{ fontSize: 12, opacity: 0.8 }}>
-                  接单 {profile?.service_count || 0} 次
-                </span>
-              </div>
-            </div>
-          </div>
-          {/* 工作状态切换 */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 18, paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.2)' }}>
-            <div style={{ fontSize: 13, fontWeight: 600 }}>
-              当前状态：{workStatus === 1 ? '🟢 接单中' : '⚪ 休息中'}
-            </div>
-            <button onClick={toggleWorkStatus} style={{
-              padding: '6px 16px', borderRadius: 20, border: 'none',
-              background: workStatus === 1 ? '#F59E0B' : '#10B981',
-              color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer',
-            }}>{workStatus === 1 ? '切换休息' : '开始接单'}</button>
-          </div>
-        </div>
+    <div className="page" style={{ background: '#F5F0E8', minHeight: '100vh', paddingBottom: 80 }}>
+      <SubPageNav title="达人中心" />
 
-        {/* 统计数据 */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 14 }}>
-          {[
-            { label: '今日收入', value: `¥${dashboard?.today_income || 0}`, color: '#7C5CFC' },
-            { label: '本月收入', value: `¥${dashboard?.month_income || 0}`, color: '#059669' },
-            { label: '待接订单', value: dashboard?.pending_orders || 0, color: '#D97706' },
-          ].map((s, i) => (
-            <div key={i} style={{ background: '#fff', borderRadius: 16, padding: '16px 10px', textAlign: 'center', boxShadow: '0 1px 6px rgba(0,0,0,0.02)' }}>
-              <div style={{ fontSize: 18, fontWeight: 800, color: s.color }}>{s.value}</div>
-              <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 4 }}>{s.label}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* 功能入口 */}
-        <div style={{ background: '#fff', borderRadius: 16, padding: '8px 6px', marginBottom: 14, boxShadow: '0 1px 6px rgba(0,0,0,0.02)' }}>
-          {[
-            { icon: '📋', label: '我的资料', desc: '查看并修改达人信息', action: () => nav('/profile/edit') },
-            { icon: '💰', label: '收入明细', desc: '查看历史收入记录', action: () => setToastMsg({ text: '请下载达人APP查看完整收入明细', type: 'success' }) },
-            { icon: '📍', label: '更新位置', desc: '同步当前定位', action: () => setToastMsg({ text: '请下载达人APP更新实时位置', type: 'success' }) },
-            { icon: '⭐', label: '我的评价', desc: '查看用户反馈', action: () => setToastMsg({ text: '请下载达人APP查看完整评价', type: 'success' }) },
-          ].map((item, i) => (
-            <div key={i} onClick={item.action} style={{
-              display: 'flex', alignItems: 'center', padding: '14px 12px',
-              borderBottom: i < 3 ? '1px solid #F3F4F6' : 'none', cursor: 'pointer',
-            }}>
-              <div style={{ fontSize: 22, marginRight: 12 }}>{item.icon}</div>
+      {/* ========== 工作台概览 ========== */}
+      {activeTab === 'overview' && (
+        <div style={{ padding: '16px', paddingBottom: 32 }}>
+          {/* 头部达人卡片 */}
+          <div style={{ background: 'linear-gradient(135deg, #7C5CFC, #A78BFA)', borderRadius: 20, padding: '24px 20px', color: '#fff', marginBottom: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+              <img src={profile?.avatar || '/logo.png'} alt="avatar" onError={(e: any) => { e.target.src = '/logo.png'; }}
+                style={{ width: 64, height: 64, borderRadius: '50%', border: '3px solid rgba(255,255,255,0.3)', objectFit: 'cover' }} />
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#1F2937' }}>{item.label}</div>
-                <div style={{ fontSize: 11.5, color: '#9CA3AF', marginTop: 1 }}>{item.desc}</div>
+                <div style={{ fontSize: 18, fontWeight: 800 }}>{profile?.real_name || profile?.nickname || '达人'}</div>
+                <div style={{ fontSize: 12, opacity: 0.85, marginTop: 4 }}>
+                  {profile?.service_city || '未知城市'} · {profile?.service_districts?.join('、') || ''}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, background: 'rgba(255,255,255,0.2)', padding: '2px 10px', borderRadius: 10 }}>⭐ {profile?.rating || '5.0'}</span>
+                  <span style={{ fontSize: 12, opacity: 0.8 }}>接单 {profile?.service_count || 0} 次</span>
+                </div>
               </div>
-              <ChevronRight size={18} color="#D1D5DB" />
             </div>
-          ))}
-        </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 18, paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.2)' }}>
+              <div style={{ fontSize: 13, fontWeight: 600 }}>当前状态：{ws.label}</div>
+              <button onClick={toggleWorkStatus} style={{ padding: '6px 16px', borderRadius: 20, border: 'none', background: workStatus === 1 ? '#F59E0B' : '#10B981', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>{ws.btn}</button>
+            </div>
+          </div>
 
-        {/* 提示 */}
-        <div style={{ background: '#EEF2FF', borderRadius: 14, padding: '14px 16px', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-          <span style={{ fontSize: 18, flexShrink: 0 }}>💡</span>
-          <div style={{ fontSize: 12.5, color: '#4338CA', lineHeight: 1.6 }}>
-            完整版达人工作台（抢单、导航、收入提现等功能）请使用「喵搭达人端APP」。如有疑问请联系客服。
+          {/* 当前订单流程 */}
+          {currentOrder && (
+            <div style={{ background: '#fff', borderRadius: 16, padding: '18px 16px', marginBottom: 14, boxShadow: '0 1px 6px rgba(0,0,0,0.02)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                <div style={{ fontSize: 15, fontWeight: 800, color: '#1F2937' }}>当前订单</div>
+                <div style={{ fontSize: 12, color: '#7C5CFC', fontWeight: 700 }}>#{currentOrder.order_no}</div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, padding: '10px 12px', background: '#F9FAFB', borderRadius: 12 }}>
+                <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#EDE9FE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>👤</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#1F2937' }}>{currentOrder.user_name || '用户'} · {currentOrder.service_name || '服务'}</div>
+                  <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>📍 {currentOrder.address || currentOrder.user_address || '未知地址'}</div>
+                </div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: '#7C5CFC' }}>¥{currentOrder.total_amount || currentOrder.price || 0}</div>
+              </div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {[
+                  { status: 3, label: '🚗 出发', color: '#3B82F6' },
+                  { status: 4, label: '📍 到达', color: '#8B5CF6' },
+                  { status: 5, label: '💆 开始服务', color: '#F59E0B' },
+                  { status: 6, label: '✅ 完成', color: '#10B981' },
+                ].map((step) => {
+                  const orderStatus = currentOrder.status || 0;
+                  const isDone = orderStatus > step.status;
+                  const isActive = orderStatus === step.status || (step.status === 3 && orderStatus < 3);
+                  return (
+                    <button key={step.status} onClick={() => updateOrderStatus(step.status)} style={{
+                      flex: 1, minWidth: 70, padding: '10px 4px', borderRadius: 12, border: 'none',
+                      background: isDone ? step.color + '15' : isActive ? step.color : '#F3F4F6',
+                      color: isDone ? step.color : isActive ? '#fff' : '#9CA3AF',
+                      fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                    }}>{step.label}</button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* 今日数据 */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 14 }}>
+            {[
+              { label: '今日收入', value: `¥${dashboard?.today_income || 0}`, color: '#7C5CFC' },
+              { label: '完成订单', value: dashboard?.today_orders || 0, color: '#059669' },
+              { label: '抢单池', value: poolOrders.length, color: '#D97706', onClick: () => setPoolModal(true) },
+            ].map((s: any, i: number) => (
+              <div key={i} onClick={s.onClick} style={{ background: '#fff', borderRadius: 16, padding: '16px 10px', textAlign: 'center', boxShadow: '0 1px 6px rgba(0,0,0,0.02)', cursor: s.onClick ? 'pointer' : 'default' }}>
+                <div style={{ fontSize: 18, fontWeight: 800, color: s.color }}>{s.value}</div>
+                <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 4 }}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* 快捷入口 */}
+          <div style={{ background: '#fff', borderRadius: 16, padding: '8px 6px', marginBottom: 14, boxShadow: '0 1px 6px rgba(0,0,0,0.02)' }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#1F2937', padding: '12px 12px 4px' }}>达人服务</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, padding: '10px 6px' }}>
+              {[
+                { icon: '🔥', label: '抢单池', badge: poolOrders.length, action: () => setPoolModal(true) },
+                { icon: '⏳', label: '待接订单', badge: pendingOrders.length, action: () => setPendingModal(true) },
+                { icon: '🔧', label: '服务中', badge: currentOrder ? 1 : 0, action: () => currentOrder && setActiveTab('orders') },
+                { icon: '📍', label: '位置上报', action: updateLocation },
+              ].map((item, i) => (
+                <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '8px 4px', cursor: 'pointer' }}
+                  onClick={item.action || (() => {})}>
+                  <div style={{ position: 'relative', width: 48, height: 48, borderRadius: 14, background: '#F5F3FF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>
+                    {locating && item.label === '位置上报' ? '⏳' : item.icon}
+                    {item.badge ? (
+                      <div style={{ position: 'absolute', top: -4, right: -4, minWidth: 18, height: 18, borderRadius: 9, background: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <span style={{ fontSize: 10, color: '#fff', fontWeight: 700 }}>{item.badge}</span>
+                      </div>
+                    ) : null}
+                  </div>
+                  <span style={{ fontSize: 12, color: '#6B7280', fontWeight: 500 }}>{item.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 财务中心 */}
+          <div style={{ background: '#fff', borderRadius: 16, padding: '18px 16px', marginBottom: 14, boxShadow: '0 1px 6px rgba(0,0,0,0.02)' }}>
+            <div style={{ fontSize: 15, fontWeight: 800, color: '#1F2937', marginBottom: 14 }}>财务中心</div>
+            <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+              <div style={{ flex: 1, background: 'linear-gradient(135deg, #7C5CFC, #A78BFA)', borderRadius: 16, padding: '18px 14px', color: '#fff' }}>
+                <div style={{ fontSize: 12, opacity: 0.85 }}>累计收入</div>
+                <div style={{ fontSize: 22, fontWeight: 800, marginTop: 6 }}>¥{(profile?.total_income || 0).toFixed(2)}</div>
+              </div>
+              <div style={{ flex: 1, background: 'linear-gradient(135deg, #10B981, #34D399)', borderRadius: 16, padding: '18px 14px', color: '#fff' }}>
+                <div style={{ fontSize: 12, opacity: 0.85 }}>可提现余额</div>
+                <div style={{ fontSize: 22, fontWeight: 800, marginTop: 6 }}>¥{(profile?.balance || 0).toFixed(2)}</div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={() => setWithdrawModal(true)} style={{ flex: 1, height: 46, borderRadius: 14, border: 'none', background: '#1F2937', color: '#fff', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>💰 立即提现</button>
+              <button onClick={() => setIncomeModal(true)} style={{ flex: 1, height: 46, borderRadius: 14, border: '1.5px solid #E5E7EB', background: '#fff', color: '#1F2937', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>📋 收入明细</button>
+            </div>
           </div>
         </div>
+      )}
+
+      {/* ========== 订单页 ========== */}
+      {activeTab === 'orders' && (
+        <div style={{ padding: '16px' }}>
+          {/* 当前订单 */}
+          {currentOrder && (
+            <div style={{ background: '#fff', borderRadius: 16, padding: '18px 16px', marginBottom: 14 }}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: '#1F2937', marginBottom: 12 }}>当前订单</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, padding: '10px 12px', background: '#F9FAFB', borderRadius: 12 }}>
+                <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#EDE9FE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>👤</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700 }}>{currentOrder.user_name || '用户'} · {currentOrder.service_name || '服务'}</div>
+                  <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>📍 {currentOrder.address || currentOrder.user_address || '未知地址'}</div>
+                </div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: '#7C5CFC' }}>¥{currentOrder.total_amount || currentOrder.price || 0}</div>
+              </div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                {[
+                  { status: 3, label: '🚗 出发', color: '#3B82F6' },
+                  { status: 4, label: '📍 到达', color: '#8B5CF6' },
+                  { status: 5, label: '💆 开始服务', color: '#F59E0B' },
+                  { status: 6, label: '✅ 完成', color: '#10B981' },
+                ].map(step => (
+                  <button key={step.status} onClick={() => updateOrderStatus(step.status)} style={{
+                    flex: 1, padding: '10px 4px', borderRadius: 12, border: 'none',
+                    background: (currentOrder.status || 0) >= step.status ? step.color : '#F3F4F6',
+                    color: (currentOrder.status || 0) >= step.status ? '#fff' : '#9CA3AF',
+                    fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                  }}>{step.label}</button>
+                ))}
+              </div>
+            </div>
+          )}
+          {/* 待接订单 */}
+          <div style={{ background: '#fff', borderRadius: 16, padding: '18px 16px', marginBottom: 14 }}>
+            <div style={{ fontSize: 15, fontWeight: 800, color: '#1F2937', marginBottom: 12 }}>待接订单 ({pendingOrders.length})</div>
+            {pendingOrders.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '20px', color: '#9CA3AF', fontSize: 13 }}>暂无待接订单</div>
+            ) : (
+              pendingOrders.map((o: any) => (
+                <div key={o.id} style={{ display: 'flex', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid #F3F4F6' }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700 }}>{o.service_name || '服务'} · ¥{o.total_amount || o.price || 0}</div>
+                    <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>{o.user_name || '用户'} · {o.address || '未知地址'}</div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button onClick={() => acceptOrder(o.id)} style={{ padding: '6px 12px', borderRadius: 10, border: 'none', background: '#7C5CFC', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>接单</button>
+                    <button onClick={() => rejectOrder(o.id)} style={{ padding: '6px 12px', borderRadius: 10, border: '1.5px solid #E5E7EB', background: '#fff', color: '#6B7280', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>拒绝</button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ========== 收入页 ========== */}
+      {activeTab === 'income' && (
+        <div style={{ padding: '16px' }}>
+          <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+            <div style={{ flex: 1, background: 'linear-gradient(135deg, #7C5CFC, #A78BFA)', borderRadius: 16, padding: '18px 14px', color: '#fff' }}>
+              <div style={{ fontSize: 12, opacity: 0.85 }}>累计收入</div>
+              <div style={{ fontSize: 22, fontWeight: 800, marginTop: 6 }}>¥{(profile?.total_income || 0).toFixed(2)}</div>
+            </div>
+            <div style={{ flex: 1, background: 'linear-gradient(135deg, #10B981, #34D399)', borderRadius: 16, padding: '18px 14px', color: '#fff' }}>
+              <div style={{ fontSize: 12, opacity: 0.85 }}>可提现余额</div>
+              <div style={{ fontSize: 22, fontWeight: 800, marginTop: 6 }}>¥{(profile?.balance || 0).toFixed(2)}</div>
+            </div>
+          </div>
+          <button onClick={() => setWithdrawModal(true)} style={{ width: '100%', height: 46, borderRadius: 14, border: 'none', background: '#1F2937', color: '#fff', fontSize: 15, fontWeight: 700, cursor: 'pointer', marginBottom: 14 }}>💰 立即提现</button>
+          <div style={{ background: '#fff', borderRadius: 16, padding: '18px 16px' }}>
+            <div style={{ fontSize: 15, fontWeight: 800, color: '#1F2937', marginBottom: 12 }}>收入明细</div>
+            {incomeRecords.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '20px', color: '#9CA3AF', fontSize: 13 }}>暂无收入记录</div>
+            ) : (
+              incomeRecords.map((r: any, i: number) => (
+                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: i < incomeRecords.length - 1 ? '1px solid #F3F4F6' : 'none' }}>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 700 }}>{r.type === 'order' ? '订单收入' : r.type === 'withdraw' ? '提现' : '其他'}</div>
+                    <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>{r.created_at ? new Date(r.created_at).toLocaleDateString() : ''}</div>
+                  </div>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: r.amount >= 0 ? '#059669' : '#DC2626' }}>{r.amount >= 0 ? '+' : ''}¥{Math.abs(r.amount || 0).toFixed(2)}</div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ========== 服务页 ========== */}
+      {activeTab === 'services' && (
+        <div style={{ padding: '16px' }}>
+          <div style={{ background: '#fff', borderRadius: 16, padding: '18px 16px', marginBottom: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: '#1F2937' }}>服务项目</div>
+              <div style={{ fontSize: 12, color: '#9CA3AF' }}>已开通 {myServices.length} 项</div>
+            </div>
+            {servicesByCat.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '20px', color: '#9CA3AF', fontSize: 13 }}>暂无服务分类</div>
+            ) : (
+              servicesByCat.map((cat: any) => (
+                <div key={cat.id} style={{ marginBottom: 8 }}>
+                  <div onClick={() => setExpandedCats(prev => ({ ...prev, [cat.id]: !prev[cat.id] }))} style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 12px',
+                    background: '#F9FAFB', borderRadius: 12, cursor: 'pointer',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span style={{ fontSize: 20 }}>{cat.icon || '📦'}</span>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: '#1F2937' }}>{cat.name}</span>
+                      <span style={{ fontSize: 12, color: '#9CA3AF' }}>({cat.services?.length || 0})</span>
+                    </div>
+                    <span style={{ fontSize: 16, transition: 'transform 0.2s', transform: expandedCats[cat.id] ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
+                  </div>
+                  {expandedCats[cat.id] && (
+                    <div style={{ padding: '8px 4px' }}>
+                      {cat.services?.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '10px', color: '#9CA3AF', fontSize: 12 }}>该分类下暂无服务</div>
+                      ) : (
+                        cat.services.map((svc: any) => {
+                          const isMy = myServiceIds.has(svc.id);
+                          return (
+                            <div key={svc.id} style={{ display: 'flex', alignItems: 'center', padding: '10px 8px', borderBottom: '1px solid #F3F4F6' }}>
+                              <div style={{ width: 36, height: 36, borderRadius: 10, background: isMy ? '#EDE9FE' : '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>
+                                {svc.cover_image ? <img src={svc.cover_image} style={{ width: 36, height: 36, borderRadius: 10, objectFit: 'cover' }} /> : '✨'}
+                              </div>
+                              <div style={{ flex: 1, marginLeft: 10 }}>
+                                <div style={{ fontSize: 13, fontWeight: 700, color: isMy ? '#1F2937' : '#9CA3AF' }}>{svc.name}</div>
+                                <div style={{ fontSize: 11, color: '#7C5CFC', marginTop: 1 }}>¥{svc.base_price} 起</div>
+                              </div>
+                              <button onClick={() => toggleMyService(svc.id, isMy)} style={{
+                                padding: '5px 12px', borderRadius: 10, border: 'none',
+                                background: isMy ? '#7C5CFC' : '#E5E7EB',
+                                color: isMy ? '#fff' : '#6B7280', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                              }}>{isMy ? '已开通' : '开通'}</button>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ========== 设置页 ========== */}
+      {activeTab === 'settings' && (
+        <div style={{ padding: '16px' }}>
+          <div style={{ background: '#fff', borderRadius: 16, padding: '8px 6px', marginBottom: 14 }}>
+            {[
+              { icon: '📋', label: '我的资料', desc: '查看并修改达人信息', action: () => nav('/profile/edit') },
+              { icon: '📍', label: '服务城市', desc: profile?.service_city || '未设置', action: () => setServiceCityModal(true) },
+              { icon: '⭐', label: '我的评价', desc: `${reviews.length} 条评价`, action: () => setReviewsModal(true) },
+            ].map((item: any, i: number) => (
+              <div key={i} onClick={item.action} style={{ display: 'flex', alignItems: 'center', padding: '14px 12px', borderBottom: i < 2 ? '1px solid #F3F4F6' : 'none', cursor: 'pointer' }}>
+                <div style={{ fontSize: 22, marginRight: 12 }}>{item.icon}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#1F2937' }}>{item.label}</div>
+                  <div style={{ fontSize: 11.5, color: '#9CA3AF', marginTop: 1 }}>{item.desc}</div>
+                </div>
+                <ChevronRight size={18} color="#D1D5DB" />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ========== 底部导航 ========== */}
+      <div style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0, background: '#fff',
+        borderTop: '1px solid #F3F4F6', display: 'flex', justifyContent: 'space-around', padding: '6px 0 12px',
+        zIndex: 100,
+      }}>
+        {tabs.map((t: any) => (
+          <button key={t.key} onClick={() => setActiveTab(t.key)} style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+            border: 'none', background: 'none', cursor: 'pointer', padding: '4px 12px',
+          }}>
+            <span style={{ fontSize: 20 }}>{t.icon}</span>
+            <span style={{ fontSize: 11, fontWeight: 600, color: activeTab === t.key ? '#7C5CFC' : '#9CA3AF' }}>{t.label}</span>
+          </button>
+        ))}
       </div>
 
-      {/* Toast */}
+      {/* ========== 抢单池弹窗 ========== */}
+      {poolModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9998, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} onClick={() => setPoolModal(false)}>
+          <div style={{ background: '#fff', borderRadius: '24px 24px 0 0', padding: '24px 20px 32px', width: '100%', maxWidth: 480, maxHeight: '80vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+              <div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: '#1F2937' }}>🔥 抢单池</div>
+                <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4 }}>{poolOrders.length} 个订单可抢 · 5分钟未接自动返回</div>
+              </div>
+              <button onClick={() => setPoolModal(false)} style={{ border: 'none', background: 'none', fontSize: 20, cursor: 'pointer' }}>✕</button>
+            </div>
+            {poolOrders.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+                <div style={{ fontSize: 48, marginBottom: 12 }}>📭</div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: '#9CA3AF' }}>暂无待抢订单</div>
+              </div>
+            ) : (
+              poolOrders.map((order: any) => {
+                const cd = countdowns[order.id] ?? 300;
+                const isUrgent = cd < 60;
+                return (
+                  <div key={order.id} style={{ background: '#F9FAFB', borderRadius: 16, padding: '16px 14px', marginBottom: 12, border: isUrgent ? '1.5px solid #EF4444' : '1.5px solid transparent' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: '#1F2937' }}>{order.service_name || '服务'}</span>
+                        <span style={{ fontSize: 12, color: '#7C5CFC', fontWeight: 700 }}>¥{order.total_amount || order.price || 0}</span>
+                      </div>
+                      <div style={{ fontSize: 12, fontWeight: 700, padding: '3px 10px', borderRadius: 10, background: isUrgent ? '#FEE2E2' : '#FEF3C7', color: isUrgent ? '#DC2626' : '#D97706' }}>⏱ {formatCountdown(cd)}</div>
+                    </div>
+                    <div style={{ fontSize: 13, color: '#6B7280', marginBottom: 4 }}>👤 {order.user_name || '用户'} · 📍 {order.address || '未知地址'}</div>
+                    <div style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 12 }}>🚗 距您 {order.distance || '未知'} · #{order.order_no || order.id}</div>
+                    <button onClick={() => grabOrder(order.id)} style={{ width: '100%', height: 42, borderRadius: 12, border: 'none', background: isUrgent ? '#EF4444' : '#7C5CFC', color: '#fff', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>立即抢单</button>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ========== 待接订单弹窗 ========== */}
+      {pendingModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9998, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} onClick={() => setPendingModal(false)}>
+          <div style={{ background: '#fff', borderRadius: '24px 24px 0 0', padding: '24px 20px 32px', width: '100%', maxWidth: 480, maxHeight: '80vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+              <div style={{ fontSize: 18, fontWeight: 800, color: '#1F2937' }}>⏳ 待接订单</div>
+              <button onClick={() => setPendingModal(false)} style={{ border: 'none', background: 'none', fontSize: 20, cursor: 'pointer' }}>✕</button>
+            </div>
+            {pendingOrders.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+                <div style={{ fontSize: 48, marginBottom: 12 }}>📭</div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: '#9CA3AF' }}>暂无待接订单</div>
+              </div>
+            ) : (
+              pendingOrders.map((o: any) => (
+                <div key={o.id} style={{ background: '#F9FAFB', borderRadius: 16, padding: '16px 14px', marginBottom: 12 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <span style={{ fontSize: 14, fontWeight: 700 }}>{o.service_name || '服务'}</span>
+                    <span style={{ fontSize: 14, fontWeight: 800, color: '#7C5CFC' }}>¥{o.total_amount || o.price || 0}</span>
+                  </div>
+                  <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 12 }}>👤 {o.user_name || '用户'} · 📍 {o.address || '未知地址'}</div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button onClick={() => acceptOrder(o.id)} style={{ flex: 1, height: 40, borderRadius: 12, border: 'none', background: '#7C5CFC', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>接单</button>
+                    <button onClick={() => rejectOrder(o.id)} style={{ flex: 1, height: 40, borderRadius: 12, border: '1.5px solid #E5E7EB', background: '#fff', color: '#6B7280', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>拒绝</button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ========== 提现弹窗 ========== */}
+      {withdrawModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9998, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} onClick={() => setWithdrawModal(false)}>
+          <div style={{ background: '#fff', borderRadius: '24px 24px 0 0', padding: '24px 20px 32px', width: '100%', maxWidth: 480 }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+              <div style={{ fontSize: 18, fontWeight: 800, color: '#1F2937' }}>申请提现</div>
+              <button onClick={() => setWithdrawModal(false)} style={{ border: 'none', background: 'none', fontSize: 20, cursor: 'pointer' }}>✕</button>
+            </div>
+            <div style={{ background: '#F9FAFB', borderRadius: 16, padding: '18px 16px', marginBottom: 20 }}>
+              <div style={{ fontSize: 12, color: '#9CA3AF' }}>可提现余额</div>
+              <div style={{ fontSize: 28, fontWeight: 800, color: '#1F2937', marginTop: 4 }}>¥{(profile?.balance || 0).toFixed(2)}</div>
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#4B5563', marginBottom: 8 }}>提现金额</div>
+              <div style={{ display: 'flex', alignItems: 'center', background: '#F9FAFB', borderRadius: 14, padding: '12px 16px' }}>
+                <span style={{ fontSize: 20, fontWeight: 700, color: '#1F2937' }}>¥</span>
+                <input type="number" value={withdrawAmount} onChange={e => setWithdrawAmount(e.target.value)} placeholder="请输入提现金额" style={{ border: 'none', background: 'none', fontSize: 18, fontWeight: 700, color: '#1F2937', flex: 1, marginLeft: 8, outline: 'none' }} />
+              </div>
+            </div>
+            <button onClick={handleWithdraw} style={{ width: '100%', height: 50, borderRadius: 16, border: 'none', background: '#1F2937', color: '#fff', fontSize: 16, fontWeight: 700, cursor: 'pointer' }}>确认提现</button>
+          </div>
+        </div>
+      )}
+
+      {/* ========== 服务城市弹窗 ========== */}
+      {serviceCityModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9998, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} onClick={() => setServiceCityModal(false)}>
+          <div style={{ background: '#fff', borderRadius: '24px 24px 0 0', padding: '24px 20px 32px', width: '100%', maxWidth: 480, maxHeight: '80vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+              <div style={{ fontSize: 18, fontWeight: 800, color: '#1F2937' }}>📍 选择服务城市</div>
+              <button onClick={() => setServiceCityModal(false)} style={{ border: 'none', background: 'none', fontSize: 20, cursor: 'pointer' }}>✕</button>
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#4B5563', marginBottom: 10 }}>服务城市</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {cities.map(city => (
+                  <button key={city} onClick={() => { setSelectedCity(city); setSelectedDistricts([]); }} style={{
+                    padding: '8px 16px', borderRadius: 20, border: '1.5px solid', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                    borderColor: selectedCity === city ? '#7C5CFC' : '#E5E7EB',
+                    background: selectedCity === city ? '#7C5CFC' : '#fff',
+                    color: selectedCity === city ? '#fff' : '#4B5563',
+                  }}>{city}</button>
+                ))}
+              </div>
+            </div>
+            {selectedCity && districtsMap[selectedCity] && (
+              <div style={{ marginBottom: 20 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: '#4B5563', marginBottom: 10 }}>服务区域（可多选）</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {districtsMap[selectedCity].map((d: string) => (
+                    <button key={d} onClick={() => setSelectedDistricts(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d])} style={{
+                      padding: '6px 14px', borderRadius: 16, border: '1.5px solid', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                      borderColor: selectedDistricts.includes(d) ? '#7C5CFC' : '#E5E7EB',
+                      background: selectedDistricts.includes(d) ? '#EDE9FE' : '#fff',
+                      color: selectedDistricts.includes(d) ? '#7C5CFC' : '#6B7280',
+                    }}>{d}</button>
+                  ))}
+                </div>
+              </div>
+            )}
+            <button onClick={saveServiceCity} style={{ width: '100%', height: 50, borderRadius: 16, border: 'none', background: '#1F2937', color: '#fff', fontSize: 16, fontWeight: 700, cursor: 'pointer' }}>保存设置</button>
+          </div>
+        </div>
+      )}
+
+      {/* ========== 评价弹窗 ========== */}
+      {reviewsModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9998, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} onClick={() => setReviewsModal(false)}>
+          <div style={{ background: '#fff', borderRadius: '24px 24px 0 0', padding: '24px 20px 32px', width: '100%', maxWidth: 480, maxHeight: '80vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+              <div style={{ fontSize: 18, fontWeight: 800, color: '#1F2937' }}>⭐ 我的评价</div>
+              <button onClick={() => setReviewsModal(false)} style={{ border: 'none', background: 'none', fontSize: 20, cursor: 'pointer' }}>✕</button>
+            </div>
+            {reviews.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+                <div style={{ fontSize: 48, marginBottom: 12 }}>📝</div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: '#9CA3AF' }}>暂无评价</div>
+              </div>
+            ) : (
+              reviews.map((r: any, i: number) => (
+                <div key={i} style={{ padding: '14px 0', borderBottom: i < reviews.length - 1 ? '1px solid #F3F4F6' : 'none' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700 }}>{r.user_name || '用户'}</div>
+                    <div style={{ fontSize: 12, color: '#F59E0B' }}>{'⭐'.repeat(r.rating || 5)}</div>
+                  </div>
+                  <div style={{ fontSize: 13, color: '#4B5563', lineHeight: 1.5 }}>{r.content || '服务态度很好，非常专业！'}</div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ========== Toast ========== */}
       {toastMsg && (
-        <div style={{
-          position: 'fixed', bottom: 100, left: '50%', transform: 'translateX(-50%)',
-          background: toastMsg.type === 'success' ? '#10B981' : '#EF4444',
-          color: '#fff', padding: '10px 20px', borderRadius: 10, fontSize: 13, fontWeight: 600,
-          zIndex: 9999, boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-        }}>
+        <div style={{ position: 'fixed', bottom: 100, left: '50%', transform: 'translateX(-50%)', background: toastMsg.type === 'success' ? '#10B981' : '#EF4444', color: '#fff', padding: '10px 20px', borderRadius: 10, fontSize: 13, fontWeight: 600, zIndex: 9999, boxShadow: '0 4px 16px rgba(0,0,0,0.15)' }}>
           {toastMsg.text}
         </div>
       )}
     </div>
   );
 }
+
 
 /* ===================================================================
    路由 & 应用入口

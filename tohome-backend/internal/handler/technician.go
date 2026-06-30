@@ -9,6 +9,7 @@ import (
 
 	"github.com/miaoda/backend/internal/repository"
 	"github.com/miaoda/backend/internal/service"
+	"github.com/miaoda/backend/pkg/logger"
 	"github.com/miaoda/backend/pkg/response"
 	"github.com/miaoda/backend/pkg/upload"
 )
@@ -101,10 +102,14 @@ func (h *TalentHandler) UpdateWorkStatus(c *gin.Context) {
 	uid := getUserID(c)
 
 	var req struct {
-		Status int `json:"status" binding:"required"`
+		Status int `json:"status"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.ParamError(c, "参数错误")
+		return
+	}
+	if req.Status != 0 && req.Status != 1 {
+		response.ParamError(c, "状态值必须为0或1")
 		return
 	}
 
@@ -273,6 +278,7 @@ func (h *TalentHandler) ListMyServices(c *gin.Context) {
 	svc := service.NewTalentCenterService()
 	items, err := svc.ListMyServices(c.Request.Context(), talent.ID)
 	if err != nil {
+		logger.Error("ListMyServices failed: talent_id=%d, err=%v", talent.ID, err)
 		response.ServerError(c, "获取服务列表失败")
 		return
 	}

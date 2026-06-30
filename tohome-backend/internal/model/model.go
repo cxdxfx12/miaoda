@@ -32,20 +32,20 @@ const (
 type User struct {
 	BaseModel
 	Phone         string     `db:"phone" json:"phone"`
-	PasswordHash  string     `db:"password_hash" json:"-"`
+	PasswordHash  *string    `db:"password_hash" json:"-"`
 	Nickname      string     `db:"nickname" json:"nickname"`
-	Avatar        string     `db:"avatar" json:"avatar"`
+	Avatar        *string    `db:"avatar" json:"avatar"`
 	Gender        int        `db:"gender" json:"gender"`
 	Birthday      *time.Time `db:"birthday" json:"birthday"`
-	Email         string     `db:"email" json:"email"`
-	OpenID        string     `db:"openid" json:"-"`
-	UnionID       string     `db:"unionid" json:"-"`
+	Email         *string    `db:"email" json:"email"`
+	OpenID        *string    `db:"openid" json:"-"`
+	UnionID       *string    `db:"unionid" json:"-"`
 	MemberLevel   int        `db:"member_level" json:"member_level"`
 	MemberPoints  int        `db:"member_points" json:"member_points"`
 	MemberExpireAt *time.Time `db:"member_expire_at" json:"member_expire_at"`
 	Status        int        `db:"status" json:"status"`
 	LastLoginAt   *time.Time `db:"last_login_at" json:"last_login_at"`
-	LastLoginIP   string     `db:"last_login_ip" json:"last_login_ip"`
+	LastLoginIP   *string    `db:"last_login_ip" json:"last_login_ip"`
 }
 
 // TableName 表名

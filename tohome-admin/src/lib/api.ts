@@ -38,7 +38,7 @@ class ApiClient {
           if (bizCode === 1002) {
             if (typeof window !== 'undefined') {
               localStorage.removeItem('admin_token');
-              window.location.href = '/login';
+              window.location.href = '/pc_admin/login';
             }
           }
           return Promise.reject(new Error(bizMsg));
@@ -49,7 +49,7 @@ class ApiClient {
         // 401 → 跳转登录
         if (error.response?.status === 401) {
           if (typeof window !== 'undefined') {
-            window.location.href = '/login';
+            window.location.href = '/pc_admin/login';
           }
           return Promise.reject(error);
         }

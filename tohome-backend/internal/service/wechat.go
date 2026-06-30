@@ -233,10 +233,10 @@ func (s *WechatService) findOrCreateUser(ctx context.Context, wxInfo *WechatUser
 	user, err := s.userRepo.GetByOpenID(ctx, wxInfo.OpenID)
 	if err == nil && user != nil {
 		// 老用户：更新头像昵称和unionid
-		if user.Nickname == "" || user.Avatar == "" || user.UnionID == "" {
+		if user.Nickname == "" || user.Avatar == nil || *user.Avatar == "" || user.UnionID == nil || *user.UnionID == "" {
 			user.Nickname = wxInfo.Nickname
-			user.Avatar = wxInfo.HeadImgURL
-			user.UnionID = wxInfo.UnionID
+			user.Avatar = &wxInfo.HeadImgURL
+			user.UnionID = &wxInfo.UnionID
 			go s.userRepo.BindWechat(context.Background(), user.ID, wxInfo.OpenID, wxInfo.UnionID)
 		}
 		return user, false, nil
@@ -247,10 +247,10 @@ func (s *WechatService) findOrCreateUser(ctx context.Context, wxInfo *WechatUser
 	user = &model.User{
 		Phone:    phone,
 		Nickname: wxInfo.Nickname,
-		Avatar:   wxInfo.HeadImgURL,
+		Avatar:   &wxInfo.HeadImgURL,
 		Gender:   wxInfo.Sex,
-		OpenID:   wxInfo.OpenID,
-		UnionID:  wxInfo.UnionID,
+		OpenID:   &wxInfo.OpenID,
+		UnionID:  &wxInfo.UnionID,
 		Status:   model.UserStatusNormal,
 	}
 

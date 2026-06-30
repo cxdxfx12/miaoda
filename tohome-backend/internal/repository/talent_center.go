@@ -24,13 +24,14 @@ type TalentServiceItem struct {
 	ServiceIcon  *string  `db:"service_icon" json:"service_icon"`
 	Price        float64  `db:"price" json:"price"`
 	CreatedAt    string   `db:"created_at" json:"created_at"`
+	UpdatedAt    string   `db:"updated_at" json:"updated_at"`
 }
 
 func (r *TalentCenterRepo) ListTalentServices(ctx context.Context, talentID int64) ([]TalentServiceItem, error) {
 	db := database.Database()
 	rows := []TalentServiceItem{}
 	err := db.SelectContext(ctx, &rows, `
-		SELECT ts.*, s.name AS service_name, s.icon AS service_icon, s.price
+		SELECT ts.*, COALESCE(s.name, '') AS service_name, s.cover_image AS service_icon, COALESCE(s.base_price, 0) AS price
 		FROM talent_services ts
 		LEFT JOIN services s ON s.id = ts.service_id
 		WHERE ts.talent_id = $1

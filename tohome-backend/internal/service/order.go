@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/google/uuid"
@@ -501,6 +502,46 @@ func (s *OrderService) UpdateOrderFlowStatus(ctx context.Context, orderID, talen
 	if !allowedCols[timeCol] {
 		return fmt.Errorf("非法的列名")
 	}
+
+	// 订单完成时进行达人分成结算
+	if targetStatus == model.OrderStatusCompleted {
+		// 查询达人当前余额和累计收入
+		var talent struct {
+			Balance     float64 `db:"balance"`
+			TotalIncome float64 `db:"total_income"`
+		}
+		if err := db.GetContext(ctx, &talent, `SELECT balance, total_income FROM technicians WHERE id = $1`, talentID); err == nil {
+			// 服务金额 = 最终金额 - 车费（extra_amount 为车费）
+			serviceAmount := order.FinalAmount - order.ExtraAmount
+			if serviceAmount < 0 {
+				serviceAmount = 0
+			}
+			// 获取分成比例
+			commissionRate := getCommissionRate(ctx, talent.TotalIncome)
+			// 达人服务分成 = 服务金额 × 分成比例
+			talentServiceIncome := math.Round(serviceAmount*commissionRate/100*100) / 100
+			// 平台抽成 = 服务金额 - 达人服务分成
+			platformFee := math.Round((serviceAmount-talentServiceIncome)*100) / 100
+			// 车费全额给达人，不参与分成
+			travelFee := order.ExtraAmount
+			// 达人总收入 = 服务分成 + 车费
+			totalTalentIncome := talentServiceIncome + travelFee
+
+			// 更新订单的分成信息
+			_, _ = db.ExecContext(ctx, `
+				UPDATE orders SET platform_fee = $1, technician_income = $2 WHERE id = $3`,
+				platformFee, totalTalentIncome, orderID)
+
+			// 更新达人余额和累计收入
+			_, _ = db.ExecContext(ctx, `
+				UPDATE technicians SET balance = balance + $1, total_income = total_income + $1 WHERE id = $2`,
+				totalTalentIncome, talentID)
+
+			logger.Info("[FIXED60]订单完成结算: order_id=%d talent_id=%d service_amount=%.2f rate=%.0f%% talent_service_income=%.2f travel_fee=%.2f total_talent_income=%.2f platform_fee=%.2f",
+			orderID, talentID, serviceAmount, commissionRate, talentServiceIncome, travelFee, totalTalentIncome, platformFee)
+		}
+	}
+
 	_, err := db.ExecContext(ctx, fmt.Sprintf(`UPDATE orders SET status = $1, %s = $2 WHERE id = $3`, timeCol), targetStatus, now, orderID)
 	return err
 }
@@ -642,3 +683,5 @@ func generateOrderNo() string {
 		"01",
 	)
 }
+
+

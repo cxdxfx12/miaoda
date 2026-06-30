@@ -3,6 +3,7 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -85,18 +86,24 @@ func (s *UserService) Login(ctx context.Context, req *LoginRequest, ip string) (
 	user, err := s.userRepo.GetByPhone(ctx, req.Phone)
 	isNewUser := false
 	if err != nil {
-		// 用户不存在则自动注册
-		user = &model.User{
-			Phone:    req.Phone,
-			Nickname: generateNickname(),
-			Avatar:   "https://api.dicebear.com/7.x/avataaars/svg?seed=" + req.Phone,
-			Status:   model.UserStatusNormal,
+		if errors.Is(err, sql.ErrNoRows) {
+			// 用户不存在则自动注册
+			avatar := "https://api.dicebear.com/7.x/avataaars/svg?seed=" + req.Phone
+			user = &model.User{
+				Phone:    req.Phone,
+				Nickname: generateNickname(),
+				Avatar:   &avatar,
+				Status:   model.UserStatusNormal,
+			}
+			if err := s.userRepo.Create(ctx, user); err != nil {
+				logger.Error("创建用户失败: %v", err)
+				return nil, fmt.Errorf("创建用户失败: %w", err)
+			}
+			isNewUser = true
+		} else {
+			logger.Error("查询用户失败: %v", err)
+			return nil, fmt.Errorf("查询用户失败: %w", err)
 		}
-		if err := s.userRepo.Create(ctx, user); err != nil {
-			logger.Error("创建用户失败: %v", err)
-			return nil, fmt.Errorf("创建用户失败: %w", err)
-		}
-		isNewUser = true
 	}
 	_, _ = EnsureInviteCode(ctx, user.ID)
 	if isNewUser {
@@ -164,7 +171,12 @@ func (s *UserService) TalentLogin(ctx context.Context, req *LoginRequest, ip str
 	}
 
 	talent, err := s.talentRepo.GetByUserID(ctx, user.ID)
-	if err != nil || talent == nil || talent.Status != model.TalentStatusNormal {
+	if err != nil {
+		logger.Error("TalentLogin GetByUserID失败: user_id=%d err=%v", user.ID, err)
+		return nil, ErrTalentNotApproved
+	}
+	if talent == nil || talent.Status != model.TalentStatusNormal {
+		logger.Error("TalentLogin 达人状态异常: user_id=%d talent_id=%d status=%d", user.ID, talent.ID, talent.Status)
 		return nil, ErrTalentNotApproved
 	}
 
@@ -317,7 +329,10 @@ func (s *UserService) UpdatePassword(ctx context.Context, userID int64, oldPassw
 	}
 
 	// 验证旧密码
-	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(oldPassword)); err != nil {
+	if user.PasswordHash == nil || *user.PasswordHash == "" {
+		return ErrInvalidPassword
+	}
+	if err := bcrypt.CompareHashAndPassword([]byte(*user.PasswordHash), []byte(oldPassword)); err != nil {
 		return ErrInvalidPassword
 	}
 
@@ -515,17 +530,17 @@ func (s *UserService) AdminCreateUser(ctx context.Context, req *AdminCreateUserR
 		return nil, fmt.Errorf("密码加密失败: %w", err)
 	}
 
+	hp := string(hashedPwd)
 	user := &model.User{
 		Phone:        req.Phone,
-		PasswordHash: string(hashedPwd),
+		PasswordHash: &hp,
 		Nickname:     req.Nickname,
-		Avatar:       req.Avatar,
 		Gender:       req.Gender,
 		MemberLevel:  req.MemberLevel,
 		Status:       model.UserStatusNormal,
 	}
-	if req.Avatar == "" {
-		user.Avatar = "https://api.dicebear.com/7.x/avataaars/svg?seed=" + req.Phone
+	if req.Avatar != "" {
+		user.Avatar = &req.Avatar
 	}
 
 	if err := s.userRepo.Create(ctx, user); err != nil {
@@ -557,7 +572,9 @@ func (s *UserService) AdminUpdateUser(ctx context.Context, userID int64, req *Ad
 	user.Nickname = req.Nickname
 	user.Phone = req.Phone
 	user.Gender = req.Gender
-	user.Avatar = req.Avatar
+	if req.Avatar != "" {
+		user.Avatar = &req.Avatar
+	}
 	user.MemberLevel = req.MemberLevel
 
 	if req.Password != "" {
@@ -565,7 +582,8 @@ func (s *UserService) AdminUpdateUser(ctx context.Context, userID int64, req *Ad
 		if err != nil {
 			return fmt.Errorf("密码加密失败: %w", err)
 		}
-		user.PasswordHash = string(hashedPwd)
+		hp := string(hashedPwd)
+		user.PasswordHash = &hp
 	}
 
 	if req.Status != nil {

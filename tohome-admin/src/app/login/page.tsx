@@ -44,7 +44,7 @@ export default function LoginPage() {
       };
       login(adminInfo, d.token);
       toast.success('登录成功');
-      router.push('/dashboard');
+      window.location.href = '/pc_admin/dashboard';
     } catch (err: any) {
       const msg = err?.message || err?.response?.data?.message || '账号或密码错误';
       setError(msg);

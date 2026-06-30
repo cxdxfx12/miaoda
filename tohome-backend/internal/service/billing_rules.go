@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"math"
 	"strconv"
 	"strings"
@@ -133,6 +134,50 @@ func normalizeCity(city string) string {
 	city = strings.TrimSpace(city)
 	city = strings.TrimSuffix(city, "市")
 	return city
+}
+
+// getCommissionRate 获取达人分成比例
+// 未达到第一提升档（默认5000元）之前固定60%，达到后按阶梯分成
+func getCommissionRate(ctx context.Context, totalIncome float64) float64 {
+	tiers := []struct {
+		threshold float64
+		rate      float64
+	}{
+		{0, 60},
+		{5000, 65},
+		{10000, 70},
+		{20000, 85},
+	}
+	// 读取配置覆盖默认值
+	for i := range tiers {
+		thrKey := fmt.Sprintf("tier_%d_threshold", i+1)
+		rateKey := fmt.Sprintf("tier_%d_rate", i+1)
+		if thrStr := getConfigValue(ctx, "commission", thrKey, ""); thrStr != "" {
+			if v, err := strconv.ParseFloat(thrStr, 64); err == nil {
+				tiers[i].threshold = v
+			}
+		}
+		if rateStr := getConfigValue(ctx, "commission", rateKey, ""); rateStr != "" {
+			if v, err := strconv.ParseFloat(rateStr, 64); err == nil {
+				tiers[i].rate = v
+			}
+		}
+	}
+
+	// 第二档门槛（第一提升档），默认5000
+	firstTierThreshold := tiers[1].threshold
+	if totalIncome < firstTierThreshold {
+		return 60 // 未达到提升档，固定60%
+	}
+
+	// 达到提升档后，按阶梯计算
+	var rate float64 = tiers[0].rate
+	for _, t := range tiers {
+		if totalIncome >= t.threshold {
+			rate = t.rate
+		}
+	}
+	return rate
 }
 
 func computeTravelFeeForOrder(ctx context.Context, technicianID *int64, address json.RawMessage) float64 {

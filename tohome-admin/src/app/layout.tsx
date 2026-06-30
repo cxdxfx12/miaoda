@@ -9,6 +9,9 @@ export const metadata: Metadata = {
   },
 };
 
+// 强制所有页面动态渲染，不使用缓存
+export const dynamic = 'force-dynamic';
+
 export default function RootLayout({
   children,
 }: {

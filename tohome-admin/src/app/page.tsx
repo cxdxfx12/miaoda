@@ -1,16 +1,14 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { useAdminStore } from '@/store/adminStore';
 
 export default function HomePage() {
-  const router = useRouter();
   const isAuthenticated = useAdminStore((s) => s.isAuthenticated);
 
   useEffect(() => {
-    router.replace(isAuthenticated ? '/dashboard' : '/login');
-  }, [isAuthenticated, router]);
+    window.location.href = isAuthenticated ? '/pc_admin/dashboard' : '/pc_admin/login';
+  }, [isAuthenticated]);
 
   return (
     <div className="flex h-screen items-center justify-center bg-[#F5F7FA]">
