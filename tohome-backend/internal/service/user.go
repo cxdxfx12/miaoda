@@ -280,12 +280,42 @@ func (s *UserService) SendSmsCode(ctx context.Context, phone string) error {
 
 	// 调用短信宝 API 发送短信
 	smsCfg := config.GetString("third_party.sms.provider")
+	provider := smsCfg
+	if provider == "" {
+		provider = "smsbao"
+	}
+	smsStatus := 0 // 发送中
+	smsResult := ""
+
 	if smsCfg == "smsbao" {
 		if err := sendSmsBaoCode(phone, code); err != nil {
 			logger.Error("短信宝发送失败: %v", err)
+			smsStatus = 2
+			smsResult = err.Error()
 			// 发送失败不影响验证码存储（开发环境可继续用万能验证码）
+		} else {
+			smsStatus = 1
+			smsResult = "success"
 		}
+	} else {
+		smsStatus = 1
+		smsResult = "dev_mode"
 	}
+
+	// 记录短信日志到 sms_logs 表
+	go func() {
+		db := database.Database()
+		if db == nil {
+			return
+		}
+		content := fmt.Sprintf("验证码: %s", code)
+		_, dbErr := db.ExecContext(context.Background(),
+			`INSERT INTO sms_logs (phone, code, type, content, provider, status, result) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+			phone, code, "login", content, provider, smsStatus, smsResult)
+		if dbErr != nil {
+			logger.Warn("记录短信日志失败: %v", dbErr)
+		}
+	}()
 
 	return nil
 }

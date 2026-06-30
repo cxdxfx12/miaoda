@@ -101,6 +101,7 @@ export default function SettingsPage() {
         group === 'travel_fee' ? settingsApi.getTravelFee() :
         group === 'wecom' ? settingsApi.getWeCom() :
         group === 'security' ? settingsApi.getSecurity() :
+        group === 'sms' ? settingsApi.getSms() :
         settingsApi.getBasic();
       const res: any = await endpoint;
       const items: ConfigItem[] = (res?.data || res || []);
@@ -177,6 +178,12 @@ export default function SettingsPage() {
         map.notify_refund_success = map.notify_refund_success || '1';
         map.notify_dispatch_exception = map.notify_dispatch_exception || '1';
       }
+      if (group === 'sms') {
+        map.sms_provider = map.sms_provider || 'smsbao';
+        map.smsbao_username = map.smsbao_username || '';
+        map.smsbao_api_key = map.smsbao_api_key || '';
+        map.smsbao_sign_name = map.smsbao_sign_name || '喵搭';
+      }
       setConfigData(map);
     } catch { /* backend unavailable, using defaults */ }
     finally { setLoading(false); }
@@ -192,6 +199,7 @@ export default function SettingsPage() {
         group === 'commission' ? (settingsApi.saveCommission as any) :
         group === 'travel_fee' ? (settingsApi.saveTravelFee as any) :
         group === 'wecom' ? (settingsApi.saveWeCom as any) :
+        group === 'sms' ? (settingsApi.saveSms as any) :
         (settingsApi.saveSecurity as any);
       await endpoint(configData);
       if (group === 'basic') {
@@ -405,10 +413,10 @@ export default function SettingsPage() {
       { label: '最大登录失败次数', key: 'max_login_fail' },
     ],
     sms: [
-      { label: '短信服务提供商', key: 'sms_provider' },
-      { label: 'AccessKey', key: 'sms_access_key' },
-      { label: '短信签名', key: 'sms_sign' },
-      { label: '推送AppKey', key: 'push_app_key' },
+      { label: '短信服务商', key: 'sms_provider' },
+      { label: '短信宝用户名', key: 'smsbao_username' },
+      { label: '短信宝API Key', key: 'smsbao_api_key' },
+      { label: '短信签名', key: 'smsbao_sign_name' },
     ],
   };
 

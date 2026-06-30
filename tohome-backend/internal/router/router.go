@@ -357,6 +357,8 @@ func RegisterAdminRoutes(r *gin.Engine, h *handler.AdminHandler, grabH *handler.
 			settingsAdmin.GET("/wecom", h.AdminGetConfigSetting("wecom"))
 			settingsAdmin.POST("/wecom", h.AdminUpdateConfigSetting("wecom"))
 			settingsAdmin.POST("/wecom/test", h.AdminTestWeComNotification)
+			settingsAdmin.GET("/sms", h.AdminGetConfigSetting("sms"))
+			settingsAdmin.POST("/sms", h.AdminUpdateConfigSetting("sms"))
 			settingsAdmin.GET("/backups", h.AdminListBackups)
 			settingsAdmin.POST("/backups", h.AdminBackup)
 			settingsAdmin.GET("/backups/:filename/download", h.AdminDownloadBackup)
@@ -364,6 +366,10 @@ func RegisterAdminRoutes(r *gin.Engine, h *handler.AdminHandler, grabH *handler.
 			settingsAdmin.DELETE("/backups/:filename", h.AdminDeleteBackup)
 			settingsAdmin.GET("/server-status", h.AdminGetServiceStatus)
 		}
+
+		// 短信管理
+		admin.GET("/sms/logs", h.AdminListSmsLogs)
+		admin.GET("/sms/stats", h.AdminGetSmsStats)
 
 		// 服务分类管理（管理后台）
 		admin.GET("/services/categories", h.AdminListServiceCategories)

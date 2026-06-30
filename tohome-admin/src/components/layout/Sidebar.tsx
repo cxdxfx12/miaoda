@@ -82,6 +82,7 @@ const navGroups: NavGroup[] = [
       { href: '/payment-config', label: '支付配置', icon: CreditCard },
       { href: '/wechat-config', label: '微信配置', icon: MessageCircle },
       { href: '/virtual-phone', label: '虚拟电话', icon: Smartphone },
+      { href: '/sms-logs', label: '短信记录', icon: MessageSquare },
       { href: '/settings', label: '系统设置', icon: Settings },
     ],
   },

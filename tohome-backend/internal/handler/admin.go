@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -995,4 +996,93 @@ func (h *AdminHandler) AdminUpdateConfigSetting(group string) gin.HandlerFunc {
 		c.Params = gin.Params{gin.Param{Key: "group", Value: group}}
 		h.AdminBatchUpdateConfig(c)
 	}
+}
+
+// --------------- 短信管理 ---------------
+
+// AdminListSmsLogs 管理后台短信日志列表
+func (h *AdminHandler) AdminListSmsLogs(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "20"))
+	phone := c.Query("phone")
+	status, _ := strconv.Atoi(c.DefaultQuery("status", "-1"))
+
+	db := database.Database()
+	if db == nil {
+		response.ServerError(c, "数据库不可用")
+		return
+	}
+
+	args := []interface{}{}
+	where := "1=1"
+	if phone != "" {
+		where += fmt.Sprintf(" AND phone LIKE $%d", len(args)+1)
+		args = append(args, "%"+phone+"%")
+	}
+	if status >= 0 {
+		where += fmt.Sprintf(" AND status = $%d", len(args)+1)
+		args = append(args, status)
+	}
+
+	var total int64
+	countArgs := make([]interface{}, len(args))
+	copy(countArgs, args)
+	if err := db.GetContext(c.Request.Context(), &total, fmt.Sprintf("SELECT COUNT(*) FROM sms_logs WHERE %s", where), countArgs...); err != nil {
+		response.ServerError(c, err.Error())
+		return
+	}
+
+	offset := (page - 1) * pageSize
+	args = append(args, pageSize, offset)
+
+	type smsLogRow struct {
+		ID        int64     `db:"id" json:"id"`
+		Phone     string    `db:"phone" json:"phone"`
+		Code      string    `db:"code" json:"code"`
+		Type      string    `db:"type" json:"type"`
+		Content   string    `db:"content" json:"content"`
+		Provider  string    `db:"provider" json:"provider"`
+		Status    int       `db:"status" json:"status"`
+		Result    string    `db:"result" json:"result"`
+		IP        string    `db:"ip" json:"ip"`
+		CreatedAt time.Time `db:"created_at" json:"created_at"`
+	}
+
+	var rows []smsLogRow
+	query := fmt.Sprintf(`SELECT * FROM sms_logs WHERE %s ORDER BY created_at DESC LIMIT $%d OFFSET $%d`, where, len(args)-1, len(args))
+	if err := db.SelectContext(c.Request.Context(), &rows, query, args...); err != nil {
+		response.ServerError(c, err.Error())
+		return
+	}
+
+	if rows == nil {
+		rows = []smsLogRow{}
+	}
+	response.Page(c, rows, total, page, pageSize)
+}
+
+// AdminGetSmsStats 短信发送统计
+func (h *AdminHandler) AdminGetSmsStats(c *gin.Context) {
+	db := database.Database()
+	if db == nil {
+		response.ServerError(c, "数据库不可用")
+		return
+	}
+
+	var total, success, fail int64
+	var todayCount int64
+
+	_ = db.GetContext(c.Request.Context(), &total, `SELECT COUNT(*) FROM sms_logs`)
+	_ = db.GetContext(c.Request.Context(), &success, `SELECT COUNT(*) FROM sms_logs WHERE status = 1`)
+	_ = db.GetContext(c.Request.Context(), &fail, `SELECT COUNT(*) FROM sms_logs WHERE status = 2`)
+
+	today := time.Now().Truncate(24 * time.Hour)
+	_ = db.GetContext(c.Request.Context(), &todayCount, `SELECT COUNT(*) FROM sms_logs WHERE created_at >= $1`, today)
+
+	response.Success(c, gin.H{
+		"total":        total,
+		"success":      success,
+		"fail":         fail,
+		"today_count":  todayCount,
+	})
 }

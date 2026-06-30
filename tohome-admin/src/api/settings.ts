@@ -67,6 +67,12 @@ export const settingsApi = {
   deleteBackup: (filename: string) =>
     api.delete(`/api/v1/admin/settings/backups/${encodeURIComponent(filename)}`),
 
+  getSms: () =>
+    api.get('/api/v1/admin/settings/sms'),
+
+  saveSms: (data: Record<string, unknown>) =>
+    api.post('/api/v1/admin/settings/sms', data),
+
   getServerStatus: () =>
     api.get('/api/v1/admin/settings/server-status'),
 };
