@@ -23,7 +23,7 @@ volumes:
 
 # 通用环境变量
 x-common-env: &common-env
-  TZ: Asia/Shanghai
+  TZ: UTC
   POSTGRES_HOST: postgres
   POSTGRES_PORT: 5432
   POSTGRES_USER: tohome
