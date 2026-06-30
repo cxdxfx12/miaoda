@@ -382,8 +382,8 @@ func (s *OrderService) GetCurrentOrder(ctx context.Context, talentID int64) (*mo
 }
 
 // AdminListOrders 管理员订单列表
-func (s *OrderService) AdminListOrders(ctx context.Context, status []int, page, pageSize int) ([]model.Order, int64, error) {
-	return s.orderRepo.ListAll(ctx, status, page, pageSize)
+func (s *OrderService) AdminListOrders(ctx context.Context, status []int, keyword, startDate, endDate string, page, pageSize int) ([]model.Order, int64, error) {
+	return s.orderRepo.ListAll(ctx, status, keyword, startDate, endDate, page, pageSize)
 }
 
 // AdminAssignOrder 管理员分配订单给技师

@@ -83,6 +83,7 @@ func RegisterOrderRoutes(r *gin.Engine, h *handler.OrderHandler, jwtCfg *config.
 	admin.Use(middleware.AdminAuth(jwtCfg))
 	{
 		admin.GET("", h.AdminListOrders)
+		admin.GET("/export", h.AdminExportOrders)
 		admin.GET("/:id", h.AdminGetOrderDetail)
 		admin.POST("/:id/assign", h.AdminAssignOrder)
 	}

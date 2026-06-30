@@ -189,6 +189,27 @@ export default function OrdersPage() {
     return v || fallback;
   };
 
+  const handleExport = async () => {
+    try {
+      const params: any = {};
+      if (activeTab !== '全部') params.status = tabStatusMap[activeTab];
+      if (keyword) params.keyword = keyword;
+      const res = await fetch('/api/v1/admin/orders/export?' + new URLSearchParams(params).toString(), {
+        headers: { 'Authorization': 'Bearer ' + localStorage.getItem('admin_token') },
+      });
+      if (!res.ok) throw new Error('导出失败');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = '订单数据.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      alert('导出失败');
+    }
+  };
+
   return (
     <AdminLayout>
       <PageHeader
@@ -198,10 +219,7 @@ export default function OrdersPage() {
         subtitle="管理和追踪所有服务订单，支持按状态筛选、关键词搜索和详情查看"
         actions={
           <div className="flex gap-2">
-            <button className="flex items-center gap-1.5 rounded-lg border border-white/20 bg-white/10 px-3 py-1.5 text-sm text-white/80 hover:bg-white/20">
-              <Filter className="h-4 w-4" />筛选
-            </button>
-            <button className="flex items-center gap-1.5 rounded-lg bg-white/20 px-3 py-1.5 text-sm text-white hover:bg-white/30">
+            <button onClick={handleExport} className="flex items-center gap-1.5 rounded-lg bg-white/20 px-3 py-1.5 text-sm text-white hover:bg-white/30">
               <Download className="h-4 w-4" />导出
             </button>
           </div>

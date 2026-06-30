@@ -274,7 +274,7 @@ func (s *TalentService) AdminList(ctx context.Context, page, pageSize, status in
 	if status >= 0 {
 		statusFilter = &status
 	}
-	return s.talentRepo.List(ctx, statusFilter, page, pageSize)
+	return s.talentRepo.List(ctx, statusFilter, keyword, page, pageSize)
 }
 
 // AdminGetDetail 管理员获取达人详情

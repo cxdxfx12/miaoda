@@ -183,15 +183,20 @@ func (r *TalentRepository) FindNearby(ctx context.Context, lat, lng, radius floa
 }
 
 // List 达人列表（管理后台）
-func (r *TalentRepository) List(ctx context.Context, status *int, page, pageSize int) ([]model.Talent, int64, error) {
+func (r *TalentRepository) List(ctx context.Context, status *int, keyword string, page, pageSize int) ([]model.Talent, int64, error) {
 	var talents []model.Talent
 	var total int64
 
 	args := []interface{}{}
 	where := "deleted_at IS NULL"
 	if status != nil {
-		where += " AND status = $1"
+		where += fmt.Sprintf(" AND status = $%d", len(args)+1)
 		args = append(args, *status)
+	}
+	if keyword != "" {
+		kw := "%" + keyword + "%"
+		where += fmt.Sprintf(" AND (real_name ILIKE $%d OR phone ILIKE $%d)", len(args)+1, len(args)+2)
+		args = append(args, kw, kw)
 	}
 
 	if err := r.db.GetContext(ctx, &total,

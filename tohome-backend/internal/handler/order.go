@@ -3,6 +3,7 @@ package handler
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -315,6 +316,9 @@ func (h *OrderHandler) AdminListOrders(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "20"))
 	statusStr := c.Query("status")
+	keyword := c.Query("keyword")
+	startDate := c.Query("start_date")
+	endDate := c.Query("end_date")
 
 	var status []int
 	if statusStr != "" {
@@ -323,12 +327,68 @@ func (h *OrderHandler) AdminListOrders(c *gin.Context) {
 		}
 	}
 
-	orders, total, err := h.orderService.AdminListOrders(c.Request.Context(), status, page, pageSize)
+	orders, total, err := h.orderService.AdminListOrders(c.Request.Context(), status, keyword, startDate, endDate, page, pageSize)
 	if err != nil {
 		response.ServerError(c, "获取订单列表失败")
 		return
 	}
 	response.Page(c, orders, total, page, pageSize)
+}
+
+// AdminExportOrders 管理员导出订单
+func (h *OrderHandler) AdminExportOrders(c *gin.Context) {
+	statusStr := c.Query("status")
+	keyword := c.Query("keyword")
+	startDate := c.Query("start_date")
+	endDate := c.Query("end_date")
+
+	var status []int
+	if statusStr != "" {
+		if v, err := strconv.Atoi(statusStr); err == nil {
+			status = append(status, v)
+		}
+	}
+
+	orders, _, err := h.orderService.AdminListOrders(c.Request.Context(), status, keyword, startDate, endDate, 1, 10000)
+	if err != nil {
+		response.ServerError(c, "导出失败")
+		return
+	}
+
+	// 生成 CSV
+	c.Header("Content-Type", "text/csv; charset=utf-8")
+	c.Header("Content-Disposition", "attachment; filename=orders.csv")
+	// BOM for Excel UTF-8
+	c.Writer.Write([]byte{0xEF, 0xBB, 0xBF})
+	c.Writer.WriteString("订单号,用户手机,技师手机,服务名称,状态,金额,支付方式,下单时间,预约时间\n")
+	for _, o := range orders {
+		c.Writer.WriteString(fmt.Sprintf("%s,%s,%s,%s,%s,%.2f,%s,%s,%s\n",
+			o.OrderNo,
+			o.UserPhone,
+			func() string { if o.TalentPhone != nil { return *o.TalentPhone }; return "" }(),
+			o.ServiceName,
+			orderStatusText(o.Status),
+			o.FinalAmount,
+			func() string { if o.PaidAt != nil { return "已支付" }; return "-" }(),
+			o.CreatedAt.Format("2006-01-02 15:04:05"),
+			o.AppointmentTime.Format("2006-01-02 15:04:05"),
+		))
+	}
+}
+
+func orderStatusText(s int) string {
+	switch s {
+	case 0: return "待支付"
+	case 1: return "待接单"
+	case 2: return "已接单"
+	case 3: return "已出发"
+	case 4: return "已到达"
+	case 5: return "服务中"
+	case 6: return "已完成"
+	case 7: return "已取消"
+	case 8: return "已退款"
+	default: return "未知"
+	}
 }
 
 // AdminGetOrderDetail 管理员订单详情

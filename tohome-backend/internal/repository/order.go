@@ -146,15 +146,29 @@ func (r *OrderRepository) GetCurrentByTechnicianID(ctx context.Context, techID i
 }
 
 // ListAll 管理员订单列表（所有状态）
-func (r *OrderRepository) ListAll(ctx context.Context, status []int, page, pageSize int) ([]model.Order, int64, error) {
+func (r *OrderRepository) ListAll(ctx context.Context, status []int, keyword, startDate, endDate string, page, pageSize int) ([]model.Order, int64, error) {
 	orders := make([]model.Order, 0)
 	var total int64
 
 	args := []interface{}{}
 	where := "1=1"
 	if len(status) > 0 {
-		where = "status = ANY($1)"
+		where = fmt.Sprintf("status = ANY($%d)", len(args)+1)
 		args = append(args, status)
+	}
+	if keyword != "" {
+		kw := "%" + keyword + "%"
+		where += fmt.Sprintf(" AND (order_no ILIKE $%d OR user_phone ILIKE $%d OR technician_phone ILIKE $%d OR service_name ILIKE $%d)",
+			len(args)+1, len(args)+2, len(args)+3, len(args)+4)
+		args = append(args, kw, kw, kw, kw)
+	}
+	if startDate != "" {
+		where += fmt.Sprintf(" AND created_at >= $%d", len(args)+1)
+		args = append(args, startDate)
+	}
+	if endDate != "" {
+		where += fmt.Sprintf(" AND created_at < $%d", len(args)+1)
+		args = append(args, endDate+"T23:59:59")
 	}
 
 	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM orders WHERE %s", where)
