@@ -6302,7 +6302,9 @@ function TalentWorkbenchPage() {
                     background: '#F9FAFB', borderRadius: 12, cursor: 'pointer',
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <span style={{ fontSize: 20 }}>{cat.icon || '📦'}</span>
+                      <div style={{ width: 28, height: 28, borderRadius: 8, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        {renderServiceIcon(cat.icon, 28)}
+                      </div>
                       <span style={{ fontSize: 14, fontWeight: 700, color: '#1F2937' }}>{cat.name}</span>
                       <span style={{ fontSize: 12, color: '#9CA3AF' }}>({cat.services?.length || 0})</span>
                     </div>
@@ -6317,8 +6319,8 @@ function TalentWorkbenchPage() {
                           const isMy = myServiceIds.has(svc.id);
                           return (
                             <div key={svc.id} style={{ display: 'flex', alignItems: 'center', padding: '10px 8px', borderBottom: '1px solid #F3F4F6' }}>
-                              <div style={{ width: 36, height: 36, borderRadius: 10, background: isMy ? '#EDE9FE' : '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>
-                                {svc.cover_image ? <img src={svc.cover_image} style={{ width: 36, height: 36, borderRadius: 10, objectFit: 'cover' }} /> : '✨'}
+                              <div style={{ width: 36, height: 36, borderRadius: 10, background: isMy ? '#EDE9FE' : '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, overflow: 'hidden' }}>
+                                {renderServiceIcon(svc.cover_image, 36)}
                               </div>
                               <div style={{ flex: 1, marginLeft: 10 }}>
                                 <div style={{ fontSize: 13, fontWeight: 700, color: isMy ? '#1F2937' : '#9CA3AF' }}>{svc.name}</div>
