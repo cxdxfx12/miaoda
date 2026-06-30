@@ -116,11 +116,9 @@ export default function SmsLogsPage() {
 
   const fmtTime = (t: string) => {
     if (!t) return '-';
-    const d = new Date(t + 'Z'); // 后端返回的时间无时区，按 UTC 处理
+    const d = new Date(t);
     if (Number.isNaN(d.getTime())) return t;
-    // 转为北京时间 UTC+8
-    const bj = new Date(d.getTime() + 8 * 60 * 60 * 1000);
-    return `${bj.getFullYear()}-${String(bj.getMonth() + 1).padStart(2, '0')}-${String(bj.getDate()).padStart(2, '0')} ${String(bj.getHours()).padStart(2, '0')}:${String(bj.getMinutes()).padStart(2, '0')}:${String(bj.getSeconds()).padStart(2, '0')}`;
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`;
   };
 
   const statCards = [
