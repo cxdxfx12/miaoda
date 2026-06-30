@@ -572,9 +572,16 @@ function LoadingView() {
    =================================================================== */
 function LoginPage() {
   const [error, setError] = useState('');
+  const [loginMode, setLoginMode] = useState<'wechat' | 'sms' | 'tech_sms'>('wechat');
+  const [phone, setPhone] = useState('');
+  const [code, setCode] = useState('');
+  const [smsSent, setSmsSent] = useState(false);
+  const [countdown, setCountdown] = useState(0);
   const nav = useNavigate();
   const loc = useLocation();
   const wechatLogin = useUserStore(s => s.wechatLogin);
+  const smsLogin = useUserStore(s => s.login);
+  const techLoginFn = useUserStore(s => s.techLogin);
   const loading = useUserStore(s => s.loading);
   const pendingInviteCode = localStorage.getItem('miaoda_invite_code') || '';
 
@@ -596,6 +603,43 @@ function LoginPage() {
       setError(err?.message || '微信授权失败，请重新登录');
     });
   }, [loc.search]);
+
+  // 倒计时
+  useEffect(() => {
+    if (countdown <= 0) return;
+    const t = setTimeout(() => setCountdown(countdown - 1), 1000);
+    return () => clearTimeout(t);
+  }, [countdown]);
+
+  const handleSendSms = async () => {
+    if (!phone || phone.length !== 11) { setError('请输入正确的手机号'); return; }
+    try {
+      await authApi.sendSms(phone);
+      setSmsSent(true);
+      setCountdown(60);
+      setError('');
+    } catch (err: any) {
+      setError(err?.response?.data?.message || '验证码发送失败');
+    }
+  };
+
+  const handleSmsLogin = async () => {
+    if (!phone || phone.length !== 11) { setError('请输入正确的手机号'); return; }
+    if (!code || code.length < 4) { setError('请输入验证码'); return; }
+    setError('');
+    try {
+      if (loginMode === 'tech_sms') {
+        await techLoginFn(phone, code);
+        finishLogin('/talent-workbench');
+      } else {
+        await smsLogin(phone, code, pendingInviteCode);
+        localStorage.removeItem('miaoda_invite_code');
+        finishLogin();
+      }
+    } catch (err: any) {
+      setError(err?.message || '登录失败');
+    }
+  };
 
   const handleWechatLogin = async () => {
     setError('');
@@ -656,20 +700,82 @@ function LoginPage() {
         padding: '28px 24px 24px', boxShadow: '0 24px 64px rgba(124,92,252,0.25)',
         zIndex: 1, animationDelay: '0.1s'
       }}>
-        <div style={{ textAlign: 'center', marginBottom: 22 }}>
-          <div style={{ width: 64, height: 64, borderRadius: 22, background: 'linear-gradient(135deg,#07C160,#18D976)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 30, fontWeight: 900, margin: '0 auto 14px', boxShadow: '0 14px 36px rgba(7,193,96,0.28)' }}>
-            微
-          </div>
-          <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--text-h)' }}>微信一键登录</div>
-          <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 6, lineHeight: 1.6 }}>
-            使用微信授权快速进入喵搭，不再提供短信或密码登录
-          </div>
+        {/* 登录模式切换 */}
+        <div style={{ display: 'flex', gap: 0, marginBottom: 24, background: 'var(--bg-tertiary)', borderRadius: 14, padding: 4 }}>
+          {[
+            { key: 'wechat' as const, label: '微信登录' },
+            { key: 'sms' as const, label: '用户登录' },
+            { key: 'tech_sms' as const, label: '达人登录' },
+          ].map(tab => (
+            <button key={tab.key} type="button" onClick={() => { setLoginMode(tab.key); setError(''); }}
+              style={{
+                flex: 1, padding: '10px 0', borderRadius: 11, border: 'none', cursor: 'pointer',
+                fontSize: 14, fontWeight: loginMode === tab.key ? 700 : 500,
+                background: loginMode === tab.key ? '#fff' : 'transparent',
+                color: loginMode === tab.key ? 'var(--primary)' : 'var(--text-secondary)',
+                boxShadow: loginMode === tab.key ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
+                transition: 'all 0.2s',
+              }}>
+              {tab.label}
+            </button>
+          ))}
         </div>
 
-        {error && <div style={{ color: 'var(--error)', fontSize: 13, marginBottom: 14, padding: '8px 12px', background: 'var(--error-bg)', borderRadius: 10 }}>{error}</div>}
-        <button type="button" onClick={handleWechatLogin} className="btn-primary" style={{ width: '100%', height: 52, fontSize: 16, borderRadius: 16, background: 'linear-gradient(135deg,#07C160,#18D976)', boxShadow: '0 14px 32px rgba(7,193,96,0.28)' }} disabled={loading}>
-          {loading ? '微信登录中...' : '微信一键登录'}
-        </button>
+        {loginMode === 'wechat' ? (
+          <>
+            <div style={{ textAlign: 'center', marginBottom: 22 }}>
+              <div style={{ width: 64, height: 64, borderRadius: 22, background: 'linear-gradient(135deg,#07C160,#18D976)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 30, fontWeight: 900, margin: '0 auto 14px', boxShadow: '0 14px 36px rgba(7,193,96,0.28)' }}>
+                微
+              </div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--text-h)' }}>微信一键登录</div>
+              <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 6, lineHeight: 1.6 }}>
+                使用微信授权快速进入喵搭
+              </div>
+            </div>
+            {error && <div style={{ color: 'var(--error)', fontSize: 13, marginBottom: 14, padding: '8px 12px', background: 'var(--error-bg)', borderRadius: 10 }}>{error}</div>}
+            <button type="button" onClick={handleWechatLogin} className="btn-primary" style={{ width: '100%', height: 52, fontSize: 16, borderRadius: 16, background: 'linear-gradient(135deg,#07C160,#18D976)', boxShadow: '0 14px 32px rgba(7,193,96,0.28)' }} disabled={loading}>
+              {loading ? '微信登录中...' : '微信一键登录'}
+            </button>
+          </>
+        ) : (
+          <>
+            <div style={{ marginBottom: 18 }}>
+              <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12 }}>
+                {loginMode === 'tech_sms' ? '达人手机号登录' : '手机号登录'}
+              </div>
+              <div style={{ position: 'relative', marginBottom: 12 }}>
+                <input type="tel" value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 11))}
+                  placeholder="请输入手机号" maxLength={11}
+                  style={{ width: '100%', height: 48, borderRadius: 14, border: '1.5px solid var(--border)', padding: '0 14px', fontSize: 15, outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
+                  onFocus={e => e.target.style.borderColor = 'var(--primary)'} onBlur={e => e.target.style.borderColor = 'var(--border)'}
+                />
+              </div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <input type="text" value={code} onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="请输入验证码" maxLength={6}
+                  style={{ flex: 1, height: 48, borderRadius: 14, border: '1.5px solid var(--border)', padding: '0 14px', fontSize: 15, outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
+                  onFocus={e => e.target.style.borderColor = 'var(--primary)'} onBlur={e => e.target.style.borderColor = 'var(--border)'}
+                />
+                <button type="button" onClick={handleSendSms} disabled={countdown > 0}
+                  style={{ minWidth: 110, height: 48, borderRadius: 14, border: 'none', cursor: countdown > 0 ? 'default' : 'pointer',
+                    fontSize: 13, fontWeight: 600, padding: '0 12px', boxSizing: 'border-box',
+                    background: countdown > 0 ? 'var(--bg-tertiary)' : loginMode === 'tech_sms' ? 'linear-gradient(135deg,#FF6B35,#FF8F5E)' : 'linear-gradient(135deg,var(--primary),#A78BFA)',
+                    color: countdown > 0 ? 'var(--text-tertiary)' : '#fff',
+                  }}>
+                  {countdown > 0 ? `${countdown}s` : '获取验证码'}
+                </button>
+              </div>
+            </div>
+            {error && <div style={{ color: 'var(--error)', fontSize: 13, marginBottom: 14, padding: '8px 12px', background: 'var(--error-bg)', borderRadius: 10 }}>{error}</div>}
+            <button type="button" onClick={handleSmsLogin} className="btn-primary" disabled={loading}
+              style={{ width: '100%', height: 52, fontSize: 16, borderRadius: 16,
+                background: loginMode === 'tech_sms' ? 'linear-gradient(135deg,#FF6B35,#FF8F5E)' : 'linear-gradient(135deg,var(--primary),#A78BFA)',
+                boxShadow: loginMode === 'tech_sms' ? '0 14px 32px rgba(255,107,53,0.28)' : '0 14px 32px rgba(124,92,252,0.28)',
+              }}>
+              {loading ? '登录中...' : loginMode === 'tech_sms' ? '达人登录' : '用户登录'}
+            </button>
+          </>
+        )}
 
         <div className="text-center" style={{ marginTop: 16, fontSize: 12, color: 'var(--text-tertiary)' }}>
           登录即表示同意 <span style={{ color: 'var(--primary)', cursor: 'pointer' }}>用户协议</span> 和 <span style={{ color: 'var(--primary)', cursor: 'pointer' }}>隐私政策</span>

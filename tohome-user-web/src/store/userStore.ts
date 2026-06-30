@@ -20,6 +20,7 @@ interface UserState {
   isLoggedIn: boolean;
   loading: boolean;
   login: (phone: string, code: string, inviteCode?: string) => Promise<void>;
+  techLogin: (phone: string, code: string) => Promise<void>;
   wechatLogin: (code: string, state?: string, inviteCode?: string) => Promise<void>;
   logout: () => Promise<void>;
   setUserInfo: (info: UserInfo) => void;
@@ -48,6 +49,26 @@ export const useUserStore = create<UserState>()(
           });
         } catch (err: any) {
           const msg = err?.response?.data?.message || err?.message || '登录失败';
+          set({ loading: false });
+          throw new Error(msg);
+        }
+      },
+
+      techLogin: async (phone, code) => {
+        set({ loading: true });
+        try {
+          const res: any = await authApi.techLogin(phone, code);
+          setToken(res.data.token);
+          const userInfo = res.data.user || {};
+          userInfo.user_type = 2;
+          set({
+            token: res.data.token,
+            userInfo,
+            isLoggedIn: true,
+            loading: false,
+          });
+        } catch (err: any) {
+          const msg = err?.response?.data?.message || err?.message || '达人登录失败';
           set({ loading: false });
           throw new Error(msg);
         }
