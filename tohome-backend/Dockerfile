@@ -27,8 +27,9 @@ FROM alpine:3.19
 RUN apk add --no-cache ca-certificates tzdata curl postgresql-client \
     && update-ca-certificates
 
-# 设置时区
-ENV TZ=Asia/Shanghai
+# 容器内使用 UTC 时区（Go time.Now() 返回 UTC）
+# 数据库时区通过 SET TIMEZONE='Asia/Shanghai' 设置为北京时间
+ENV TZ=UTC
 RUN ln -sf /usr/share/zoneinfo/${TZ} /etc/localtime \
     && echo ${TZ} > /etc/timezone
 

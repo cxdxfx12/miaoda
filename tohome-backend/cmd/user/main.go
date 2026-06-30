@@ -87,6 +87,7 @@ func main() {
 		gin.SetMode(gin.ReleaseMode)
 	}
 	r := gin.New()
+
 	r.Use(gin.Recovery())
 	r.Use(middleware.RequestID())
 	// CORS 由 Gateway 统一处理

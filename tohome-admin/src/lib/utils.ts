@@ -36,21 +36,20 @@ export function formatDate(date: string | Date, format: string = 'YYYY-MM-DD HH:
 }
 
 /**
- * 将后端返回的时间字符串转为北京时间显示
+ * 将后端返回的 UTC 时间字符串转为北京时间显示
  *
- * 后端容器时区为 Asia/Shanghai，Go time.Now() 返回北京时间，
- * 但 JSON 序列化时直接附加 "Z" 后缀（实际值是北京时间，非 UTC）。
- * 例如 "2026-06-30T17:20:26.548914Z" 实际代表北京时间 17:20:26。
- *
- * 处理方式：去掉末尾的 Z/+00:00 后缀，按本地时间解析，不额外加时区偏移。
+ * 后端容器时区为 UTC，Go time.Now() 返回 UTC 时间，
+ * JSON 序列化为 "2026-06-30T13:44:11.508413Z"。
+ * 前端统一 +8 小时显示北京时间。
  */
 export function fmtBeijingTime(t: string | undefined | null): string {
   if (!t) return '-';
-  // 去掉时区标识后缀，防止 new Date 按偏移
-  const clean = t.replace(/[Zz]$/, '').replace(/[+-]\d{2}:\d{2}$/, '');
-  const d = new Date(clean);
+  const d = new Date(t);
   if (Number.isNaN(d.getTime())) return t;
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`;
+  // 手动转为 UTC+8（北京时间），不依赖浏览器本地时区
+  const utc = d.getTime() + d.getTimezoneOffset() * 60000;
+  const bj = new Date(utc + 8 * 3600000);
+  return `${bj.getFullYear()}-${String(bj.getMonth() + 1).padStart(2, '0')}-${String(bj.getDate()).padStart(2, '0')} ${String(bj.getHours()).padStart(2, '0')}:${String(bj.getMinutes()).padStart(2, '0')}:${String(bj.getSeconds()).padStart(2, '0')}`;
 }
 
 export function maskPhone(phone: string): string {

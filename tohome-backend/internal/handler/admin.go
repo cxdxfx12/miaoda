@@ -1076,7 +1076,10 @@ func (h *AdminHandler) AdminGetSmsStats(c *gin.Context) {
 	_ = db.GetContext(c.Request.Context(), &success, `SELECT COUNT(*) FROM sms_logs WHERE status = 1`)
 	_ = db.GetContext(c.Request.Context(), &fail, `SELECT COUNT(*) FROM sms_logs WHERE status = 2`)
 
-	today := time.Now().Add(8 * time.Hour).Truncate(24 * time.Hour).Add(-8 * time.Hour) // 北京时间当天 0 点
+	today := time.Now().Truncate(24 * time.Hour).Add(-8 * time.Hour) // UTC 当日 0 点 - 8h = 北京时间昨日 16:00 → 北京时间今天 0 点
+	// 实际上：北京时间今天 0 点 = UTC 时间今天 0 点 - 8h
+	nowBJ := time.Now().Add(8 * time.Hour)
+	today = time.Date(nowBJ.Year(), nowBJ.Month(), nowBJ.Day(), 0, 0, 0, 0, time.UTC).Add(-8 * time.Hour)
 	_ = db.GetContext(c.Request.Context(), &todayCount, `SELECT COUNT(*) FROM sms_logs WHERE created_at >= $1`, today)
 
 	response.Success(c, gin.H{
