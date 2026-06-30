@@ -65,7 +65,7 @@ type DatabaseConfig struct {
 // DSN 生成数据库连接字符串
 func (d *DatabaseConfig) DSN() string {
 	return fmt.Sprintf(
-		"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s TimeZone=Asia/Shanghai",
+		"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
 		d.Host, d.Port, d.User, d.Password, d.DBName, d.SSLMode,
 	)
 }

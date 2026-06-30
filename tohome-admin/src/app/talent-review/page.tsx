@@ -5,6 +5,7 @@ import { Search, Check, X, Eye, UserCheck, Filter, Loader2 } from 'lucide-react'
 import { AdminLayout } from '@/components/layout/AdminLayout';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { talentApi } from '@/api/talents';
+import { fmtBeijingTime } from '@/lib/utils';
 
 interface ReviewItem {
   id: number;
@@ -61,7 +62,7 @@ const mapTalentToReviewItem = (t: any): ReviewItem => {
     district: districts[0] || '',
     certificates,
     status: backendStatusToFrontend(t.status),
-    applyTime: t.created_at ? new Date(t.created_at).toLocaleString('zh-CN') : '',
+    applyTime: fmtBeijingTime(t.created_at),
     avatar: (t.real_name || '?')[0],
     avatarUrl: t.avatar || '',
     lifePhotos,

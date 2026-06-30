@@ -5,6 +5,7 @@ import { AdminLayout } from '@/components/layout/AdminLayout';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Search, Download, Filter, MoreVertical, Eye, Phone, MessageSquare, Loader2, ShoppingBag } from 'lucide-react';
 import { orderApi } from '@/api/orders';
+import { fmtBeijingTime } from '@/lib/utils';
 
 const tabs = ['全部', '待支付', '待服务', '服务中', '已完成', '已取消', '已退款'];
 const tabStatusMap: Record<string, string> = {
@@ -51,12 +52,6 @@ function OrderDetailDrawer({ orderId, open, onClose }: { orderId: string | null;
         .catch(() => setLoading(false));
     }
   }, [open, orderId]);
-
-  const fmtTime = (t: string) => {
-    if (!t) return '-';
-    const d = new Date(t);
-    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-  };
 
   // 订单流程时间轴
   const flowSteps = [
@@ -119,7 +114,7 @@ function OrderDetailDrawer({ orderId, open, onClose }: { orderId: string | null;
                           </div>
                           <div className="pb-4">
                             <div className={`text-sm ${timeVal ? 'font-semibold text-gray-800' : 'text-gray-400'}`}>{step.label}</div>
-                            {timeVal && <div className="text-xs text-gray-400 mt-0.5">{fmtTime(timeVal)}</div>}
+                            {timeVal && <div className="text-xs text-gray-400 mt-0.5">{fmtBeijingTime(timeVal)}</div>}
                           </div>
                         </div>
                       );
@@ -136,12 +131,12 @@ function OrderDetailDrawer({ orderId, open, onClose }: { orderId: string | null;
                   { label: '达人', value: order.technician_name != null && typeof order.technician_name === 'object' ? (order.technician_name.String || '待分配') : (order.technician_name || '待分配') },
                   { label: '服务城市', value: order.city != null && typeof order.city === 'object' ? (order.city.String || '-') : (order.city || '-') },
                   { label: '服务地址', value: order.address },
-                  { label: '预约时间', value: order.appointment_time ? fmtTime(order.appointment_time) : '-' },
+                  { label: '预约时间', value: fmtBeijingTime(order.appointment_time) },
                   { label: '订单金额', value: `¥${order.amount || 0}` },
                   { label: '车费', value: order.travel_fee ? `¥${order.travel_fee}` : '-' },
                   { label: '合计支付', value: order.total_amount ? `¥${order.total_amount}` : '-' },
-                  { label: '下单时间', value: fmtTime(order.created_at) },
-                  { label: '支付时间', value: fmtTime(order.paid_at) },
+                  { label: '下单时间', value: fmtBeijingTime(order.created_at) },
+                  { label: '支付时间', value: fmtBeijingTime(order.paid_at) },
                 ].map((item, i) => (
                   <div key={i} className="flex justify-between py-2 border-b border-gray-50 last:border-0">
                     <span className="text-sm text-gray-500">{item.label}</span>
@@ -294,7 +289,7 @@ export default function OrdersPage() {
                     </span>
                   </td>
                   <td className="px-3 py-3 text-xs text-gray-500">
-                    {o.created_at ? new Date(o.created_at).toLocaleDateString('zh-CN') + ' ' + new Date(o.created_at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) : '-'}
+                    {fmtBeijingTime(o.created_at)}
                   </td>
                   <td className="px-3 py-3">
                     <div className="flex items-center gap-1">

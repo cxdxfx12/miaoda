@@ -5,6 +5,7 @@ import { AdminLayout } from '@/components/layout/AdminLayout';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Search, UserPlus, Crown, Loader2, X, Edit3, Trash2, Check, AlertTriangle, Users } from 'lucide-react';
 import { userApi } from '@/api/users';
+import { fmtBeijingTime } from '@/lib/utils';
 import type { UserCreateParams } from '@/api/users';
 
 const levelMap: Record<number, string> = {
@@ -224,8 +225,8 @@ export default function UsersPage() {
                         <Crown className="h-3 w-3" />{level}
                       </span>
                     </td>
-                    <td className="px-3 py-3 text-xs text-gray-500">{u.created_at ? new Date(u.created_at).toLocaleDateString('zh-CN') : '-'}</td>
-                    <td className="px-3 py-3 text-xs text-gray-500">{u.last_login_at ? new Date(u.last_login_at).toLocaleDateString('zh-CN') : '-'}</td>
+                    <td className="px-3 py-3 text-xs text-gray-500">{fmtBeijingTime(u.created_at)}</td>
+                    <td className="px-3 py-3 text-xs text-gray-500">{fmtBeijingTime(u.last_login_at)}</td>
                     <td className="px-3 py-3">
                       <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium ${
                         u.status === 1 ? 'bg-[#E6F9F0] text-[#10B981]' : 'bg-red-50 text-[#EF4444]'

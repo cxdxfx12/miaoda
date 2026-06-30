@@ -5,6 +5,7 @@ import { AdminLayout } from '@/components/layout/AdminLayout';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Star, ThumbsUp, MessageSquare, Loader2 } from 'lucide-react';
 import { reviewApi } from '@/api';
+import { fmtBeijingTime } from '@/lib/utils';
 
 interface Review { id: number; user_name: string; talent_name: string; rating: number; content: string; tags: any; reply_content?: string; created_at: string; }
 interface ReviewStats { total_reviews: number; reply_rate: string; avg_rating: string; pending_reply: number; }
@@ -96,7 +97,7 @@ export default function ReviewsPage() {
                           <span className="text-xs text-gray-400">评价达人</span>
                           <span className="font-medium text-[#6B7FD7]">{r.talent_name}</span>
                         </div>
-                        <span className="text-xs text-gray-400">{r.created_at}</span>
+                        <span className="text-xs text-gray-400">{fmtBeijingTime(r.created_at)}</span>
                       </div>
                       <div className="mt-1 flex items-center gap-1">
                         {Array.from({ length: 5 }).map((_, i) => (

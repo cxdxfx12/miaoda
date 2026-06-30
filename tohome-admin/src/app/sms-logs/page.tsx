@@ -16,6 +16,7 @@ import {
   Percent,
 } from 'lucide-react';
 import { api } from '@/lib/api';
+import { fmtBeijingTime } from '@/lib/utils';
 
 interface SmsLog {
   id: number;
@@ -112,13 +113,6 @@ export default function SmsLogsPage() {
     setStartDate('');
     setEndDate('');
     setPage(1);
-  };
-
-  const fmtTime = (t: string) => {
-    if (!t) return '-';
-    const d = new Date(t);
-    if (Number.isNaN(d.getTime())) return t;
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`;
   };
 
   const statCards = [
@@ -337,7 +331,7 @@ export default function SmsLogsPage() {
                         {log.ip || '-'}
                       </td>
                       <td className="whitespace-nowrap px-5 py-3 text-xs text-gray-400">
-                        {fmtTime(log.created_at)}
+                        {fmtBeijingTime(log.created_at)}
                       </td>
                     </tr>
                   ))}

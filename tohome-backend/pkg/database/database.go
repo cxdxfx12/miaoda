@@ -30,6 +30,9 @@ func InitPostgres(cfg *config.DatabaseConfig) error {
 	db.SetMaxIdleConns(cfg.MaxIdleConns)
 	db.SetConnMaxLifetime(cfg.ConnMaxLifetime)
 
+	// 设置全局时区为北京时间（对整个连接池生效）
+	_, _ = db.Exec("SET TIMEZONE = 'Asia/Shanghai'")
+
 	// 测试连接
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

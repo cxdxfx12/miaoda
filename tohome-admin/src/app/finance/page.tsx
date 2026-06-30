@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { AdminLayout } from '@/components/layout/AdminLayout';
 import { PageHeader } from '@/components/layout/PageHeader';
-import dayjs from 'dayjs';
+import { fmtBeijingTime } from '@/lib/utils';
 import { Download, ArrowUpRight, Wallet, CreditCard, Coins, Receipt, Loader2 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { financeApi } from '@/api';
@@ -167,7 +167,7 @@ export default function FinancePage() {
                             t.status === '成功' ? 'bg-[#E6F9F0] text-[#10B981]' : 'bg-[#FFF4E0] text-[#FF9800]'
                           }`}>{t.status}</span>
                         </td>
-                        <td className="px-3 py-3 text-xs text-gray-500">{t.created_at ? dayjs(t.created_at).format('YYYY-MM-DD HH:mm') : '--'}</td>
+                        <td className="px-3 py-3 text-xs text-gray-500">{fmtBeijingTime(t.created_at)}</td>
                       </tr>
                     ))
                   )}

@@ -5,6 +5,7 @@ import { AdminLayout } from '@/components/layout/AdminLayout';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Save, Bell, Shield, Globe, Database, Server, MessageSquare, Loader2, Headphones, Percent, Car, Send, FileText, Download, RotateCcw, Trash2, RefreshCw, HardDrive } from 'lucide-react';
 import { settingsApi } from '@/api';
+import { fmtBeijingTime } from '@/lib/utils';
 
 const defaultSupportKnowledge = `[
   {
@@ -301,13 +302,6 @@ export default function SettingsPage() {
     setConfigData(prev => ({ ...prev, [key]: value }));
   };
 
-  const formatBackupTime = (value: string) => {
-    if (!value) return '--';
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return value;
-    return date.toLocaleString('zh-CN', { hour12: false });
-  };
-
   const renderField = (label: string, key: string, type = 'text') => (
     <div key={key}>
       <label className="mb-1.5 block text-sm font-medium text-gray-700">{label}</label>
@@ -572,7 +566,7 @@ export default function SettingsPage() {
                     <span className="rounded-full bg-[#EEF2FF] px-2.5 py-1 text-[11px] font-medium text-[#6B7FD7]">{backup.description || '手动备份'}</span>
                   </div>
                   <div className="mt-3 grid grid-cols-2 gap-3 text-xs text-gray-500 md:grid-cols-4">
-                    <div><span className="text-gray-400">备份时间</span><div className="mt-1 font-medium text-[#374151]">{formatBackupTime(backup.created_at)}</div></div>
+                    <div><span className="text-gray-400">备份时间</span><div className="mt-1 font-medium text-[#374151]">{fmtBeijingTime(backup.created_at)}</div></div>
                     <div><span className="text-gray-400">文件大小</span><div className="mt-1 font-medium text-[#374151]">{backup.size_text || '--'}</div></div>
                     <div><span className="text-gray-400">数据库</span><div className="mt-1 font-medium text-[#374151]">{backup.db_name || '--'}</div></div>
                     <div><span className="text-gray-400">数据范围</span><div className="mt-1 font-medium text-[#374151]">{backup.table_count || 0} 张表 / {backup.total_rows || 0} 行</div></div>

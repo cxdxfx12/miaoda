@@ -35,6 +35,21 @@ export function formatDate(date: string | Date, format: string = 'YYYY-MM-DD HH:
     .replace('ss', seconds);
 }
 
+/**
+ * 将后端返回的 UTC 时间字符串转为北京时间显示
+ * 后端返回格式: "2026-06-30T13:44:11.508413Z" 或 "2026-06-30T13:44:11.508413+00:00"
+ * 无论用户浏览器处于哪个时区，都固定输出北京时间 (UTC+8)
+ */
+export function fmtBeijingTime(t: string | undefined | null): string {
+  if (!t) return '-';
+  const d = new Date(t);
+  if (Number.isNaN(d.getTime())) return t;
+  // 手动转为 UTC+8（北京时间），不依赖浏览器本地时区
+  const utc = d.getTime() + d.getTimezoneOffset() * 60000;
+  const bj = new Date(utc + 8 * 3600000);
+  return `${bj.getFullYear()}-${String(bj.getMonth() + 1).padStart(2, '0')}-${String(bj.getDate()).padStart(2, '0')} ${String(bj.getHours()).padStart(2, '0')}:${String(bj.getMinutes()).padStart(2, '0')}:${String(bj.getSeconds()).padStart(2, '0')}`;
+}
+
 export function maskPhone(phone: string): string {
   if (phone.length !== 11) return phone;
   return phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2');
