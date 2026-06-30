@@ -165,8 +165,16 @@ type ThirdPartySMSConfig struct {
 	Provider   string           `mapstructure:"provider"`
 	Aliyun     SMSAliyunConfig  `mapstructure:"aliyun"`
 	Tencent    SMSTencentConfig `mapstructure:"tencent"`
+	SmsBao     SMSSmsBaoConfig  `mapstructure:"smsbao"`
 	RateLimit  int              `mapstructure:"rate_limit"`
 	CodeExpire int              `mapstructure:"code_expire"`
+}
+
+// SMSSmsBaoConfig 短信宝配置
+type SMSSmsBaoConfig struct {
+	Username  string `mapstructure:"username"`
+	APIKey    string `mapstructure:"api_key"`
+	SignName  string `mapstructure:"sign_name"`
 }
 
 // ThirdPartyVirtualPhoneConfig 虚拟电话配置

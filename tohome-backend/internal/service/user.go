@@ -7,6 +7,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
+	"net/url"
+	"strings"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -274,7 +278,80 @@ func (s *UserService) SendSmsCode(ctx context.Context, phone string) error {
 	// 实际项目中调用短信服务发送验证码
 	logger.Info("向手机号 %s 发送验证码: %s", phone, code)
 
+	// 调用短信宝 API 发送短信
+	smsCfg := config.GetString("third_party.sms.provider")
+	if smsCfg == "smsbao" {
+		if err := sendSmsBaoCode(phone, code); err != nil {
+			logger.Error("短信宝发送失败: %v", err)
+			// 发送失败不影响验证码存储（开发环境可继续用万能验证码）
+		}
+	}
+
 	return nil
+}
+
+// sendSmsBaoCode 通过短信宝发送验证码
+func sendSmsBaoCode(phone, code string) error {
+	username := config.GetString("third_party.sms.smsbao.username")
+	apiKey := config.GetString("third_party.sms.smsbao.api_key")
+	signName := config.GetString("third_party.sms.smsbao.sign_name")
+
+	if username == "" || apiKey == "" {
+		return fmt.Errorf("短信宝配置缺失")
+	}
+
+	if signName == "" {
+		signName = "喵搭"
+	}
+
+	// 短信内容格式：【签名】验证码内容
+	content := fmt.Sprintf("【%s】您的验证码是%s，5分钟内有效，请勿泄露给他人。", signName, code)
+
+	// 短信宝 API: https://api.smsbao.com/sms?u=USERNAME&p=APIKEY&m=PHONE&c=CONTENT
+	apiURL := fmt.Sprintf("https://api.smsbao.com/sms?u=%s&p=%s&m=%s&c=%s",
+		url.QueryEscape(username),
+		apiKey,
+		url.QueryEscape(phone),
+		url.QueryEscape(content),
+	)
+
+	resp, err := http.Get(apiURL)
+	if err != nil {
+		return fmt.Errorf("请求短信宝失败: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("读取短信宝响应失败: %w", err)
+	}
+
+	result := strings.TrimSpace(string(body))
+	// 短信宝返回状态码：0=成功, 其他为错误
+	if result != "0" {
+		errMsg := smsBaoCode(result)
+		return fmt.Errorf("短信宝返回错误: %s (%s)", errMsg, result)
+	}
+
+	logger.Info("短信宝发送成功: phone=%s", phone)
+	return nil
+}
+
+// smsBaoCode 短信宝状态码转错误信息
+func smsBaoCode(code string) string {
+	codes := map[string]string{
+		"0":  "发送成功",
+		"30": "密码错误",
+		"40": "账号不存在",
+		"41": "余额不足",
+		"43": "IP地址限制",
+		"50": "内容含有敏感词",
+		"51": "手机号码不正确",
+	}
+	if msg, ok := codes[code]; ok {
+		return msg
+	}
+	return fmt.Sprintf("未知错误(%s)", code)
 }
 
 // verifySmsCode 验证短信验证码

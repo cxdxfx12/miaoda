@@ -100,7 +100,11 @@ third_party:
   
   # 短信服务
   sms:
-    provider: aliyun  # aliyun / tencent
+    provider: smsbao  # smsbao / aliyun / tencent
+    smsbao:
+      username: hxm_zj
+      api_key: 7b76c5dd923f4484a618d1b16541e29f
+      sign_name: 喵搭
     aliyun:
       access_key_id: your-access-key-id
       access_key_secret: your-access-secret
