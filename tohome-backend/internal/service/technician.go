@@ -463,11 +463,17 @@ func (s *TalentService) SyncSkillsFromDB(ctx context.Context, talentID int64) {
 	var ids []int64
 	err := s.talentRepo.DB.SelectContext(ctx, &ids, "SELECT service_id FROM talent_services WHERE talent_id = $1 ORDER BY sort_order, id", talentID)
 	if err != nil {
-		logger.Warn("SyncSkillsFromDB 查询失败: %v", err)
+		logger.Error("SyncSkillsFromDB 查询失败: talentID=%d err=%v", talentID, err)
 		return
 	}
 	skillsJSON, _ := json.Marshal(ids)
-	s.talentRepo.DB.ExecContext(ctx, "UPDATE technicians SET skills = $1 WHERE id = $2", skillsJSON, talentID)
+	res, err := s.talentRepo.DB.ExecContext(ctx, "UPDATE technicians SET skills = $1 WHERE id = $2", skillsJSON, talentID)
+	if err != nil {
+		logger.Error("SyncSkillsFromDB UPDATE 失败: talentID=%d err=%v", talentID, err)
+		return
+	}
+	ra, _ := res.RowsAffected()
+	logger.Info("SyncSkillsFromDB 成功: talentID=%d skills=%s rowsAffected=%d", talentID, string(skillsJSON), ra)
 }
 
 // syncTalentServices 同步达人服务到 talent_services 关联表
